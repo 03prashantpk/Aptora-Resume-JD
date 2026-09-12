@@ -1,7 +1,13 @@
-// POST /api/ai/tailor-stream — streams tailored LaTeX as Server-Sent Events.
-// The browser consumes deltas so the editor fills live while AI writes. Key stays server-side.
+// POST /api/ai/tailor — surgically tailors LaTeX to a job description.
+//
+// HOW IT WORKS (surgical approach):
+//   Old: Regenerate the entire 1000+ line LaTeX document (hit token limit mid-doc → broken LaTeX)
+//   New: Extract editable text regions → AI rewrites only those snippets as JSON →
+//        stitch back into the untouched original template
+//
+// Returns JSON: { latex: string, changedCount: number }
 import type { APIRoute } from "astro";
-import { tailorLatexStream } from "@/lib/ai/tailor";
+import { surgicalTailor } from "@/lib/ai/surgical";
 import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
 
 export const prerender = false;
@@ -26,34 +32,22 @@ export const POST: APIRoute = async (ctx) => {
       status: 402, headers: { "content-type": "application/json" },
     });
   }
-  await bumpUsage(ownerId, "ai_calls");
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (event: string, data: unknown) =>
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
-      try {
-        for await (const delta of tailorLatexStream(latex, jd, level)) {
-          send("delta", { text: delta });
-        }
-        send("done", {});
-      } catch {
-        // Never leak provider errors / keys.
-        send("error", { message: "Tailoring is unavailable right now." });
-      } finally {
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-store",
-      connection: "keep-alive",
-    },
-  });
+  try {
+    const result = await surgicalTailor(latex, jd, level);
+    // Only bump usage AFTER a successful AI call (fix: old code bumped before the call)
+    await bumpUsage(ownerId, "ai_calls");
+    return new Response(
+      JSON.stringify({ latex: result.latex, changedCount: result.changed.length }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  } catch {
+    // Never leak provider errors or keys.
+    return new Response(
+      JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "Tailoring is unavailable right now." } }),
+      { status: 502, headers: { "content-type": "application/json" } },
+    );
+  }
 };
 
 function bad(message: string): Response {

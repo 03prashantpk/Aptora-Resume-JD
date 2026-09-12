@@ -220,7 +220,123 @@ def render_t03(d: ResumeJSON) -> str:
 """
 
 
-REGISTRY = {"T01": render_t01, "T02": render_t02, "T03": render_t03}
+def render_t04(d: ResumeJSON) -> str:
+    def experience() -> str:
+        out = "\\resumeSubHeadingListStart\n"
+        for e in d.experience:
+            out += f"  \\resumeSubheading\n    {{{esc(e.org)}}}{{{esc(e.dates)}}}\n    {{{esc(e.title)}}}{{}}\n    \\resumeItemListStart\n"
+            for b in e.bullets:
+                out += f"      \\resumeItem{{{esc(b)}}}\n"
+            out += "    \\resumeItemListEnd\n"
+        return out + "  \\resumeSubHeadingListEnd\n"
+
+    def projects() -> str:
+        if not d.projects:
+            return ""
+        out = "\\resumeSubHeadingListStart\n"
+        for p in d.projects:
+            out += f"  \\resumeProjectHeading\n    {{\\textbf{{{esc(p.name)}}}}}{{}}\n    \\resumeItemListStart\n      \\resumeItem{{{esc(p.description)}}}\n    \\resumeItemListEnd\n"
+        return out + "  \\resumeSubHeadingListEnd\n"
+
+    def skills() -> str:
+        lines = []
+        for s in d.skills:
+            lines.append(f"     \\textbf{{{esc(s.label)}}}{{: {esc(s.items)}}} \\\\")
+        return "\n".join(lines)
+
+    def education() -> str:
+        out = "\\resumeSubHeadingListStart\n"
+        for e in d.education:
+            out += f"  \\resumeSubheading\n    {{{esc(e.text)}}}{{{esc(e.dates)}}}\n    {{Degree / Major}}{{}}\n"
+        return out + "  \\resumeSubHeadingListEnd\n"
+
+    summary_sec = f"\\section{{Summary}}\n{esc(d.summary)}\n" if d.summary else ""
+    exp_sec = f"\\section{{Experience}}\n{experience()}" if d.experience else ""
+    proj_sec = f"\\section{{Projects}}\n{projects()}" if d.projects else ""
+    sk_sec = f"\\section{{Technical Skills}}\n \\begin{{itemize}}[leftmargin=0.15in, label={{}}]\n    \\small{{\\item{{\n{skills()}\n    }}}}\n \\end{{itemize}}\n" if d.skills else ""
+    edu_sec = f"\\section{{Education}}\n{education()}" if d.education else ""
+
+    contact_parts = []
+    if d.contact.phone:
+        contact_parts.append(esc(d.contact.phone))
+    if d.contact.email:
+        contact_parts.append(f"\\href{{mailto:{d.contact.email}}}{{\\underline{{{esc(d.contact.email)}}}}}")
+    if d.contact.linkedin:
+        contact_parts.append(f"\\href{{https://{d.contact.linkedin}}}{{\\underline{{LinkedIn}}}}")
+    if d.contact.github:
+        contact_parts.append(f"\\href{{https://{d.contact.github}}}{{\\underline{{GitHub}}}}")
+    contacts_str = " $|$\n    ".join(contact_parts)
+
+    return f"""\\documentclass[letterpaper,11pt]{{article}}
+\\usepackage{{latexsym}}
+\\usepackage[empty]{{fullpage}}
+\\usepackage{{titlesec}}
+\\usepackage{{marvosym}}
+\\usepackage[usenames,dvipsnames]{{color}}
+\\usepackage{{verbatim}}
+\\usepackage{{enumitem}}
+\\usepackage[hidelinks]{{hyperref}}
+\\usepackage{{fancyhdr}}
+\\usepackage[english]{{babel}}
+\\usepackage{{tabularx}}
+\\usepackage{{fontawesome5}}
+\\ifdefined\\pdfgentounicode
+  \\input{{glyphtounicode}}
+  \\pdfgentounicode=1
+\\fi
+\\pagestyle{{fancy}}
+\\fancyhf{{}}
+\\fancyfoot{{}}
+\\renewcommand{{\\headrulewidth}}{{0pt}}
+\\renewcommand{{\\footrulewidth}}{{0pt}}
+\\addtolength{{\\oddsidemargin}}{{-0.5in}}
+\\addtolength{{\\evensidemargin}}{{-0.5in}}
+\\addtolength{{\\textwidth}}{{1in}}
+\\addtolength{{\\topmargin}}{{-.5in}}
+\\addtolength{{\\textheight}}{{1.0in}}
+\\definecolor{{darkblue}}{{RGB}}{{0,0,139}}
+\\urlstyle{{same}}
+\\raggedbottom
+\\raggedright
+\\setlength{{\\tabcolsep}}{{0in}}
+\\titleformat{{\\section}}{{
+  \\vspace{{-4pt}}\\scshape\\raggedright\\large
+}}{{}}{{0em}}{{}}[\\color{{black}}\\titlerule \\vspace{{-5pt}}]
+\\newcommand{{\\resumeItem}}[1]{{
+  \\item\\small{{
+    {{#1 \\vspace{{-2pt}}}}
+  }}
+}}
+\\newcommand{{\\resumeSubheading}}[4]{{
+  \\vspace{{-2pt}}\\item
+    \\begin{{tabular*}}{{0.97\\textwidth}}[t]{{l@{{\\extracolsep{{\\fill}}}}r}}
+      \\textbf{{#1}} & #2 \\\\
+      \\small #3 & \\small #4 \\\\
+    \\end{{tabular*}}\\vspace{{-7pt}}
+}}
+\\newcommand{{\\resumeProjectHeading}}[2]{{
+    \\item
+    \\begin{{tabular*}}{{0.97\\textwidth}}{{l@{{\\extracolsep{{\\fill}}}}r}}
+      \\small#1 & #2 \\\\
+    \\end{{tabular*}}\\vspace{{-7pt}}
+}}
+\\newcommand{{\\resumeSubItem}}[1]{{\\resumeItem{{#1}}\\vspace{{-4pt}}}}
+\\renewcommand\\labelitemii{{$\\vcenter{{\\hbox{{\\tiny$\\bullet$}}}}$}}
+\\newcommand{{\\resumeSubHeadingListStart}}{{\\begin{{itemize}}[leftmargin=0.15in, label={{}}]}}
+\\newcommand{{\\resumeSubHeadingListEnd}}{{\\end{{itemize}}}}
+\\newcommand{{\\resumeItemListStart}}{{\\begin{{itemize}}}}
+\\newcommand{{\\resumeItemListEnd}}{{\\end{{itemize}}\\vspace{{-5pt}}}}
+\\begin{{document}}
+\\begin{{center}}
+    \\textbf{{\\Huge \\scshape {esc(d.name)}}} \\\\ \\vspace{{1pt}}
+    \\small {contacts_str}
+\\end{{center}}
+{summary_sec}{exp_sec}{proj_sec}{sk_sec}{edu_sec}
+\\end{{document}}
+"""
+
+
+REGISTRY = {"T01": render_t01, "T02": render_t02, "T03": render_t03, "T04": render_t04}
 
 
 def render(template_id: str, d: ResumeJSON) -> str:

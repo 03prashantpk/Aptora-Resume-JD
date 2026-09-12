@@ -5,11 +5,13 @@ import { EditorView, Decoration, type DecorationSet } from "@codemirror/view";
 import { StateField, StateEffect, RangeSetBuilder } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
-import { Check, CircleAlert, LoaderCircle } from "lucide-motion";
+import { Check, CircleAlert, LoaderCircle, ChevronDown, Check as CheckIcon } from "lucide-motion";
 import { EditorSelection } from "@codemirror/state";
 import type { SaveState } from "./MenuBar";
+import { TEMPLATES, templateLabel as getTemplateLabel } from "@/lib/templates";
+import type { TemplateId } from "@/lib/types";
 
-// Center pane: header (file · template · compile status) + CodeMirror LaTeX editor with
+// Center pane: header (file · template switcher · compile status) + CodeMirror LaTeX editor with
 // AI inline highlighting + status bar. LaTeX is intentionally visible; compiler internals
 // are not. AI-changed lines are decorated (not fake \color in the source).
 
@@ -52,7 +54,8 @@ interface Props {
   onChange: (next: string) => void;
   saveState: SaveState;
   pageCount: number;
-  templateLabel: string;
+  templateId: TemplateId;
+  onSelectTemplate: (t: TemplateId) => void;
   aiLines: Set<number>; // 1-based lines to highlight as AI-changed
   streaming: boolean;
   jumpLine: number | null; // outline click -> scroll editor to this 1-based line
@@ -66,9 +69,22 @@ function CompileStatus({ state, streaming }: { state: SaveState; streaming: bool
   return <span className="ed-status" />;
 }
 
-export default function EditorPane({ value, onChange, saveState, pageCount, templateLabel, aiLines, streaming, jumpLine }: Props) {
+export default function EditorPane({ value, onChange, saveState, pageCount, templateId, onSelectTemplate, aiLines, streaming, jumpLine }: Props) {
   const [pos, setPos] = useState({ line: 1, col: 1 });
+  const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
+  const templateMenuRef = useRef<HTMLDivElement>(null);
   const ref = useRef<ReactCodeMirrorRef>(null);
+
+  // Close template menu on outside click
+  useEffect(() => {
+    const onOutside = (e: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setTemplateMenuOpen(false);
+      }
+    };
+    if (templateMenuOpen) document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [templateMenuOpen]);
 
   // Push AI-highlight lines into the editor whenever they change.
   useEffect(() => {
@@ -98,7 +114,48 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
       <div className="ed-header">
         <div className="ed-header-left">
           <span className="ed-file">document.tex</span>
-          <span className="ed-template">{templateLabel}</span>
+          <div className="ed-template-wrap" ref={templateMenuRef}>
+            <button
+              type="button"
+              className="ed-template-btn"
+              onClick={() => setTemplateMenuOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={templateMenuOpen}
+              title="Switch document template / style"
+            >
+              <span className="ed-template-text">{getTemplateLabel(templateId)}</span>
+              <ChevronDown size={12} className={`ed-template-chev ${templateMenuOpen ? "open" : ""}`} />
+            </button>
+
+            {templateMenuOpen && (
+              <div className="ed-template-menu" role="listbox">
+                <div className="ed-template-menu-header">Typography & Template</div>
+                {TEMPLATES.map((t) => {
+                  const active = t.id === templateId;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      className={`ed-template-item ${active ? "active" : ""}`}
+                      onClick={() => {
+                        onSelectTemplate(t.id);
+                        setTemplateMenuOpen(false);
+                      }}
+                    >
+                      <div className="ed-template-item-top">
+                        <span className="ed-template-item-name">{t.name}</span>
+                        <span className="ed-template-item-badge">{t.typeface}</span>
+                        {active && <CheckIcon size={13} className="ed-template-item-check" />}
+                      </div>
+                      <p className="ed-template-item-desc">{t.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
         <div className="ed-header-right">
           <CompileStatus state={saveState} streaming={streaming} />
@@ -124,7 +181,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
         <span>Ln {pos.line}, Col {pos.col}</span>
         <span className="sb-sep">UTF-8</span>
         <span className="sb-sep">LaTeX</span>
-        <span className="sb-sep">{templateLabel}</span>
+        <span className="sb-sep">{getTemplateLabel(templateId)}</span>
         <span className="sb-sep">{pageCount > 0 ? `${pageCount} page${pageCount > 1 ? "s" : ""}` : "—"}</span>
       </div>
     </div>
