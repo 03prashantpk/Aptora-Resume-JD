@@ -1,0 +1,7 @@
+# JD-Resume rendering engine — runtime dependencies (pinned).
+# Regenerate/upgrade deliberately; the compiler regression gate must stay green after any bump.
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+pydantic==2.11.10
+pymupdf==1.26.6          # PDF -> pixmap rasterization (preview page images)
+pillow==11.3.0           # transcode pixmap -> WebP (PyMuPDF cannot emit WebP)

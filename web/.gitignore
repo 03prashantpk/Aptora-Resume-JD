@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.astro/
+
+# Local env / secrets (NV_API_KEY lives here — never commit)
+.env
+.env.*
+!.env.example
+
+# Logs / misc
+*.log
+.DS_Store

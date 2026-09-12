@@ -1,0 +1,62 @@
+---
+interface Props {
+  title?: string;
+}
+const { title = "Aptora" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <link rel="apple-touch-icon" href="/aptora_sq.webp" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  </head>
+  <body>
+    <slot />
+    <style is:global>
+      /* Design tokens — Aptora (see docs/DESIGN-SYSTEM.md) */
+      :root {
+        --bg: #fafaf8;
+        --surface: #ffffff;
+        --subtle: #f4f4f1;
+        --text: #111111;
+        --secondary: #6b6b6b;
+        --muted: #8a8a86;
+        --border: #e5e5e1;
+        --accent: #2563eb;
+        --success: #16803c;
+        --warning: #b7791f;
+        --danger: #c24141;
+        --radius-input: 10px;
+        --radius-card: 14px;
+        --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 30px rgba(0, 0, 0, 0.06);
+        --shadow-sheet: 0 20px 50px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.05);
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      html { font-family: "Inter", system-ui, sans-serif; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; animation: none !important; }
+      }
+
+      /* Account-prompt modal (used in the editor) */
+      .modal-scrim { position: fixed; inset: 0; background: rgba(17,17,17,0.35); display: flex; align-items: center; justify-content: center; z-index: 100; }
+      .modal { background: #fff; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-card); padding: 28px; max-width: 380px; }
+      .modal h3 { margin: 0 0 8px; font-size: 18px; }
+      .modal p { color: var(--secondary); font-size: 14px; line-height: 1.5; margin: 0 0 20px; }
+      .modal-actions { display: flex; gap: 10px; }
+      .modal-actions .ui-btn { text-decoration: none; }
+    </style>
+  </body>
+</html>

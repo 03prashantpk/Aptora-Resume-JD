@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local env / secrets
+.env
+.env.*
+
+# Scratch / build output (NOT the vendored binary or bundled fonts, which are
+# intentionally tracked so offline compiles work without a download step)
+*.log
+/tmp/
+/scratch/

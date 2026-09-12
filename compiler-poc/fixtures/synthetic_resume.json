@@ -1,0 +1,58 @@
+{
+  "name": "Alex Morgan",
+  "headline": "Software Engineer I | Full-Stack Developer",
+  "contact": {
+    "phone": "+1 555 010 0000",
+    "email": "alex@example.test",
+    "linkedin": "linkedin.example.test/in/alexmorgan",
+    "github": "github.example.test/alexmorgan",
+    "location": "Metro City, Country"
+  },
+  "summary": "Software Engineer with experience building high-performance, scalable applications. Skilled in TypeScript, React, Next.js, and Node.js. Strong background in REST/GraphQL APIs, TDD, CI/CD, and containerization. Experienced with accessibility best practices and Agile collaboration.",
+  "experience": [
+    {
+      "title": "Full-Stack Developer",
+      "org": "Example Web Technologies",
+      "dates": "2024\u2013Present",
+      "bullets": [
+        "Built and optimized applications using React.js, Next.js, TypeScript, and Node.js.",
+        "Designed and consumed RESTful and GraphQL APIs with secure integration.",
+        "Applied TDD with Jest; deployed on AWS via Docker, Kubernetes, and GitHub Actions."
+      ]
+    },
+    {
+      "title": "Software Engineer Intern",
+      "org": "Example Labs",
+      "dates": "2023\u20132024",
+      "bullets": [
+        "Implemented modular UI components with React Hooks and design tokens.",
+        "Improved Core Web Vitals and SEO metrics across key pages."
+      ]
+    }
+  ],
+  "extraExperienceGroups": [
+    {
+      "heading": "Key Projects",
+      "bullets": [
+        "Insights Platform \u2013 analytics + forecasting; GraphQL services, Docker/Kubernetes on AWS.",
+        "AdGen \u2013 AI content/ad generator; Next.js, Redis caching, CI/CD pipelines."
+      ]
+    }
+  ],
+  "projects": [
+    { "name": "ChatConnect \u2014 MERN, Realtime, Sockets", "description": "Real-time chat with messaging, groups, and feeds. Auth, microservices, deployed on cloud infrastructure." },
+    { "name": "TeamSync \u2014 SERN, Tailwind, SQL, Docker", "description": "Team management with project assignment, leave tracking, analytics; CI/CD and Storybook a11y checks." }
+  ],
+  "skills": [
+    { "label": "Frontend", "items": "TypeScript, JavaScript (ES6+), React.js, Next.js, Hooks, Tailwind CSS, Accessibility" },
+    { "label": "Backend & APIs", "items": "Node.js, Express.js, Django, Flask, REST, GraphQL, PostgreSQL, MongoDB, Redis" },
+    { "label": "DevOps & Tools", "items": "AWS, Docker, Kubernetes, CI/CD (GitHub Actions), Jest, Git, Postman" }
+  ],
+  "education": [
+    { "text": "Bachelor of Technology (Computer Science Engineering) \u2014 Example University", "dates": "2020\u201324" },
+    { "text": "Higher Secondary (PCM) \u2014 Example Senior Secondary School", "dates": "2018\u201320" }
+  ],
+  "certifications": "Backend Development \u2013 Example Academy \u2022 React.js Training \u2013 Example Institute \u2022 Hackathon Finalist \u2013 Example Event",
+  "softSkills": "Collaboration \u2022 Problem-Solving \u2022 TDD & Testing Mindset \u2022 Continuous Learning",
+  "portfolioLine": "https://portfolio.example.test"
+}

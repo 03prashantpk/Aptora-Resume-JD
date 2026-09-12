@@ -1,0 +1,107 @@
+% ============================================================================
+% ORIGINAL REFERENCE TEMPLATE — DO NOT MODIFY.
+% This is the canonical trusted T01 (Lato / Compact Developer) source that the
+% renderer (src/render.py -> render_t01) must reproduce faithfully. Keep as the
+% reference for layout, spacing, packages, and font. Synthetic data only.
+% ============================================================================
+\documentclass[a4paper,11pt]{article}
+\usepackage[margin=0.35in,top=0.2in,bottom=0.2in]{geometry}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{xcolor}
+\usepackage{fontspec}
+\setmainfont{Lato-Regular.ttf}[
+  BoldFont=Lato-Bold.ttf,
+  ItalicFont=Lato-Italic.ttf,
+  BoldItalicFont=Lato-BoldItalic.ttf ]
+\pagenumbering{gobble}
+
+% Section style
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+\setlist[itemize]{noitemsep, topsep=0.6pt, left=0pt}
+\setlength{\parskip}{0.8pt}
+\renewcommand{\baselinestretch}{0.86}
+
+\begin{document}
+
+% ======= Header =========
+\vspace*{-4pt}
+\begin{center}
+    {\Huge \textbf{Alex Morgan}}\\[1pt]
+    {\color{gray}\textbf{Software Engineer I | Full-Stack Developer}}\\[6pt]
+    \small
+    \textbullet\ +1 555 010 0000 \textbullet\ \href{mailto:alex@example.test}{alex@example.test} \textbullet\
+    \href{https://linkedin.example.test/in/alexmorgan}{linkedin.example.test/in/alexmorgan} \textbullet\
+    \href{https://github.example.test/alexmorgan}{github.example.test/alexmorgan}
+\end{center}
+
+% ======= Summary =========
+\section*{Summary}
+Software Engineer with experience building high-performance, scalable applications for digital platforms. Skilled in TypeScript, JavaScript (ES6+), React, Next.js, and Node.js. Strong background in designing REST and GraphQL APIs, modular component development, test-driven development (TDD), and optimizing SEO performance metrics (Core Web Vitals). Experienced in CI/CD pipelines, containerization (Docker, Kubernetes), accessibility best practices, and Agile collaboration.
+
+% ======= Experience =========
+\section*{Experience}
+
+\textbf{Full-Stack Developer} \\
+Example Web Technologies \hfill 2024--Present
+\begin{itemize}
+    \item Built and optimized applications using React.js, Next.js, TypeScript, and Node.js, focusing on scalability and high-performance digital platforms.
+    \item Designed and consumed RESTful and GraphQL APIs, ensuring secure, seamless integration and efficient data flow.
+    \item Applied TDD with Jest and functional testing, delivering reliable features and improved development efficiency.
+    \item Developed modular components with React Hooks and Material UI, aligning with design tokens for consistency and accessibility best practices.
+    \item Deployed applications on AWS using Docker, Kubernetes, and GitHub Actions CI/CD pipelines, improving delivery speed and scalability.
+\end{itemize}
+
+\textbf{Key Projects}
+\begin{itemize}
+    \item \textbf{Insights Platform} -- Social media analytics and forecasting platform. Built GraphQL API services, integrated payment subscriptions, deployed via Docker/Kubernetes on AWS.
+    \item \textbf{AdGen} -- AI-powered content and ad generator using Next.js, Redis caching, and scalable microservices with automated CI/CD pipelines.
+    \item \textbf{CampaignFlow} -- Marketing automation tool with Node.js, REST APIs, third-party graph APIs, and containerized deployments improving campaign insights and scheduling.
+\end{itemize}
+
+% ======= Projects =========
+\section*{Projects}
+
+\begin{itemize}
+  \item[\textbullet] \textbf{ChatConnect --- MERN, Realtime, Sockets} \\
+  Real-time chat platform with messaging, multimedia sharing, groups, and feeds. Implemented authentication, microservices, GraphQL queries, and deployed on cloud infrastructure.
+  \vspace{4pt}
+
+  \item[\textbullet] \textbf{TeamSync --- SERN, Tailwind, SQL, Docker} \\
+  Team management system with project assignment, leave tracking, and analytics. Integrated chat APIs, CI/CD, and documented UI components in Storybook with accessibility checks.
+\end{itemize}
+
+% ======= Technical Skills =========
+\section*{Technical Skills}
+
+\noindent \textbf{Frontend:} TypeScript, JavaScript (ES6+), React.js, Next.js, Hooks, Material UI, Tailwind CSS, SEO Optimization, Accessibility, Storybook \\
+\textbf{Backend \& APIs:} Node.js, Express.js, Django, Flask, REST, GraphQL, Microservices, Authentication, Redis, MongoDB, PostgreSQL, SQL, Firebase \\
+\textbf{DevOps \& Tools:} AWS, Docker, Kubernetes, CI/CD (GitHub Actions), Terraform, Jest, Unit Testing, Figma, Agile, Git, Postman
+
+% ======= Education =========
+\section*{Education}
+
+Bachelor of Technology (Computer Science Engineering) --- Example University \hfill 2020--24 \\
+Higher Secondary (PCM) --- Example Senior Secondary School \hfill 2018--20 \\
+Class 10 --- Example Public School \hfill 2016--17
+
+% ======= Certifications =========
+\section*{Certifications}
+
+\begin{itemize}[label=--, leftmargin=*]
+    \item Backend Development -- Example Academy \textbullet\ React.js Training -- Example Institute \textbullet\ Hackathon Finalist -- Example Event
+\end{itemize}
+
+% ======= Soft Skills =========
+\section*{Soft Skills and Interests}
+
+Collaboration \textbullet\ Problem-Solving \textbullet\ TDD \& Testing Mindset \textbullet\ Continuous Learning \textbullet\ Passion for Product
+
+\vspace{6pt}
+\begin{center}
+    \textbf{Portfolio and More Projects: \href{https://portfolio.example.test}{https://portfolio.example.test}}
+\end{center}
+
+\end{document}

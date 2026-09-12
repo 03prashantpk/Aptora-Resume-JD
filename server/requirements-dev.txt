@@ -1,0 +1,4 @@
+# Dev/test dependencies. Install on top of requirements.txt.
+-r requirements.txt
+httpx==0.28.1            # FastAPI TestClient transport
+pytest>=8

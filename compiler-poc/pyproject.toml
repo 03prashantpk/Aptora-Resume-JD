@@ -1,0 +1,14 @@
+[project]
+name = "jd-resume-compiler-poc"
+version = "0.1.0"
+description = "Tectonic compiler validation POC: ResumeJSON -> trusted T01/T02/T03 -> Tectonic -> PDF, with font verification and offline/cached compilation. No app, no AI, no DB."
+requires-python = ">=3.10"
+dependencies = []
+
+# Only the standard library is used (subprocess, hashlib, etc.). Tectonic and
+# (optionally) poppler's pdffonts are external system tools, not Python deps.
+
+[tool.jd-resume]
+compiler = "tectonic"
+status = "candidate-under-validation"
+templates = ["T01", "T02", "T03"]
