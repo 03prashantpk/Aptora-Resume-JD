@@ -12,10 +12,14 @@ const env = (k: string): string | undefined => process.env[k] ?? (import.meta.en
 const NV_BASE_URL = (env("NV_BASE_URL") ?? "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
 const NV_API_KEY = env("NV_API_KEY");
 const NV_TEXT_FAST_MODEL = env("NV_TEXT_FAST_MODEL") ?? "nvidia/nemotron-3-super-120b-a12b";
+const NV_TEXT_ALT_MODEL = env("NV_TEXT_ALT_MODEL") ?? "google/gemma-4-31b-it";
 const NV_TEXT_FAST_VISION_MODEL = env("NV_TEXT_FAST_VISION_MODEL") ?? "meta/llama-3.2-90b-vision-instruct";
 
 export const models = {
+  /** Adaptive reasoning model (Nemotron-3-Super). Good for analysis; uses thinking tokens. */
   text: NV_TEXT_FAST_MODEL,
+  /** Standard instruction model (Gemma 4). Reliable for streaming; always outputs to `content`. */
+  textAlt: NV_TEXT_ALT_MODEL,
   vision: NV_TEXT_FAST_VISION_MODEL,
 };
 

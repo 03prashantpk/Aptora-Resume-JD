@@ -8,14 +8,16 @@ import PreviewPane from "./PreviewPane";
 import FilesView from "../pages/FilesView";
 import UsageView from "../pages/UsageView";
 import type { View } from "./LeftRail";
-import type { CompileResult } from "@/lib/types";
+import type { CompileResult, TemplateId } from "@/lib/types";
 import type { Analysis } from "@/lib/ai/analyze";
+import { detectTemplate, applyTemplateToLatex } from "@/lib/templates";
 
 // Aptora: menu bar (top) · [ icon rail | (drawer ‖ editor ‖ preview) all resizable ].
 // AI tailoring streams new content into the editor live, with visible progress.
 
 export default function Workspace() {
   const [latex, setLatex] = useState("");
+  const [templateId, setTemplateId] = useState<TemplateId>("T02");
   const [jd, setJd] = useState("");
   const [loadingDoc, setLoadingDoc] = useState(true);
   const [docName, setDocName] = useState("Untitled Resume");
@@ -62,15 +64,18 @@ export default function Workspace() {
       try {
         const res = await fetch("/api/default-document");
         const body = (await res.json()) as { latex?: string };
-        if (alive && body.latex) setLatex(body.latex);
+        if (alive && body.latex) {
+          setLatex(body.latex);
+          setTemplateId(detectTemplate(body.latex));
+        }
       } catch { /* editable empty */ }
       finally { if (alive) setLoadingDoc(false); }
     })();
     return () => { alive = false; };
   }, []);
 
-  const runCompile = useCallback(async (source: string) => {
-    if (!source.trim()) return;
+  const runCompile = useCallback(async (source: string): Promise<boolean> => {
+    if (!source.trim()) return false;
     const revision = ++revisionRef.current;
     setSaveState("updating");
     try {
@@ -78,15 +83,28 @@ export default function Workspace() {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ latex: source, revision_id: String(revision) }),
       });
-      if (revision !== revisionRef.current) return;
-      if (!res.ok) { setSaveState("error"); return; }
+      if (revision !== revisionRef.current) return false;
+      if (!res.ok) { setSaveState("error"); return false; }
       const meta = (await res.json()) as CompileResult;
-      if (revision !== revisionRef.current) return;
+      if (revision !== revisionRef.current) return false;
       setDocumentId(meta.document_id ?? null);
       setPageCount(meta.page_count ?? 0);
       setSaveState("saved");
-    } catch { if (revision === revisionRef.current) setSaveState("error"); }
+      return true;
+    } catch {
+      if (revision === revisionRef.current) setSaveState("error");
+      return false;
+    }
   }, []);
+
+  const onSelectTemplate = useCallback((tid: TemplateId) => {
+    setTemplateId(tid);
+    setLatex((prev) => {
+      const next = applyTemplateToLatex(prev, tid);
+      runCompile(next);
+      return next;
+    });
+  }, [runCompile]);
 
   useEffect(() => {
     if (loadingDoc || !latex || streaming) return;
@@ -121,54 +139,53 @@ export default function Workspace() {
     setDrawerTab("intelligence"); setDrawerOpen(true);
     preAiRef.current = latex;
     setStreaming(true); setTailorPhase("connecting"); setAiLines(new Set());
-    let acc = "";
-    let gotContent = false;
     try {
+      setTailorPhase("thinking");
       const res = await fetch("/api/ai/tailor-stream", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ latex, jd, intensity }),
       });
       if (res.status === 402) { setShowAccountPrompt(true); setTailorPhase("idle"); setStreaming(false); return; }
-      if (!res.ok || !res.body) { setTailorPhase("error"); setStreaming(false); return; }
-      setTailorPhase("thinking");
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf("\n\n")) !== -1) {
-          const frame = buf.slice(0, idx); buf = buf.slice(idx + 2);
-          const ev = frame.match(/event:\s*(\w+)/)?.[1] ?? "delta";
-          const dm = frame.match(/data:\s*([\s\S]+)/);
-          if (!dm) continue;
-          try {
-            const data = JSON.parse(dm[1]);
-            if (ev === "delta" && typeof data.text === "string" && data.text.length) {
-              acc += data.text;
-              if (!gotContent) { gotContent = true; setTailorPhase("writing"); }
-              setLatex(stripFences(acc)); // live: editor fills as AI writes the NEW doc
-            } else if (ev === "error") {
-              setTailorPhase("error");
-            }
-          } catch { /* skip partial frame */ }
-        }
-      }
-      const finalLatex = stripFences(acc);
-      if (gotContent && finalLatex && preAiRef.current !== null) {
-        setLatex(finalLatex);
-        setAiLines(changedLines(preAiRef.current, finalLatex));
-        setTailorPhase("compiling");
-        await runCompile(finalLatex);
-        setTailorPhase("done");
-        refreshUsage();
-      } else {
-        // Nothing came back — restore original, surface calm error.
+      if (!res.ok) { setTailorPhase("error"); setStreaming(false); return; }
+
+      const body = (await res.json()) as { latex?: string; changedCount?: number; error?: unknown };
+      if (!body.latex || typeof body.latex !== "string") {
+        // AI returned no changes or an error
         if (preAiRef.current !== null) setLatex(preAiRef.current);
         setTailorPhase("error");
+        setStreaming(false);
+        return;
       }
+
+      const finalLatex = body.latex;
+      setTailorPhase("writing");
+      setLatex(finalLatex);
+      setAiLines(changedLines(preAiRef.current ?? "", finalLatex));
+
+      setTailorPhase("compiling");
+      const compileOk = await runCompile(finalLatex);
+      if (!compileOk) {
+        setTailorPhase("error");
+        setStreaming(false);
+        return;
+      }
+      setTailorPhase("done");
+      refreshUsage();
+
+      // Auto-analyze the tailored resume against the same JD — no extra button click needed.
+      // Run in background after tailor completes so Intelligence tab shows fit score immediately.
+      setAnalyzing(true);
+      try {
+        const analyzeRes = await fetch("/api/ai/analyze", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ latex: finalLatex, jd, isFollowUp: true }),
+        });
+        if (analyzeRes.ok) {
+          setAnalysis((await analyzeRes.json()) as Analysis);
+        }
+      } catch { /* non-fatal — tailor succeeded, analysis is a bonus */ }
+      finally { setAnalyzing(false); }
+
     } catch {
       if (preAiRef.current !== null) setLatex(preAiRef.current);
       setTailorPhase("error");
@@ -176,6 +193,7 @@ export default function Workspace() {
       setStreaming(false);
     }
   }, [jd, latex, streaming, intensity, changedLines, runCompile, refreshUsage]);
+
 
   const acceptAi = useCallback(() => { setAiLines(new Set()); setTailorPhase("idle"); preAiRef.current = null; }, []);
   const rejectAi = useCallback(() => {
@@ -199,6 +217,35 @@ export default function Workspace() {
       refreshUsage();
     } catch { /* calm */ }
   }, [documentId, exportsLeft, refreshUsage]);
+
+  const [instructLoading, setInstructLoading] = useState(false);
+
+  const onInstruct = useCallback(async (instruction: string): Promise<boolean> => {
+    if (!instruction.trim() || instructLoading) return false;
+    setInstructLoading(true);
+    preAiRef.current = latex;
+    try {
+      const res = await fetch("/api/ai/instruct", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ latex, instruction }),
+      });
+      if (res.status === 402) { setShowAccountPrompt(true); return false; }
+      if (!res.ok) return false;
+      const body = (await res.json()) as { latex?: string; summary?: string };
+      if (body?.latex && typeof body.latex === "string") {
+        setLatex(body.latex);
+        setAiLines(changedLines(preAiRef.current ?? "", body.latex));
+        await runCompile(body.latex);
+        refreshUsage();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      setInstructLoading(false);
+    }
+  }, [latex, instructLoading, changedLines, runCompile, refreshUsage]);
 
   const toggleDrawer = (tab: DrawerTab) => {
     setView("editor"); // rail tabs always operate on the editor view
@@ -246,6 +293,7 @@ export default function Workspace() {
                     resumeName={resumeName} onUploadName={setResumeName}
                     analysis={analysis} analyzing={analyzing} onAnalyze={onAnalyze}
                     intensity={intensity} onIntensity={setIntensity}
+                    onInstruct={onInstruct} instructing={instructLoading}
                   />
                 </Panel>
                 <Separator className="split-handle" />
@@ -257,7 +305,7 @@ export default function Workspace() {
               ) : (
                 <EditorPane
                   value={latex} onChange={setLatex} saveState={saveState} pageCount={pageCount}
-                  templateLabel="Classic · Serif"
+                  templateId={templateId} onSelectTemplate={onSelectTemplate}
                   aiLines={aiLines} streaming={streaming} jumpLine={jumpLine}
                 />
               )}
@@ -276,6 +324,11 @@ export default function Workspace() {
 }
 
 function stripFences(s: string): string {
-  const m = s.match(/```(?:latex|tex)?\s*([\s\S]*?)```/i);
-  return (m ? m[1] : s).trim();
+  // Complete fence pair: ```latex ... ``` — extract only the inner content.
+  const complete = s.match(/```(?:latex|tex)?\s*([\s\S]*?)```/i);
+  if (complete) return complete[1].trim();
+  // Partial stream: only the opening fence has arrived — strip just the header
+  // so the live editor receives valid LaTeX instead of a fence-prefixed string.
+  return s.replace(/^```(?:latex|tex)?\s*/i, "").trim();
 }
+

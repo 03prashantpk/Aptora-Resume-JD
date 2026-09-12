@@ -1,7 +1,7 @@
 // Shared content contract. Mirrors the Python engine's Pydantic ResumeJSON
 // (server/app/compiler/models.py). Keep the two in sync.
 
-export type TemplateId = "T01" | "T02" | "T03";
+export type TemplateId = "T01" | "T02" | "T03" | "T04";
 
 export interface Contact {
   phone?: string;

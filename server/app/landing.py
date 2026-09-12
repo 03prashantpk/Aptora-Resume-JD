@@ -165,6 +165,34 @@ def landing_html() -> str:
     }}
     .reveal.show {{ opacity: 1; transform: translateY(0); }}
     .mono {{ font-family: "IBM Plex Mono", ui-monospace, monospace; }}
+    .btn-saas-primary {{
+      background: #111111;
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.12);
+      transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+    }}
+    .btn-saas-primary:hover {{
+      background: #222222;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      transform: translateY(-1px);
+    }}
+    .btn-saas-primary:active {{
+      transform: translateY(0) scale(0.98);
+    }}
+    .btn-saas-secondary {{
+      background: #ffffff;
+      border: 1px solid var(--line);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+    }}
+    .btn-saas-secondary:hover {{
+      background: #fafaf9;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }}
+    .btn-saas-secondary:active {{
+      transform: translateY(0) scale(0.98);
+    }}
     #mainHeader {{
       transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }}
@@ -204,7 +232,7 @@ def landing_html() -> str:
 
       <div class="flex items-center gap-3">
         <a href="{_APP_URL}" class="hidden text-sm font-medium text-[#555] sm:block">Sign in</a>
-        <a href="{_APP_URL}" class="rounded-lg bg-[#111] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#292929]">
+        <a href="{_APP_URL}" class="rounded-xl btn-saas-primary px-4 py-2.5 text-sm font-semibold">
           Start tailoring
         </a>
         <button id="menuBtn" class="rounded-lg border hairline p-2 md:hidden" aria-label="Open menu" aria-expanded="false">
@@ -248,11 +276,11 @@ def landing_html() -> str:
           </p>
 
           <div class="reveal mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a href="{_APP_URL}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#111] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#292929] sm:w-auto">
+            <a href="{_APP_URL}" class="inline-flex w-full items-center justify-center gap-2 rounded-xl btn-saas-primary px-5 py-3.5 text-sm font-semibold sm:w-auto">
               Tailor my resume
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
-            <a href="#workflow" class="inline-flex w-full items-center justify-center rounded-xl border hairline bg-white px-5 py-3.5 text-sm font-semibold text-[#333] transition hover:bg-[#f5f5f2] sm:w-auto">
+            <a href="#workflow" class="inline-flex w-full items-center justify-center rounded-xl btn-saas-secondary px-5 py-3.5 text-sm font-semibold text-[#333] sm:w-auto">
               See how it works
             </a>
           </div>
@@ -692,7 +720,9 @@ def landing_html() -> str:
         <a href="#templates" class="transition hover:text-white">Templates</a>
         <a href="#faq" class="transition hover:text-white">FAQ</a>
       </div>
-      <div>Built for better applications.</div>
+      <div class="flex items-center gap-2">
+        <span>Developed by <a href="https://enally.in" target="_blank" rel="noopener noreferrer" class="text-white hover:underline">Enally.in</a> with <span style="color:#f43f5e;">💝</span></span>
+      </div>
     </div>
   </footer>
 
