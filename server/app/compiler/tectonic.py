@@ -151,8 +151,8 @@ def _fail(code: str, detail: str, t0: float) -> tuple[CompileResult, None, list[
 def _looks_like_cache_miss(detail: str) -> str | bool:
     """Heuristic: an offline compile failed because a support file wasn't cached."""
     d = detail.lower()
-    return ("only-cached" in d) or ("not found" in d and (".clo" in d or ".sty" in d or ".cls" in d
-            or "file `" in d or "font" in d))
+    return ("only-cached" in d) or ("failed to open input file" in d) or ("not found" in d and (".clo" in d or ".sty" in d or ".cls" in d
+            or "file `" in d or "font" in d or "tex" in d))
 
 
 def _first_error(log: str) -> str:

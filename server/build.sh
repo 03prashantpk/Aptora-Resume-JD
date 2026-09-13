@@ -18,4 +18,10 @@ rm -f /tmp/tectonic.tar.gz
 echo "Tectonic musl installed successfully at $BIN_DIR/tectonic"
 
 "$BIN_DIR/tectonic" --version
+
+echo "=== Warming up Tectonic cache with format bundle ==="
+echo '\documentclass{article}\begin{document}Hello World\end{document}' > /tmp/warmup.tex
+"$BIN_DIR/tectonic" -X compile /tmp/warmup.tex --outdir /tmp
+rm -f /tmp/warmup.tex /tmp/warmup.pdf
+echo "=== Tectonic cache pre-warmed successfully ==="
 echo "=== Build complete ==="
