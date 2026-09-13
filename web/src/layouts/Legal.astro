@@ -124,8 +124,34 @@ const { title } = Astro.props;
         padding: 48px 44px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.02);
       }
+      @media (max-width: 760px) {
+        .lg-top-inner { padding: 0 16px; height: 56px; gap: 12px; }
+        .lg-rec-logo { height: 26px; }
+        /* Nav no longer wraps or overflows: it scrolls horizontally, with the
+           primary "Open workspace" button pinned visible at the end. */
+        .lg-nav {
+          gap: 16px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%);
+        }
+        .lg-nav::-webkit-scrollbar { display: none; }
+        .lg-nav a { flex-shrink: 0; white-space: nowrap; }
+      }
       @media (max-width: 640px) {
-        .lg-content-card { padding: 32px 24px; }
+        .lg-content-card { padding: 32px 22px; border-radius: 16px; }
+        .lg-main { padding: 28px 16px 60px; }
+        .lg-content-card h1 { font-size: 27px; }
+        .lg-content-card h2 { font-size: 18px; margin: 28px 0 10px; }
+        .lg-content-card p, .lg-content-card li { font-size: 14.5px; }
+      }
+      /* Hide secondary text links on very small screens so only the primary
+         CTA remains, keeping the header clean and tap-friendly. */
+      @media (max-width: 440px) {
+        .lg-nav { gap: 14px; }
+        .lg-nav a:not(.lg-app) { display: none; }
       }
       
       .lg-content-card h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; margin: 0 0 8px; color: #111; }

@@ -309,10 +309,10 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
                   setAuthModal("signup");
                 }}
               >
-                <div className="flex items-center gap-2.5">
-                  <UserPlus size={15} className="text-blue-600" />
+                <span className="pab-label">
+                  <UserPlus size={16} className="pab-icon" />
                   <strong>Create account</strong>
-                </div>
+                </span>
                 <span className="popover-hint-badge">New</span>
               </button>
               <button
@@ -323,10 +323,10 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
                   setAuthModal("login");
                 }}
               >
-                <div className="flex items-center gap-2.5">
-                  <LogIn size={15} />
+                <span className="pab-label">
+                  <LogIn size={16} className="pab-icon" />
                   <span>Log in</span>
-                </div>
+                </span>
               </button>
               <div className="mb-sep" />
               <div className="popover-extra-links">

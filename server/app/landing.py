@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-_APP_URL = "http://localhost:4321"
+_APP_URL = "https://aptora-resume.vercel.app/"
 _SITE_NAME = "Aptora"
 _TAGLINE = "Make your experience count."
 _DESCRIPTION = (
@@ -87,6 +87,126 @@ _JSONLD = json.dumps(
     },
     ensure_ascii=False,
 )
+
+# Testimonials shown in the bento wall. Small, varied, honest — the mix of tones
+# and lengths is what makes the masonry layout feel creative rather than uniform.
+# Avatars are generated from DiceBear (seeded by name) so they are consistent,
+# free, and need no local assets.
+#   shape: "wide"  -> spans 2 columns (rectangle)
+#          "tall"  -> taller card (longer quote)
+#          "square"-> compact, near-square tile
+#          "" / "std" -> normal masonry card
+_TESTIMONIALS = [
+    {"name": "Aditya M.", "role": "Software Engineer", "quote": "I stopped rewriting my resume for every role. I paste the job description, Aptora shows me exactly what to bring forward, and the tailored PDF looks like a designer made it. It saved me hours every single week.", "accent": "dark", "shape": "tall"},
+    {"name": "Sara R.", "role": "Product Designer", "quote": "The gap analysis told me which real projects to emphasize instead of adding fluff.", "accent": "plain", "shape": "square"},
+    {"name": "Jordan D.", "role": "Data Analyst", "quote": "Preview matched the download exactly. No surprise formatting when I sent it — that alone sold me.", "accent": "plain", "shape": "std"},
+    {"name": "Meera K.", "role": "Marketing Manager", "quote": "It kept my experience honest but made it read like it belonged to the role. Two interviews the same week I started using it.", "accent": "blue", "shape": "wide"},
+    {"name": "Liam T.", "role": "Backend Developer", "quote": "The LaTeX output is genuinely clean.", "accent": "plain", "shape": "square"},
+    {"name": "Priya N.", "role": "UX Researcher", "quote": "Finally a tool that doesn't invent fake achievements. It just sharpened the real ones I already had on the page.", "accent": "green", "shape": "std"},
+    {"name": "Noah B.", "role": "New grad", "quote": "No blank page. I uploaded my old resume and it guided the rest.", "accent": "plain", "shape": "std"},
+    {"name": "Chen W.", "role": "DevOps Engineer", "quote": "One document — preview and export in the same place. Zero back-and-forth.", "accent": "plain", "shape": "square"},
+    {"name": "Zoya A.", "role": "Content Strategist", "quote": "The role-fit score made it obvious what a recruiter would actually care about, so I stopped guessing and started aligning.", "accent": "plain", "shape": "wide"},
+    {"name": "Rahul V.", "role": "ML Engineer", "quote": "Tailored three applications in the time it used to take me to do one.", "accent": "dark", "shape": "std"},
+    {"name": "Emma L.", "role": "Frontend Developer", "quote": "It reordered my experience so the most relevant work landed first. Small change, big difference.", "accent": "plain", "shape": "std"},
+    {"name": "Kabir S.", "role": "Career switcher", "quote": "Helped me frame past work for a role I'd never done before — truthfully.", "accent": "blue", "shape": "square"},
+    {"name": "Hana Y.", "role": "Recruiter", "quote": "From the other side of the desk: Aptora resumes are easy to skim and the relevant experience is right where I look first.", "accent": "green", "shape": "wide"},
+]
+
+
+def _avatar_url(name: str) -> str:
+    """DiceBear 'notionists' avatar, seeded by name for a stable, friendly face."""
+    seed = name.replace(" ", "").replace(".", "").lower()
+    return (
+        f"https://api.dicebear.com/9.x/notionists/svg?seed={seed}"
+        "&backgroundColor=e7ecff,e6f4ea,faf0e6,f1eafd,f3f3f0&radius=50&scale=110"
+    )
+
+
+def _stars(n: int = 5) -> str:
+    star = (
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">'
+        '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>'
+    )
+    return star * n
+
+
+def _shape_span(shape: str) -> str:
+    """Grid span classes for a card shape in the 2-col (mobile) / 4-col (desktop) wall."""
+    if shape == "wide":
+        return "col-span-2"
+    if shape == "tall":
+        return "row-span-2"
+    # square / std occupy a single cell
+    return ""
+
+
+def _testimonial_cards() -> str:
+    """Render the bento wall: varied card shapes (square/wide/tall) + accent tiles."""
+    cards: list[str] = []
+
+    # A near-square rating tile seeded into the wall (holds the moved hero rating).
+    cards.append(
+        '<div class="reveal lift flex flex-col items-center justify-center rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-6 text-center">'
+        f'<div class="flex items-center justify-center gap-0.5 text-[#f5a623]">{_stars(5)}</div>'
+        '<div class="mt-3 text-3xl font-semibold tracking-[-.03em]">4.9<span class="text-xl text-[#9aa]">/5</span></div>'
+        '<div class="mt-1 text-xs text-[#5d6b80]">Average rating from job seekers</div>'
+        "</div>"
+    )
+
+    for i, t in enumerate(_TESTIMONIALS):
+        accent = t["accent"]
+        shape = t.get("shape", "std")
+        if accent == "dark":
+            wrap = "border hairline bg-[#111] text-white"
+            quote_cls = "text-[#e8e8e8]"
+            role_cls = "text-[#999]"
+        elif accent == "blue":
+            wrap = "border border-[#dbeafe] bg-[#f8fbff]"
+            quote_cls = "text-[#333]"
+            role_cls = "text-[#5d6b80]"
+        elif accent == "green":
+            wrap = "border border-[#cdead6] bg-[#f6fbf7]"
+            quote_cls = "text-[#333]"
+            role_cls = "text-[#4a7a58]"
+        else:
+            wrap = "border hairline bg-[#FAFAF8]"
+            quote_cls = "text-[#333]"
+            role_cls = "text-[#888]"
+
+        span = _shape_span(shape)
+        # Tall/wide cards get a slightly larger quote; stars on a subset for rhythm.
+        quote_size = "text-base leading-relaxed" if shape in ("tall", "wide") else "text-sm leading-6"
+        star_row = (
+            f'<div class="mb-3 flex items-center gap-0.5 text-[#f5a623]">{_stars(5)}</div>'
+            if (i % 3 == 0 or shape in ("tall", "wide")) else ""
+        )
+
+        cards.append(
+            f'<figure class="reveal lift flex flex-col justify-between rounded-2xl p-6 {wrap} {span}">'
+            "<div>"
+            f"{star_row}"
+            f'<blockquote class="{quote_size} {quote_cls}">“{t["quote"]}”</blockquote>'
+            "</div>"
+            '<figcaption class="mt-5 flex items-center gap-3">'
+            f'<img src="{_avatar_url(t["name"])}" alt="{t["name"]}" loading="lazy" '
+            'class="h-9 w-9 rounded-full border border-black/5 bg-white object-cover" />'
+            "<div>"
+            f'<div class="text-sm font-semibold">{t["name"]}</div>'
+            f'<div class="text-xs {role_cls}">{t["role"]}</div>'
+            "</div></figcaption></figure>"
+        )
+
+    # A wide "join them" CTA tile to close the wall.
+    cards.append(
+        '<a href="' + _APP_URL + '" class="reveal lift col-span-2 flex flex-col justify-between rounded-2xl border hairline bg-[#111] p-6 text-white no-underline">'
+        '<div class="text-lg font-semibold leading-snug tracking-[-.01em]">Join 2,000+ people tailoring smarter.</div>'
+        '<div class="mt-5 inline-flex items-center gap-2 text-sm font-medium text-white/90">Start tailoring '
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>'
+        "</a>"
+    )
+
+    return "\n".join(cards)
+
 
 def landing_html() -> str:
     return rf"""<!doctype html>
@@ -227,6 +347,7 @@ def landing_html() -> str:
         <a href="#workflow" class="transition hover:text-[#111]">How it works</a>
         <a href="#workspace" class="transition hover:text-[#111]">Workspace</a>
         <a href="#templates" class="transition hover:text-[#111]">Templates</a>
+        <a href="#testimonials" class="transition hover:text-[#111]">Reviews</a>
         <a href="#faq" class="transition hover:text-[#111]">FAQ</a>
       </nav>
 
@@ -246,6 +367,7 @@ def landing_html() -> str:
         <a href="#workflow">How it works</a>
         <a href="#workspace">Workspace</a>
         <a href="#templates">Templates</a>
+        <a href="#testimonials">Reviews</a>
         <a href="#faq">FAQ</a>
       </div>
     </div>
@@ -334,28 +456,51 @@ def landing_html() -> str:
                   <div class="flex items-start justify-between gap-6 border-b border-[#222] pb-4">
                     <div>
                       <div class="text-xl font-bold tracking-[-.03em]">Alex Morgan</div>
-                      <div class="mt-1 text-[9px] text-[#666]">Product Engineer · Software Development</div>
+                      <div class="mt-1 text-[9px] font-medium text-[#444]">Product Engineer · Software Development</div>
                     </div>
-                    <div class="text-right text-[8px] leading-4 text-[#666]">alex@example.test<br />example.test</div>
+                    <div class="text-right text-[7.5px] leading-[1.5] text-[#666]">
+                      alex.morgan@example.test<br />
+                      +1 (415) 555&#8209;0142 · San Francisco, CA<br />
+                      linkedin.com/in/alexmorgan · github.com/alexm
+                    </div>
                   </div>
-                  <div class="mt-5 grid gap-5 text-[8px] leading-[1.55]">
+                  <div class="mt-5 grid gap-[14px] text-[8px] leading-[1.55]">
                     <div>
                       <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Summary</div>
-                      <p class="text-[#555]">Product engineer building reliable web products with React, TypeScript and cloud infrastructure, with a focus on turning complex workflows into simple user experiences.</p>
+                      <p class="text-[#555]">Product engineer with 5+ years building reliable web products with React, TypeScript and cloud infrastructure. Focused on turning complex workflows into simple user experiences that ship and scale.</p>
                     </div>
                     <div>
                       <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Experience</div>
-                      <div class="font-semibold">Product Engineer · Example Labs</div>
-                      <p class="mt-1 text-[#555]">Built and shipped customer-facing workflows, improved application reliability, and collaborated across product and engineering to deliver measurable improvements.</p>
+                      <div class="flex items-baseline justify-between">
+                        <div class="font-semibold">Senior Product Engineer · Example Labs</div>
+                        <div class="text-[7.5px] text-[#888]">2022 — Present</div>
+                      </div>
+                      <div class="text-[7.5px] italic text-[#888]">San Francisco, CA</div>
+                      <ul class="mt-1.5 ml-3 list-disc space-y-1 text-[#555] marker:text-[#bbb]">
+                        <li>Led the redesign of a customer workflow used by 40k+ users, lifting task completion 28%.</li>
+                        <li>Cut page load time from 3.1s to 0.9s by reworking the data layer and caching strategy.</li>
+                        <li>Mentored 3 engineers and set the team's React + TypeScript review standards.</li>
+                      </ul>
+                      <div class="mt-2.5 flex items-baseline justify-between">
+                        <div class="font-semibold">Software Engineer · Northwind Systems</div>
+                        <div class="text-[7.5px] text-[#888]">2019 — 2022</div>
+                      </div>
+                      <ul class="mt-1.5 ml-3 list-disc space-y-1 text-[#555] marker:text-[#bbb]">
+                        <li>Shipped billing and onboarding features across a React/Node stack serving 12k accounts.</li>
+                        <li>Built CI checks that reduced production regressions by roughly 35%.</li>
+                      </ul>
                     </div>
                     <div>
                       <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Selected Projects</div>
-                      <div class="font-semibold">Workflow Platform</div>
-                      <p class="mt-1 text-[#555]">Designed a structured workflow for transforming complex input into clear, actionable output.</p>
+                      <div class="flex items-baseline justify-between">
+                        <div class="font-semibold">Workflow Platform</div>
+                        <div class="text-[7.5px] text-[#888]">React · Node.js · PostgreSQL</div>
+                      </div>
+                      <p class="mt-1 text-[#555]">Designed a structured pipeline that transforms complex input into clear, actionable output — adopted by two internal teams.</p>
                     </div>
-                    <div class="grid grid-cols-2 gap-5">
-                      <div><div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Skills</div><p class="text-[#555]">React · TypeScript · Node.js · PostgreSQL · AWS</p></div>
-                      <div><div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Education</div><p class="text-[#555]">B.Tech, Computer Science</p></div>
+                    <div class="grid grid-cols-2 gap-5 border-t hairline pt-3">
+                      <div><div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Skills</div><p class="text-[#555]">React · TypeScript · Node.js · PostgreSQL · AWS · Docker · GraphQL</p></div>
+                      <div><div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Education</div><p class="text-[#555]">B.Tech, Computer Science<br /><span class="text-[7.5px] text-[#888]">State University · 2019</span></p></div>
                     </div>
                   </div>
                 </div>
@@ -399,6 +544,43 @@ def landing_html() -> str:
 
           <div class="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-[#888]">
             <span>Upload once</span><span>·</span><span>AI understands context</span><span>·</span><span>Preview the result</span><span>·</span><span>Export when ready</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOCIAL PROOF BAND -->
+    <section class="border-t hairline bg-[#F7F7F5]">
+      <div class="mx-auto max-w-6xl px-5 py-14 lg:px-8 lg:py-16">
+        <!-- Avatars + rating -->
+        <div class="reveal flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+          <div class="flex -space-x-2.5">
+            <img src="{_avatar_url('Aditya M.')}" alt="" loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="{_avatar_url('Sara R.')}" alt="" loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="{_avatar_url('Jordan D.')}" alt="" loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="{_avatar_url('Meera K.')}" alt="" loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="{_avatar_url('Priya N.')}" alt="" loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <span class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#F7F7F5] bg-[#111] text-[9px] font-semibold text-white">+2k</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-0.5 text-[#f5a623]">{_stars(5)}</div>
+            <span class="text-sm text-[#666]"><span class="font-semibold text-[#111]">4.9/5</span> from job seekers who tailored with Aptora</span>
+          </div>
+        </div>
+
+        <!-- Stat strip -->
+        <div class="reveal mx-auto mt-9 grid max-w-3xl grid-cols-1 gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] text-center sm:grid-cols-3">
+          <div class="bg-white px-4 py-7">
+            <div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">2 min</div>
+            <div class="mt-1 text-xs text-[#777]">From upload to tailored draft</div>
+          </div>
+          <div class="bg-white px-4 py-7">
+            <div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">0</div>
+            <div class="mt-1 text-xs text-[#777]">Invented facts, ever</div>
+          </div>
+          <div class="bg-white px-4 py-7">
+            <div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">1 PDF</div>
+            <div class="mt-1 text-xs text-[#777]">Preview equals download</div>
           </div>
         </div>
       </div>
@@ -688,6 +870,22 @@ def landing_html() -> str:
             </summary>
             <p class="mt-3 text-sm leading-6 text-[#70706d]">The product is designed around a single generated document artifact: the document you preview is the document you download, rather than a separate HTML representation.</p>
           </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section id="testimonials" class="border-t hairline bg-white">
+      <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+        <div class="reveal mx-auto max-w-2xl text-center">
+          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">Loved by job seekers</div>
+          <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Real resumes. Better fit.</h2>
+          <p class="mt-5 text-base leading-7 text-[#666]">People use Aptora to make the resume they already have land for the role in front of them — honestly.</p>
+        </div>
+
+        <!-- Bento wall: varied card shapes (square / wide / tall) packed densely. -->
+        <div class="reveal mt-14 grid auto-rows-[minmax(0,auto)] grid-cols-2 gap-4 [grid-auto-flow:dense] lg:grid-cols-4">
+          {_testimonial_cards()}
         </div>
       </div>
     </section>

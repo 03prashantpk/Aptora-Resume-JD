@@ -1,5 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
+
+// Below this width we treat the device as "mobile": panels stack column-wise
+// (vertically) and stay resizable via horizontal drag handles; the left rail
+// becomes a floating bottom menu bar. Kept in sync with the CSS breakpoint.
+const MOBILE_QUERY = "(max-width: 820px)";
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return isMobile;
+}
 import MenuBar, { type SaveState } from "./MenuBar";
 import LeftRail, { type DrawerTab } from "./LeftRail";
 import Drawer, { type Intensity, type TailorPhase } from "./Drawer";
@@ -16,6 +33,7 @@ import { detectTemplate, applyTemplateToLatex } from "@/lib/templates";
 // AI tailoring streams new content into the editor live, with visible progress.
 
 export default function Workspace() {
+  const isMobile = useIsMobile();
   const [latex, setLatex] = useState("");
   const [templateId, setTemplateId] = useState<TemplateId>("T02");
   const [jd, setJd] = useState("");
@@ -255,7 +273,7 @@ export default function Workspace() {
   const jumpTo = (line: number) => { setJumpLine(line); setTimeout(() => setJumpLine(null), 50); };
 
   return (
-    <div className="app">
+    <div className="app" data-mobile={isMobile ? "true" : "false"}>
       <MenuBar
         docName={docName} onRename={setDocName} saveState={saveState}
         exportsLeft={exportsLeft} onExport={onExport} canExport={!!documentId && saveState !== "error"}
@@ -282,10 +300,20 @@ export default function Workspace() {
           </div>
         ) : (
         <div className="workspace">
-          <Group orientation="horizontal" style={{ height: "100%", width: "100%" }}>
+          {/* Desktop: three columns resize horizontally. Mobile: the same panels
+              stack column-wise (vertically) and resize with horizontal handles.
+              key forces a clean re-layout when the orientation flips. */}
+          <Group
+            key={isMobile ? "v" : "h"}
+            orientation={isMobile ? "vertical" : "horizontal"}
+            style={{ height: "100%", width: "100%" }}
+          >
             {drawerOpen && (
               <>
-                <Panel defaultSize="22" minSize="16">
+                <Panel
+                  defaultSize={isMobile ? "44" : "22"}
+                  minSize={isMobile ? "20" : "16"}
+                >
                   <Drawer
                     tab={drawerTab} onTab={setDrawerTab} onClose={() => setDrawerOpen(false)}
                     latex={latex} onJumpToLine={jumpTo}
@@ -299,7 +327,7 @@ export default function Workspace() {
                 <Separator className="split-handle" />
               </>
             )}
-            <Panel defaultSize="42" minSize="24">
+            <Panel defaultSize={isMobile ? "31" : "42"} minSize={isMobile ? "16" : "24"}>
               {loadingDoc ? (
                 <div className="editor-pane"><div className="ed-loading">Preparing your workspace…</div></div>
               ) : (
@@ -311,7 +339,7 @@ export default function Workspace() {
               )}
             </Panel>
             <Separator className="split-handle" />
-            <Panel defaultSize="36" minSize="22">
+            <Panel defaultSize={isMobile ? "25" : "36"} minSize={isMobile ? "14" : "22"}>
               <PreviewPane documentId={documentId} pageCount={pageCount} saveState={saveState}
                 onRecompile={() => runCompile(latex)} />
             </Panel>
