@@ -158,42 +158,57 @@ import Workspace from "@/components/workspace/Workspace.tsx";
 
     /* Top-right Popover Luxury Styles */
     .premium-popover {
-      min-width: 210px !important;
-      padding: 8px !important;
-      border-radius: 12px !important;
+      min-width: 244px !important;
+      padding: 6px !important;
+      border-radius: 14px !important;
       box-shadow: 0 18px 45px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.04) !important;
     }
+    .premium-popover .mb-sep { margin: 6px 6px; }
     .popover-badge-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 4px 6px;
+      gap: 12px;
+      padding: 8px 8px 6px;
     }
     .popover-plan-tag {
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: #111;
       background: #f3f3f0;
-      padding: 2px 7px;
-      border-radius: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
     }
     .popover-credits-tag {
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--muted);
       font-weight: 500;
+      white-space: nowrap;
     }
     .popover-action-btn {
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: space-between !important;
-      padding: 8px 10px !important;
-      border-radius: 8px !important;
-      font-size: 13px !important;
+      gap: 10px;
+      padding: 9px 10px !important;
+      border-radius: 9px !important;
+      font-size: 13.5px !important;
       color: var(--text) !important;
+      transition: background 140ms ease, color 140ms ease;
     }
+    /* Icon + label row: real spacing so the glyph never collides with text. */
+    .pab-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .pab-label strong { font-weight: 600; }
+    .pab-icon { flex-shrink: 0; color: var(--secondary); }
+    .popover-action-btn.primary-action .pab-icon { color: var(--accent); }
     .popover-action-btn:hover {
       background: var(--subtle) !important;
     }
@@ -201,25 +216,31 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       background: rgba(37,99,235,0.06) !important;
       color: var(--accent) !important;
     }
+    .popover-action-btn.primary-action:hover .pab-icon { color: var(--accent); }
     .popover-hint-badge {
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 700;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       background: rgba(37,99,235,0.1);
       color: var(--accent);
-      padding: 1px 6px;
-      border-radius: 4px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      flex-shrink: 0;
     }
     .popover-extra-links {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 4px 6px 2px;
+      gap: 8px;
+      padding: 4px 10px 6px;
     }
     .popover-sub-link {
-      font-size: 11.5px;
+      font-size: 12px;
+      font-weight: 500;
       color: var(--muted);
       text-decoration: none;
+      white-space: nowrap;
       transition: color 120ms ease;
     }
     .popover-sub-link:hover { color: var(--text); }
@@ -1076,5 +1097,156 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     .skeleton { aspect-ratio: 1 / 1.414; opacity: 0.5; }
     .pv-error { text-align: center; color: var(--secondary); padding: 50px 24px; }
     .pv-error .muted { color: var(--muted); font-size: 13px; max-width: 30ch; margin: 8px auto 0; line-height: 1.5; }
+
+    /* =====================================================================
+       MOBILE  (≤ 820px)
+       - Panels stack column-wise (vertical) and stay resizable (row handles).
+       - The left icon rail becomes a floating Android-style bottom menu bar,
+         inset 1% from the left/right/bottom edges, safe-area aware.
+       - Menu bar, drawer, editor, preview and in-shell views all adapt.
+       ===================================================================== */
+    @media (max-width: 820px) {
+      /* Allow natural height; body no longer needs to lock scroll rigidly. */
+      .app { height: 100dvh; }
+      /* Body stacks so the workspace fills the space above the floating rail.
+         Reserve room at the bottom for the compact floating menu bar + safe area. */
+      .app-body {
+        flex-direction: column;
+        padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* -------- Floating bottom menu bar (was the left rail) --------
+         Compact pill: centered (not edge-to-edge), tightly padded, very
+         rounded, with small icons. Width is content-driven, capped to the
+         viewport so it never touches the edges. */
+      .rail {
+        position: fixed;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        bottom: calc(1% + env(safe-area-inset-bottom, 0px));
+        width: max-content;
+        max-width: 96vw;
+        height: 46px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 4px 6px;
+        border: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.88);
+        backdrop-filter: saturate(160%) blur(14px);
+        -webkit-backdrop-filter: saturate(160%) blur(14px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.06);
+        z-index: 80;
+      }
+      .rail-items {
+        flex-direction: row;
+        align-items: center;
+        gap: 1px;
+        justify-content: center;
+      }
+      .rail-foot { margin-top: 0; margin-left: 1px; }
+      /* Vertical divider between the tab group and the views on mobile. */
+      .rail-divider { width: 1px; height: 20px; margin: 0 3px; }
+      .rail-item { width: 36px; height: 36px; border-radius: 999px; }
+      .rail-item svg { width: 17px; height: 17px; }
+      /* Tooltips flip to sit ABOVE the floating bar instead of to the right. */
+      .rail-item[data-label]::after {
+        left: 50%;
+        top: auto;
+        bottom: calc(100% + 10px);
+        transform: translateX(-50%) scale(0.96);
+      }
+      .rail-item[data-label]:hover::after,
+      .rail-item[data-label]:focus-visible::after {
+        transform: translateX(-50%) scale(1);
+      }
+
+      /* -------- Workspace: vertical (column-wise) stacking -------- */
+      .workspace { min-height: 0; }
+      /* The resize handle is now horizontal: full-width, taller touch target. */
+      .split-handle {
+        width: 100% !important;
+        height: 1px;
+        cursor: row-resize;
+      }
+      .split-handle::after { inset: -6px 0; }
+      /* A subtle grip so users discover the drag affordance on touch. */
+      .split-handle::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 34px;
+        height: 4px;
+        border-radius: 99px;
+        background: var(--border);
+      }
+      .split-handle:hover::before,
+      .split-handle[data-resize-handle-active]::before { background: var(--accent); }
+
+      /* -------- In-shell views (Files / Usage) -------- */
+      .view-scroll { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
+      .view { padding: 24px 16px 40px; }
+      .view-head { flex-direction: column; gap: 14px; margin-bottom: 24px; padding-bottom: 18px; }
+      .view-head h1 { font-size: 23px; }
+      .view-cta { align-self: flex-start; }
+      .stat-cards { grid-template-columns: 1fr; gap: 12px; margin-bottom: 26px; }
+      .usage-card { flex-direction: column; align-items: flex-start; gap: 18px; padding: 22px; }
+      .usage-grid { max-width: 100%; }
+      /* Tables scroll horizontally rather than breaking the layout. */
+      .tbl-section { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .tbl { min-width: 520px; }
+
+      /* -------- Menu bar: tighten for narrow screens -------- */
+      .menubar { grid-template-columns: auto 1fr auto; height: 46px; padding: 0 8px; gap: 6px; }
+      /* Hide the desktop text menus (File/Edit/View/Help) — their actions live
+         in the "More" popover and the drawer on mobile. Keep the logo. */
+      .mb-left .mb-menu-wrap, .mb-left > .mb-menu { display: none; }
+      .mb-logo { margin-right: 2px; }
+      .mb-center { gap: 6px; min-width: 0; }
+      .mb-title { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .mb-save { display: none; }
+      /* Export button: keep the icon, drop the label to save width. */
+      .mb-right .ui-btn.primary span { display: none; }
+      .mb-right .ui-btn.primary { padding: 8px 12px; }
+      /* The AI review bar can wrap under; keep it compact. */
+      .ai-review-bar { display: none; }
+
+      /* -------- Drawer / Editor / Preview panes as stacked rows -------- */
+      .drawer { border-right: none; border-bottom: 1px solid var(--border); }
+      /* Tighter drawer so more content fits in the short stacked panel. */
+      .drawer-header-bar { height: 42px; padding: 0 12px; }
+      .drawer-body { padding: 10px 12px; gap: 12px; }
+      /* Shrink the "Your Resume" dropzone — it dominated the panel and pushed
+         the Job Description section below the fold. Now compact so the JD shows. */
+      .dropzone { padding: 12px; gap: 4px; }
+      .dropzone .dz-icon { width: 18px; height: 18px; }
+      .dropzone em { font-size: 10.5px; }
+      /* Hide the "Developed by Enally.in with 💝" footer on mobile. */
+      .drawer-footer { display: none; }
+      .editor-pane, .preview-pane { border-bottom: 1px solid var(--border); }
+      /* Larger tap targets in dense toolbars. */
+      .ed-header, .pv-toolbar { height: 44px; }
+      .pv-scroll { padding: 16px; }
+      /* Template menu / dropdowns shouldn't overflow the viewport width. */
+      .ed-template-menu { width: min(240px, 78vw); }
+      .mb-dropdown.premium-popover { min-width: min(210px, 80vw) !important; }
+
+      /* Modals: give breathing room from screen edges. */
+      .about-modal, .auth-modal-card { width: min(360px, 92vw); }
+    }
+
+    /* Very small phones — squeeze the floating bar + rail items a touch more. */
+    @media (max-width: 380px) {
+      .rail { height: 44px; padding: 3px 5px; }
+      .rail-item { width: 34px; height: 34px; }
+      .rail-item svg { width: 16px; height: 16px; }
+      .rail-divider { margin: 0 2px; }
+    }
   </style>
 </Base>
