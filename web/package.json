@@ -13,6 +13,7 @@
   "dependencies": {
     "@astrojs/node": "^9.0.0",
     "@astrojs/react": "^4.0.0",
+    "@astrojs/vercel": "^8.2.11",
     "@codemirror/legacy-modes": "^6.5.4",
     "@codemirror/state": "^6.7.4",
     "@codemirror/view": "^6.43.11",
