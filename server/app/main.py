@@ -62,7 +62,7 @@ _STATIC_DIR = Path(__file__).resolve().parent / "static"
 if _STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
-_compiler = TectonicCompiler(only_cached=True)
+_compiler = TectonicCompiler(only_cached=False)
 
 _MIME = {"webp": "image/webp", "png": "image/png"}
 
