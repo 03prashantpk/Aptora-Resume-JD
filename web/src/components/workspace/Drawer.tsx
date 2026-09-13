@@ -3,7 +3,7 @@ import {
   Upload, ChevronLeft, Check, Circle, ListTree, FileUp, Clock,
   User, Code, Layers, GraduationCap, Award, Sparkles, Target,
   SlidersHorizontal, Minimize2, Type, Zap, Scissors, FileText, Briefcase,
-  Info,
+  Info, LoaderCircle, CircleAlert,
 } from "lucide-motion";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
@@ -67,21 +67,31 @@ interface Props {
 
 function TailorProgress({ phase }: { phase: TailorPhase }) {
   const activeIdx = PHASE_ORDER.indexOf(phase);
-  const pct = phase === "done" ? 100 : Math.max(8, Math.round(((activeIdx + 0.5) / PHASE_ORDER.length) * 100));
+  const pct = phase === "done" ? 100 : Math.max(12, Math.round(((activeIdx + 0.5) / PHASE_ORDER.length) * 100));
   return (
     <div className="tailor-progress">
       <div className="tp-head">
-        <span className="tp-spinner" aria-hidden="true" />
+        <LoaderCircle size={15} className="spin-animate tp-spinner-icon" />
         <span>Aptora is tailoring your resume</span>
       </div>
-      <div className="tp-bar"><span className="tp-bar-fill" style={{ width: `${pct}%` }} /></div>
+      <div className="tp-bar">
+        <div className="tp-bar-fill" style={{ width: `${pct}%` }} />
+      </div>
       <ul className="tp-steps">
         {PHASES.filter((p) => p.key !== "done").map((p) => {
           const i = PHASE_ORDER.indexOf(p.key);
           const state = phase === "error" ? "idle" : i < activeIdx ? "done" : i === activeIdx ? "active" : "idle";
           return (
             <li key={p.key} className={`tp-step ${state}`}>
-              <span className="tp-mark">{state === "done" ? "✓" : state === "active" ? <span className="tp-dot" /> : "○"}</span>
+              <span className="tp-mark">
+                {state === "done" ? (
+                  <Check size={13} className="tp-check-icon" />
+                ) : state === "active" ? (
+                  <LoaderCircle size={13} className="spin-animate tp-active-icon" />
+                ) : (
+                  <Circle size={11} />
+                )}
+              </span>
               <span>{p.label}{state === "active" ? "…" : ""}</span>
             </li>
           );
@@ -155,15 +165,20 @@ export default function Drawer({
   // Manual Update state
   const [instructInput, setInstructInput] = useState("");
   const [instructStatus, setInstructStatus] = useState<string | null>(null);
+  const [activeChip, setActiveChip] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [savingJd, setSavingJd] = useState(false);
   const [saveJdStatus, setSaveJdStatus] = useState<string | null>(null);
 
   const handleApplyInstruct = async (cmd?: string) => {
     const text = cmd ?? instructInput;
     if (!text.trim() || !onInstruct) return;
+    if (cmd) setActiveChip(cmd);
     setInstructStatus("Applying update…");
     const ok = await onInstruct(text);
+    setActiveChip(null);
     if (ok) {
-      setInstructStatus(`✓ Updated: "${text.slice(0, 45)}${text.length > 45 ? "..." : ""}"`);
+      setInstructStatus(`✓ Updated: "${text.slice(0, 42)}${text.length > 42 ? "..." : ""}"`);
       if (!cmd) setInstructInput("");
     } else {
       setInstructStatus("Could not apply update. Check input and try again.");
@@ -189,6 +204,7 @@ export default function Drawer({
 
   const onFilePicked = async (file: File | null) => {
     if (!file) return;
+    setUploadingPdf(true);
     setName(file.name); onUploadName(file.name);
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
@@ -196,12 +212,14 @@ export default function Drawer({
       const fileBase64 = btoa(bin);
       await fetch("/api/uploads", { method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ kind: "resume_pdf", name: file.name, fileBase64 }) });
-      loadSaved();
+      await loadSaved();
     } catch { /* non-fatal */ }
+    finally { setUploadingPdf(false); }
   };
 
   const saveJd = async () => {
-    if (!jd.trim()) return;
+    if (!jd.trim() || savingJd) return;
+    setSavingJd(true);
     setSaveJdStatus("Saving…");
     try {
       const title = jd.trim().slice(0, 36).replace(/[\r\n]+/g, " ");
@@ -213,12 +231,14 @@ export default function Drawer({
       if (res.ok) {
         setSaveJdStatus("✓ Saved");
         setTimeout(() => setSaveJdStatus(null), 3000);
-        loadSaved();
+        await loadSaved();
       } else {
         setSaveJdStatus("Failed");
       }
     } catch {
       setSaveJdStatus("Saved");
+    } finally {
+      setSavingJd(false);
     }
   };
 
@@ -284,10 +304,14 @@ export default function Drawer({
                 <h4>Your Resume</h4>
                 <span className="section-tag">PDF</span>
               </div>
-              <button type="button" className="dropzone" onClick={pick}>
-                <FileUp size={20} className="dz-icon" />
+              <button type="button" className={`dropzone ${uploadingPdf ? "loading" : ""}`} onClick={pick} disabled={uploadingPdf}>
+                {uploadingPdf ? (
+                  <LoaderCircle size={22} className="dz-icon spin-animate" />
+                ) : (
+                  <FileUp size={20} className="dz-icon" />
+                )}
                 {name ? <span className="file-name">{name}</span> : <span>Upload PDF</span>}
-                <em>{name ? "Uploaded & ready" : "Click or drop file (Max 10 MB)"}</em>
+                <em>{uploadingPdf ? "Uploading & parsing resume…" : name ? "Uploaded & ready" : "Click or drop file (Max 10 MB)"}</em>
               </button>
               <input ref={fileRef} type="file" accept="application/pdf" hidden
                 onChange={(e) => onFilePicked(e.target.files?.[0] ?? null)} />
@@ -311,7 +335,10 @@ export default function Drawer({
               <textarea className="jd-input" rows={6} value={jd} placeholder="Paste job description or role requirements here…" onChange={(e) => onJdChange(e.target.value)} />
               <div className="jd-actions">
                 {saveJdStatus && <span className="save-feedback">{saveJdStatus}</span>}
-                <button type="button" className="jd-save" onClick={saveJd} disabled={!jd.trim()}>Save JD</button>
+                <button type="button" className="jd-save" onClick={saveJd} disabled={!jd.trim() || savingJd}>
+                  {savingJd && <LoaderCircle size={11} className="spin-animate" />}
+                  <span>{savingJd ? "Saving…" : "Save JD"}</span>
+                </button>
               </div>
               {savedJds.length > 0 && (
                 <div className="saved-list">
@@ -344,7 +371,8 @@ export default function Drawer({
             </section>
 
             <Button variant="ai" className="dr-cta" onClick={onTailor} disabled={!jd.trim() || tailoring}>
-              <BrainIcon size={16} /> <span>{tailoring ? "Tailoring…" : "Tailor"}</span>
+              {tailoring ? <LoaderCircle size={16} className="spin-animate" /> : <BrainIcon size={16} />}
+              <span>{tailoring ? "Tailoring…" : "Tailor"}</span>
             </Button>
             {!jd.trim() && <p className="dr-note">Paste a target job description above to enable AI-powered tailoring.</p>}
           </>
@@ -364,10 +392,31 @@ export default function Drawer({
                 </button>
               </div>
             ) : analyzing ? (
-              <div className="intel-steps">
-                <p>Analyzing role alignment…</p>
-                <p className="muted">Evaluating experience against requirements</p>
-                <p className="muted">Predicting gap bridge timelines</p>
+              <div className="intel-analyzing-card">
+                <div className="iac-header">
+                  <LoaderCircle size={22} className="spin-animate iac-spinner" />
+                  <div>
+                    <h4>Analyzing Alignment</h4>
+                    <p>Cross-referencing resume against JD qualifications</p>
+                  </div>
+                </div>
+                <div className="iac-bar">
+                  <div className="iac-bar-fill" />
+                </div>
+                <ul className="iac-steps">
+                  <li className="iac-step active">
+                    <LoaderCircle size={12} className="spin-animate" />
+                    <span>Evaluating experience against requirements</span>
+                  </li>
+                  <li className="iac-step pending">
+                    <Circle size={10} />
+                    <span>Detecting skill gaps & bridge timelines</span>
+                  </li>
+                  <li className="iac-step pending">
+                    <Circle size={10} />
+                    <span>Calculating role fit score</span>
+                  </li>
+                </ul>
               </div>
             ) : analysis ? (
               <>
@@ -495,13 +544,15 @@ export default function Drawer({
                 {/* Action Bar */}
                 <div className="intel-actions-bar">
                   <Button variant="ai" className="dr-cta" onClick={onTailor} disabled={tailoring}>
-                    <BrainIcon size={15} /> <span>{tailoring ? "Tailoring…" : "Tailor"}</span>
+                    {tailoring ? <LoaderCircle size={15} className="spin-animate" /> : <BrainIcon size={15} />}
+                    <span>{tailoring ? "Tailoring…" : "Tailor"}</span>
                   </Button>
                   <div className="intel-sub-actions">
                     <button type="button" className="intel-sub-btn" onClick={() => onTab("instruct")}>
                       <SlidersHorizontal size={13} /> <span>Manual Adjust</span>
                     </button>
                     <button type="button" className="intel-sub-btn" onClick={onAnalyze} disabled={analyzing}>
+                      {analyzing && <LoaderCircle size={12} className="spin-animate" />}
                       <span>{analyzing ? "Scoring…" : "Re-score"}</span>
                     </button>
                   </div>
@@ -512,8 +563,9 @@ export default function Drawer({
                 <Target size={28} className="empty-intel-icon" />
                 <h4>Fit Analysis Ready</h4>
                 <p>Analyze your resume match percentage, gap closure predictions, and career role fits.</p>
-                <Button variant="ai" className="dr-cta" onClick={onAnalyze}>
-                  <BrainIcon size={15} /> <span>Run Fit</span>
+                <Button variant="ai" className="dr-cta" onClick={onAnalyze} disabled={analyzing}>
+                  {analyzing ? <LoaderCircle size={15} className="spin-animate" /> : <BrainIcon size={15} />}
+                  <span>{analyzing ? "Scoring…" : "Run Fit"}</span>
                 </Button>
               </div>
             )}
@@ -540,10 +592,27 @@ export default function Drawer({
                 onClick={() => handleApplyInstruct()}
                 disabled={!instructInput.trim() || instructing}
               >
-                <Sparkles size={14} /> <span>{instructing ? "Applying…" : "Apply Edit"}</span>
+                {instructing ? <LoaderCircle size={14} className="spin-animate" /> : <Sparkles size={14} />}
+                <span>{instructing ? "Applying…" : "Apply Edit"}</span>
               </Button>
               {instructStatus && (
-                <p className="instruct-feedback">{instructStatus}</p>
+                <div className={`instruct-feedback ${instructStatus.startsWith("Applying") ? "applying" : instructStatus.startsWith("✓") ? "success" : "error"}`}>
+                  <div className="if-header">
+                    {instructStatus.startsWith("Applying") ? (
+                      <LoaderCircle size={13} className="spin-animate" />
+                    ) : instructStatus.startsWith("✓") ? (
+                      <Check size={13} />
+                    ) : (
+                      <CircleAlert size={13} />
+                    )}
+                    <span>{instructStatus}</span>
+                  </div>
+                  {instructStatus.startsWith("Applying") && (
+                    <div className="if-progress-track">
+                      <div className="if-progress-bar" />
+                    </div>
+                  )}
+                </div>
               )}
             </section>
 
@@ -555,11 +624,17 @@ export default function Drawer({
               <div className="quick-chips-grid">
                 <button
                   type="button"
-                  className="quick-chip"
+                  className={`quick-chip ${activeChip === "Fit to 1 page with compact margins and 10pt font" ? "active-inflight" : ""}`}
                   onClick={() => handleApplyInstruct("Fit to 1 page with compact margins and 10pt font")}
                   disabled={instructing}
                 >
-                  <div className="qc-icon-wrap"><Minimize2 size={14} /></div>
+                  <div className="qc-icon-wrap">
+                    {activeChip === "Fit to 1 page with compact margins and 10pt font" ? (
+                      <LoaderCircle size={14} className="spin-animate" />
+                    ) : (
+                      <Minimize2 size={14} />
+                    )}
+                  </div>
                   <div className="qc-text">
                     <strong>Fit 1 Page</strong>
                     <small>Compact margins & 10pt</small>
@@ -567,11 +642,17 @@ export default function Drawer({
                 </button>
                 <button
                   type="button"
-                  className="quick-chip"
+                  className={`quick-chip ${activeChip === "Reduce margins to 0.45in" ? "active-inflight" : ""}`}
                   onClick={() => handleApplyInstruct("Reduce margins to 0.45in")}
                   disabled={instructing}
                 >
-                  <div className="qc-icon-wrap"><SlidersHorizontal size={14} /></div>
+                  <div className="qc-icon-wrap">
+                    {activeChip === "Reduce margins to 0.45in" ? (
+                      <LoaderCircle size={14} className="spin-animate" />
+                    ) : (
+                      <SlidersHorizontal size={14} />
+                    )}
+                  </div>
                   <div className="qc-text">
                     <strong>0.45in Margins</strong>
                     <small>Maximize space</small>
@@ -579,11 +660,17 @@ export default function Drawer({
                 </button>
                 <button
                   type="button"
-                  className="quick-chip"
+                  className={`quick-chip ${activeChip === "Set document base font size to 10pt" ? "active-inflight" : ""}`}
                   onClick={() => handleApplyInstruct("Set document base font size to 10pt")}
                   disabled={instructing}
                 >
-                  <div className="qc-icon-wrap"><Type size={14} /></div>
+                  <div className="qc-icon-wrap">
+                    {activeChip === "Set document base font size to 10pt" ? (
+                      <LoaderCircle size={14} className="spin-animate" />
+                    ) : (
+                      <Type size={14} />
+                    )}
+                  </div>
                   <div className="qc-text">
                     <strong>10pt Font</strong>
                     <small>Compact density</small>
@@ -591,11 +678,17 @@ export default function Drawer({
                 </button>
                 <button
                   type="button"
-                  className="quick-chip"
+                  className={`quick-chip ${activeChip === "Set document base font size to 11pt" ? "active-inflight" : ""}`}
                   onClick={() => handleApplyInstruct("Set document base font size to 11pt")}
                   disabled={instructing}
                 >
-                  <div className="qc-icon-wrap"><Type size={14} /></div>
+                  <div className="qc-icon-wrap">
+                    {activeChip === "Set document base font size to 11pt" ? (
+                      <LoaderCircle size={14} className="spin-animate" />
+                    ) : (
+                      <Type size={14} />
+                    )}
+                  </div>
                   <div className="qc-text">
                     <strong>11pt Font</strong>
                     <small>Balanced body</small>
@@ -612,29 +705,41 @@ export default function Drawer({
               <div className="quick-chips-list">
                 <button
                   type="button"
-                  className="quick-chip-row"
+                  className={`quick-chip-row ${activeChip === "Make the professional summary 30% shorter and punchier" ? "active-inflight" : ""}`}
                   onClick={() => handleApplyInstruct("Make the professional summary 30% shorter and punchier")}
                   disabled={instructing}
                 >
-                  <Scissors size={13} className="qc-row-icon" />
+                  {activeChip === "Make the professional summary 30% shorter and punchier" ? (
+                    <LoaderCircle size={13} className="spin-animate qc-row-icon" />
+                  ) : (
+                    <Scissors size={13} className="qc-row-icon" />
+                  )}
                   <span>Condense Summary</span>
                 </button>
                 <button
                   type="button"
-                  className="quick-chip-row"
+                  className={`quick-chip-row ${activeChip === "Strengthen action verbs and highlight quantified metrics in experience bullets" ? "active-inflight" : ""}`}
                   onClick={() => handleApplyInstruct("Strengthen action verbs and highlight quantified metrics in experience bullets")}
                   disabled={instructing}
                 >
-                  <Zap size={13} className="qc-row-icon" />
+                  {activeChip === "Strengthen action verbs and highlight quantified metrics in experience bullets" ? (
+                    <LoaderCircle size={13} className="spin-animate qc-row-icon" />
+                  ) : (
+                    <Zap size={13} className="qc-row-icon" />
+                  )}
                   <span>Quantify Bullets</span>
                 </button>
                 <button
                   type="button"
-                  className="quick-chip-row"
+                  className={`quick-chip-row ${activeChip === "Ensure all technical skills are categorized cleanly" ? "active-inflight" : ""}`}
                   onClick={() => handleApplyInstruct("Ensure all technical skills are categorized cleanly")}
                   disabled={instructing}
                 >
-                  <Layers size={13} className="qc-row-icon" />
+                  {activeChip === "Ensure all technical skills are categorized cleanly" ? (
+                    <LoaderCircle size={13} className="spin-animate qc-row-icon" />
+                  ) : (
+                    <Layers size={13} className="qc-row-icon" />
+                  )}
                   <span>Clean Taxonomy</span>
                 </button>
               </div>

@@ -25,7 +25,7 @@ export default function PreviewPane({ documentId, pageCount, saveState, onRecomp
       <div className="pv-toolbar">
         <div className="pv-tb-left">
           <button type="button" className="pv-recompile" onClick={onRecompile} disabled={saveState === "updating"}>
-            <RotateCw size={14} /> <span>{saveState === "updating" ? "Compiling…" : "Recompile"}</span>
+            <RotateCw size={14} className={saveState === "updating" ? "spin-animate" : ""} /> <span>{saveState === "updating" ? "Compiling…" : "Recompile"}</span>
           </button>
         </div>
         <div className="pv-tb-right">
@@ -38,6 +38,12 @@ export default function PreviewPane({ documentId, pageCount, saveState, onRecomp
           </div>
         </div>
       </div>
+
+      {saveState === "updating" && (
+        <div className="pv-compiling-bar" aria-live="polite">
+          <div className="pv-compiling-fill" />
+        </div>
+      )}
 
       <div className="pv-scroll">
         {!documentId && saveState !== "error" && <div className="sheet skeleton" style={{ width: `${base * zoom}px` }} aria-hidden="true" />}

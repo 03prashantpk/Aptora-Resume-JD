@@ -526,14 +526,52 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       transform: translateX(-1px);
     }
 
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes shimmer-slide {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.98); }
+    }
+    .spin-animate {
+      animation: spin 0.85s linear infinite;
+      display: inline-block;
+      transform-origin: center;
+    }
+
     /* Tailor progress */
-    .tailor-progress { display: flex; flex-direction: column; gap: 14px; }
-    .tp-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text); }
-    .tp-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-    .tp-step { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); }
-    .tp-step .tp-mark { width: 15px; text-align: center; }
+    .tailor-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(37, 99, 235, 0.03);
+      border: 1px solid rgba(37, 99, 235, 0.14);
+    }
+    .tp-head { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--text); }
+    .tp-spinner-icon { color: var(--accent); flex-shrink: 0; }
+    .tp-bar { width: 100%; height: 5px; border-radius: 99px; background: rgba(37, 99, 235, 0.15); overflow: hidden; position: relative; }
+    .tp-bar-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 99px; transition: width 350ms cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+    .tp-bar-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+      animation: shimmer-slide 1.4s infinite;
+    }
+    .tp-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+    .tp-step { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); }
+    .tp-step .tp-mark { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .tp-step.done { color: var(--secondary); } .tp-step.done .tp-mark { color: var(--success); }
-    .tp-step.active { color: var(--text); font-weight: 500; } .tp-step.active .tp-mark { color: var(--accent); }
+    .tp-step.active { color: var(--text); font-weight: 600; } .tp-step.active .tp-mark { color: var(--accent); }
+    .tp-check-icon { color: var(--success); }
+    .tp-active-icon { color: var(--accent); }
     .dr-note.danger { color: var(--danger); }
 
     /* Saved uploads pick-lists */
@@ -666,7 +704,51 @@ import Workspace from "@/components/workspace/Workspace.tsx";
 
     /* Manual Update View */
     .instruct-view { display: flex; flex-direction: column; gap: 16px; }
-    .instruct-feedback { font-size: 11.5px; color: var(--success); background: rgba(22,128,60,0.06); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(22,128,60,0.2); margin: 0; }
+    .instruct-feedback {
+      margin: 0;
+      padding: 10px 12px;
+      border-radius: 9px;
+      font-size: 12px;
+      line-height: 1.4;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      transition: all 160ms ease;
+    }
+    .instruct-feedback.applying {
+      background: rgba(37, 99, 235, 0.07);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      color: var(--accent);
+    }
+    .instruct-feedback.success {
+      background: rgba(22, 128, 60, 0.07);
+      border: 1px solid rgba(22, 128, 60, 0.25);
+      color: var(--success);
+    }
+    .instruct-feedback.error {
+      background: rgba(220, 38, 38, 0.07);
+      border: 1px solid rgba(220, 38, 38, 0.25);
+      color: var(--danger);
+    }
+    .if-header { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .if-progress-track {
+      height: 3px;
+      width: 100%;
+      border-radius: 99px;
+      background: rgba(37, 99, 235, 0.15);
+      overflow: hidden;
+      position: relative;
+    }
+    .if-progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 40%;
+      border-radius: 99px;
+      background: var(--accent);
+      animation: shimmer-slide 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
     .quick-chips-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
     .quick-chip {
       display: flex;
@@ -689,6 +771,11 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       box-shadow: 0 3px 8px rgba(37,99,235,0.08);
     }
     .quick-chip:active:not(:disabled) { transform: scale(0.98); }
+    .quick-chip.active-inflight {
+      border-color: var(--accent);
+      background: rgba(37,99,235,0.06);
+      pointer-events: none;
+    }
     .qc-icon-wrap {
       display: flex;
       align-items: center;
@@ -729,6 +816,12 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       box-shadow: 0 3px 8px rgba(37,99,235,0.08);
     }
     .quick-chip-row:active:not(:disabled) { transform: scale(0.98); }
+    .quick-chip-row.active-inflight {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(37,99,235,0.06);
+      pointer-events: none;
+    }
     .qc-row-icon { color: var(--accent); flex-shrink: 0; }
     .intel-actions-bar { display: flex; flex-direction: column; gap: 8px; }
     .intel-sub-actions { display: flex; gap: 7px; }
@@ -861,6 +954,39 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     /* Intel, Gauges, and Keywords */
     .intel { font-size: 13px; color: var(--secondary); line-height: 1.55; display: flex; flex-direction: column; gap: 16px; }
     .intel-steps p { margin: 0 0 8px; } .intel-steps .muted { color: var(--muted); }
+    .intel-analyzing-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 16px 14px;
+      border-radius: 12px;
+      background: rgba(37, 99, 235, 0.04);
+      border: 1px solid rgba(37, 99, 235, 0.16);
+    }
+    .iac-header { display: flex; align-items: flex-start; gap: 12px; }
+    .iac-spinner { color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+    .iac-header h4 { margin: 0 0 3px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+    .iac-header p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .iac-bar { width: 100%; height: 5px; border-radius: 99px; background: rgba(37, 99, 235, 0.15); overflow: hidden; position: relative; }
+    .iac-bar-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 45%;
+      border-radius: 99px;
+      background: var(--accent);
+      animation: shimmer-slide 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    .iac-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+    .iac-step { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--muted); }
+    .iac-step.active { color: var(--text); font-weight: 600; }
+    .iac-step.active svg { color: var(--accent); }
+    .dropzone.loading {
+      border-color: var(--accent);
+      background: rgba(37, 99, 235, 0.04);
+      cursor: wait;
+    }
     .intel-gauges { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 4px 0; }
     .gauge { position: relative; } .gauge svg { display: block; }
     .gauge-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -918,6 +1044,24 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     /* ===================== Preview pane ===================== */
     .preview-pane { display: flex; flex-direction: column; height: 100%; min-width: 0; background: var(--bg); }
     .pv-toolbar { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+    .pv-compiling-bar {
+      height: 3px;
+      width: 100%;
+      background: rgba(22, 128, 60, 0.15);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .pv-compiling-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 35%;
+      background: var(--success);
+      border-radius: 99px;
+      animation: shimmer-slide 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
     .pv-tb-left { display: flex; align-items: center; gap: 6px; }
     .pv-recompile { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12.5px; font-weight: 500; padding: 5px 12px; border: none; border-radius: 8px; background: var(--success); color: #fff; cursor: pointer; }
     .pv-recompile:disabled { opacity: 0.7; cursor: default; }

@@ -62,8 +62,8 @@ interface Props {
 }
 
 function CompileStatus({ state, streaming }: { state: SaveState; streaming: boolean }) {
-  if (streaming) return <span className="ed-status updating"><LoaderCircle size={13} /> Writing…</span>;
-  if (state === "updating") return <span className="ed-status updating"><LoaderCircle size={13} /> Compiling…</span>;
+  if (streaming) return <span className="ed-status updating"><LoaderCircle size={13} className="spin-animate" /> Writing…</span>;
+  if (state === "updating") return <span className="ed-status updating"><LoaderCircle size={13} className="spin-animate" /> Compiling…</span>;
   if (state === "saved") return <span className="ed-status ok"><Check size={13} /> Compiled</span>;
   if (state === "error") return <span className="ed-status err"><CircleAlert size={13} /> Compile failed</span>;
   return <span className="ed-status" />;
