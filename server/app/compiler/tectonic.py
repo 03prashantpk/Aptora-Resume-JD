@@ -48,7 +48,28 @@ class TectonicCompiler:
 
     # Hardening limits for arbitrary .tex (the pivot). Applies to every compile.
     MAX_TEX_BYTES = 400_000   # ~400 KB of source is plenty for a résumé
-    TIMEOUT_S = 60
+    # A COLD compile (empty Tectonic support-bundle cache, e.g. right after a
+    # free-tier spin-down that reset the filesystem) must download the bundle
+    # mid-compile, which can exceed a tight limit. Once the cache is warm, real
+    # compiles finish in ~1-3s. Keep the ceiling generous; override via env.
+    TIMEOUT_S = int(os.environ.get("COMPILE_TIMEOUT_S", "150"))
+
+    def warmup(self) -> bool:
+        """Fill the Tectonic support-bundle cache with one throwaway compile.
+
+        Called at server startup so the FIRST real user compile isn't the one
+        paying the (network) bundle-download cost. Best-effort; safe to call
+        repeatedly (a warm cache makes this a fast no-op-ish compile)."""
+        if not self.exe:
+            return False
+        try:
+            r, _, _ = self._run(
+                r"\documentclass{article}\begin{document}Aptora warmup\end{document}",
+                do_raster=False, dpi=72, fmt="webp", t0=time.monotonic(), only_cached=False,
+            )
+            return r.success
+        except Exception:
+            return False
 
     def compile(self, inp: CompileInput) -> tuple[CompileResult, bytes | None, list[PageImageBytes]]:
         """Trusted-template path: ResumeJSON + template_id -> .tex -> _run()."""
