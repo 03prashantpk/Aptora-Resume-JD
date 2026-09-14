@@ -23,6 +23,9 @@ image/pdf endpoints can serve the artifact produced by the preceding compile. In
 production the Astro app receives the artifact server-to-server and owns durable
 storage/ownership; this dict is not application state we rely on."""
 from __future__ import annotations
+import gc
+import os
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Literal
@@ -42,7 +45,10 @@ class CompileTexInput(BaseModel):
     latex: str
     revision_id: Optional[str] = None
     rasterize: bool = True
-    preview_dpi: int = 150
+    # 110 DPI keeps previews crisp on screen while roughly halving the peak pixmap
+    # memory vs 150 DPI — important on small (512MB) hosts where a compile + raster
+    # spike can OOM. Callers can override per request.
+    preview_dpi: int = 110
     preview_format: Literal["webp", "png"] = "webp"
 
 
@@ -66,6 +72,34 @@ _compiler = TectonicCompiler(only_cached=False)
 
 _MIME = {"webp": "image/webp", "png": "image/png"}
 
+# Serialize compiles: on a small (512MB) instance, two concurrent Tectonic + raster
+# runs stack their memory and OOM. This lock ensures only one compile executes at a
+# time; other requests queue briefly. Combined with a single worker, this keeps peak
+# memory to one compile's footprint.
+import threading as _threading
+_COMPILE_LOCK = _threading.Lock()
+
+# Clamp preview DPI so a client can't request an enormous rasterization that OOMs the
+# box (a 300 DPI A4 pixmap is ~4x the memory of 110 DPI).
+_MIN_DPI, _MAX_DPI = 72, 150
+
+
+def _clamp_dpi(dpi: int) -> int:
+    return max(_MIN_DPI, min(_MAX_DPI, dpi))
+
+
+@app.on_event("startup")
+def _warm_compiler_cache() -> None:
+    # Warm the Tectonic support-bundle cache on boot so the first real user compile
+    # doesn't race a mid-compile bundle download against the timeout. On free hosts
+    # that reset the filesystem on spin-down, this re-warms on every cold start.
+    #
+    # Run in a BACKGROUND thread so the server binds its port and starts accepting
+    # traffic immediately (Render's health check must see the port open quickly);
+    # the cache fills in the background within the first minute or so.
+    import threading
+    threading.Thread(target=_compiler.warmup, daemon=True).start()
+
 
 @dataclass
 class _Artifact:
@@ -73,8 +107,20 @@ class _Artifact:
     pages: dict[int, PageImageBytes] = field(default_factory=dict)
 
 
-# DEV-only transient store {document_id: _Artifact}. Not durable app state.
-_ARTIFACTS: dict[str, _Artifact] = {}
+# Transient store {document_id: _Artifact} so the page/pdf endpoints can serve the
+# artifact from the preceding compile. BOUNDED with FIFO eviction: without a cap this
+# dict grows for every compile (full PDF + all page images) and eventually OOMs a
+# small instance. We only need the few most-recent documents in flight.
+_ARTIFACTS: "OrderedDict[str, _Artifact]" = OrderedDict()
+_MAX_ARTIFACTS = int(os.environ.get("MAX_ARTIFACTS", "12"))
+
+
+def _store_artifact(document_id: str, art: _Artifact) -> None:
+    _ARTIFACTS[document_id] = art
+    _ARTIFACTS.move_to_end(document_id)
+    while len(_ARTIFACTS) > _MAX_ARTIFACTS:
+        _ARTIFACTS.popitem(last=False)  # evict oldest
+    gc.collect()  # release the just-evicted PDF/image buffers promptly
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -98,13 +144,14 @@ def health():
 
 @app.post("/api/compile", response_model=CompileResult)
 def compile_resume(inp: CompileInput):
-    result, pdf, imgs = _compiler.compile(inp)
+    with _COMPILE_LOCK:
+        result, pdf, imgs = _compiler.compile(inp)
     if not result.success:
         return JSONResponse(status_code=422, content={
             "error": {"code": result.error_code, "message": result.detail}
         })
     if pdf is not None and result.document_id:
-        _ARTIFACTS[result.document_id] = _Artifact(pdf=pdf, pages={i.page: i for i in imgs})
+        _store_artifact(result.document_id, _Artifact(pdf=pdf, pages={i.page: i for i in imgs}))
     return result
 
 
@@ -117,15 +164,18 @@ def default_document():
 @app.post("/api/compile-tex", response_model=CompileResult)
 def compile_tex(inp: CompileTexInput):
     # Raw-LaTeX path (the pivot): arbitrary human/AI `.tex`, hardened compile + rasterize.
-    result, pdf, imgs = _compiler.compile_tex(
-        inp.latex, rasterize_pages=inp.rasterize, dpi=inp.preview_dpi, fmt=inp.preview_format,
-    )
+    # Serialized + DPI-clamped to protect a small instance from concurrent/oversized
+    # rasterization OOMs.
+    with _COMPILE_LOCK:
+        result, pdf, imgs = _compiler.compile_tex(
+            inp.latex, rasterize_pages=inp.rasterize, dpi=_clamp_dpi(inp.preview_dpi), fmt=inp.preview_format,
+        )
     if not result.success:
         return JSONResponse(status_code=422, content={
             "error": {"code": result.error_code, "message": result.detail}
         })
     if pdf is not None and result.document_id:
-        _ARTIFACTS[result.document_id] = _Artifact(pdf=pdf, pages={i.page: i for i in imgs})
+        _store_artifact(result.document_id, _Artifact(pdf=pdf, pages={i.page: i for i in imgs}))
     return result
 
 

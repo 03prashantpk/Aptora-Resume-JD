@@ -24,9 +24,20 @@ class PageImage:
         self.data = data
 
 
+# Cap how many pages we rasterize for the preview. Résumés are 1-2 pages; a
+# pathological multi-page .tex could otherwise hold many large pixmaps at once and
+# OOM a small instance. Overridable via env.
+import os as _os
+_MAX_PREVIEW_PAGES = int(_os.environ.get("MAX_PREVIEW_PAGES", "6"))
+
+
 def rasterize(pdf: bytes, dpi: int = _DEFAULT_DPI, fmt: str = "webp") -> list[PageImage]:
-    """Render every page of `pdf` to an image. Returns one PageImage per page
-    (1-indexed). `fmt` is 'webp' (default) or 'png'."""
+    """Render each page of `pdf` (up to a page cap) to an image. Returns one
+    PageImage per page (1-indexed). `fmt` is 'webp' (default) or 'png'.
+
+    Memory-conscious: each PyMuPDF pixmap is released before the next page is
+    rendered, so peak memory is one page's pixmap — not all pages at once. This
+    matters on small (512MB) hosts."""
     fmt = fmt.lower()
     if fmt not in ("webp", "png"):
         raise ValueError(f"unsupported preview format: {fmt}")
@@ -35,14 +46,21 @@ def rasterize(pdf: bytes, dpi: int = _DEFAULT_DPI, fmt: str = "webp") -> list[Pa
     out: list[PageImage] = []
     with fitz.open(stream=pdf, filetype="pdf") as doc:
         for i, page in enumerate(doc, start=1):
+            if i > _MAX_PREVIEW_PAGES:
+                break
             pix = page.get_pixmap(matrix=matrix, alpha=False)
+            w, h = pix.width, pix.height
             if fmt == "png":
                 data = pix.tobytes(output="png")
             else:
                 # PyMuPDF can't emit WebP; transcode the raw RGB pixmap via Pillow.
-                img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+                # method=2 uses less memory/CPU than 4 with near-identical size.
+                img = Image.frombytes("RGB", (w, h), pix.samples)
                 buf = io.BytesIO()
-                img.save(buf, format="WEBP", quality=82, method=4)
+                img.save(buf, format="WEBP", quality=80, method=2)
                 data = buf.getvalue()
-            out.append(PageImage(page=i, width=pix.width, height=pix.height, fmt=fmt, data=data))
+                img.close()
+            # Release the pixmap immediately so the next page doesn't stack memory.
+            pix = None
+            out.append(PageImage(page=i, width=w, height=h, fmt=fmt, data=data))
     return out
