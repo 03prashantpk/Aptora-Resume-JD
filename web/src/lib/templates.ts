@@ -12,7 +12,7 @@ export interface TemplateOption {
 
 export const OVERLEAF_BASE_TEX = `%-------------------------
 % Resume in LaTeX
-% Author: Sushant Kumar
+% Author: Alex Carter (sample)
 %-------------------------
 
 \\documentclass[letterpaper,11pt]{article}
@@ -93,13 +93,13 @@ export const OVERLEAF_BASE_TEX = `%-------------------------
 
 %----------HEADING----------
 \\begin{center}
-    \\textbf{\\Huge \\scshape Sushant Kumar} \\\\ \\vspace{2pt}
+    \\textbf{\\Huge \\scshape Alex Carter} \\\\ \\vspace{2pt}
     {\\large\\textbf{DATA ENGINEER \\& AI SPECIALIST}} \\\\ \\vspace{2pt}
-    \\small +91 7630918801 $|$
-    \\href{mailto:sushantkumarkohima@gmail.com}{\\underline{sushantkumarkohima@gmail.com}} $|$
-    \\href{https://www.linkedin.com/in/07sushant/}{\\underline{LinkedIn}} $|$
-    \\href{https://sushant.enally.in/}{\\underline{Portfolio}} $|$
-    \\href{https://github.com/07Sushant}{\\underline{GitHub}}
+    \\small +1 (555) 010-2020 $|$
+    \\href{mailto:alex.carter@example.com}{\\underline{alex.carter@example.com}} $|$
+    \\href{https://www.linkedin.com/in/alexcarter/}{\\underline{LinkedIn}} $|$
+    \\href{https://example.com/portfolio}{\\underline{Portfolio}} $|$
+    \\href{https://github.com/alexcarter}{\\underline{GitHub}}
 \\end{center}
 
 %-----------EXPERIENCE-----------
@@ -107,8 +107,8 @@ export const OVERLEAF_BASE_TEX = `%-------------------------
   \\resumeSubHeadingListStart
 
 \\resumeSubheading
-{Euler Motors}{Nov 2025 -- Present}
-{Data Engineer Intern}{Delhi, India}
+{Northwind Data Systems}{Nov 2025 -- Present}
+{Data Engineer Intern}{Remote}
 \\resumeItemListStart
 \\resumeItem{Built and maintained \\textbf{ETL/ELT data pipelines} using \\textbf{Python and SQL}, managing large-scale data flowing across multiple systems, APIs, and AWS infrastructure.}
 \\resumeItem{Managed and monitored scheduled \\textbf{cron jobs} and recurring data workflows, optimizing \\textbf{15+ Apache Flink and Spark jobs} to process over 100K events/sec.}
@@ -124,7 +124,7 @@ export const OVERLEAF_BASE_TEX = `%-------------------------
     \\resumeSubHeadingListStart
 \\resumeProjectHeading
 {\\textbf{Quest.io} $|$ Next-Generation Multi-Agent Search Engine}
-{\\href{https://youtu.be/eqwOkB9NeG4?si=0UrZh1e8Y0gngfSQ}{\\textcolor{darkblue}{\\faYoutube}}}
+{\\href{https://example.com/questio}{\\textcolor{darkblue}{\\faYoutube}}}
 \\resumeItemListStart
 \\resumeItem{Developed a multi-agent AI platform integrating \\textbf{conversational AI, image understanding, image generation, speech synthesis, and natural-language-based image editing} through agent.}
 \\resumeItem{Designed agent-routing and orchestration workflows for contextual query handling, task delegation, and parallel execution using REST-based AI services and multimodal processing pipelines.}
@@ -133,18 +133,18 @@ export const OVERLEAF_BASE_TEX = `%-------------------------
 \\resumeItemListEnd
 
 \\resumeProjectHeading
-        {\\textbf{American Express} $|$ CFPB Complaint Intelligence Case Study}
-        {\\href{https://07sushant.github.io/American-Express-L1-Interview---Assignment---Shortlisted-/}{\\textcolor{darkblue}{\\faGlobe}}}
+        {\\textbf{FinCorp} $|$ CFPB Complaint Intelligence Case Study}
+        {\\href{https://example.com/fincorp-case-study}{\\textcolor{darkblue}{\\faGlobe}}}
           \\resumeItemListStart
-            \\resumeItem{Analyzed \\textbf{196K+ CFPB consumer complaints} across 9 major card issuers to benchmark American Express and identify operational and customer-risk patterns.}
+            \\resumeItem{Analyzed \\textbf{196K+ CFPB consumer complaints} across 9 major card issuers to benchmark a target issuer and identify operational and customer-risk patterns.}
             \\resumeItem{Performed data profiling and exploratory analysis across \\textbf{product, issue, company response, timely response, and complaint-date} fields to identify meaningful complaint trends and drivers.}
-            \\resumeItem{Identified prepaid/gift-card complaints as a major Amex risk area, with \\textbf{61.3\\% of industry prepaid-card complaints} attributed to Amex in the analyzed dataset.}
-            \\resumeItem{Identified advertising and promotional terms as \\textbf{9.3\\% of Amex credit-card complaints}, the highest rate among the major issuers analyzed, and translated findings into business recommendations.}
+            \\resumeItem{Identified prepaid/gift-card complaints as a major risk area, with \\textbf{61.3\\% of industry prepaid-card complaints} attributed to the target issuer in the analyzed dataset.}
+            \\resumeItem{Identified advertising and promotional terms as \\textbf{9.3\\% of credit-card complaints}, the highest rate among the major issuers analyzed, and translated findings into business recommendations.}
             \\resumeItem{\\textbf{Shortlisted for the L1 interview} based on the analysis.}
           \\resumeItemListEnd
 
       \\resumeProjectHeading
-          {\\textbf{AyurVedik AI} $|$ Python, Flask/FastAPI, LangChain, FAISS, Chroma, LLM APIs, Pandas, NumPy} {\\href{https://github.com/07Sushant/AyurVedik-AI}{\\textcolor{darkblue}{\\faGithub}}}
+          {\\textbf{HerbaAI} $|$ Python, Flask/FastAPI, LangChain, FAISS, Chroma, LLM APIs, Pandas, NumPy} {\\href{https://github.com/alexcarter/herba-ai}{\\textcolor{darkblue}{\\faGithub}}}
           \\resumeItemListStart
             \\resumeItem{Developed a Generative AI system with \\textbf {RAG pipeline} and \\textbf {LangChain} chains to identify medicinal plants and deliver grounded Ayurvedic insights with Large Language Models.}
             \\resumeItem{Designed retrieval workflows (chunking, embeddings, vector stores) to improve answer faithfulness.}
@@ -179,7 +179,7 @@ export const OVERLEAF_BASE_TEX = `%-------------------------
 \\section{Education}
   \\resumeSubHeadingListStart
     \\resumeSubheading
-      {Lovely Professional University}{Punjab, IND}
+      {Northwood State University}{Remote}
       {B.Tech in Computer Science and Engineering $|$ CGPA: 8.14}{Sept. 2022 -- May 2026}
   \\resumeSubHeadingListEnd
 
@@ -191,6 +191,8 @@ export const TEMPLATES: TemplateOption[] = [
   { id: "T02", name: "Classic", description: "Traditional serif, formal tone.", typeface: "Serif" },
   { id: "T01", name: "Modern", description: "Clean sans-serif, generous spacing.", typeface: "Sans" },
   { id: "T03", name: "Compact", description: "Dense serif, fits more on one page.", typeface: "Serif" },
+  { id: "T05", name: "Elegant", description: "Warm editorial serif with a refined feel.", typeface: "Charter" },
+  { id: "T06", name: "Minimal", description: "Airy sans-serif, understated and clean.", typeface: "Sans" },
 ];
 
 const BY_ID = new Map(TEMPLATES.map((t) => [t.id, t]));
@@ -211,12 +213,19 @@ const TEMPLATE_FONT_BLOCKS: Record<TemplateId, string> = {
   T02: `\\usepackage{newtxtext,newtxmath}`,
   T03: `\\usepackage{XCharter}`,
   T04: `\\usepackage{latexsym}`,
+  // Elegant: the base Charter font (cached offline) — a warmer serif than XCharter/newtx.
+  T05: `\\usepackage{charter}`,
+  // Minimal: Lato again but paired with airy spacing (applied via the style hook below).
+  T06: `\\usepackage{fontspec}\n\\setmainfont{Lato-Regular.ttf}[\n  BoldFont=Lato-Bold.ttf,\n  ItalicFont=Lato-Italic.ttf,\n  BoldItalicFont=Lato-BoldItalic.ttf ]`,
 };
 
-const FONT_PATTERN = /(?:\\usepackage\{fontspec\}\s*\\setmainfont\{[^}]+\}\[[^\]]*\]|\\usepackage\{newtxtext\s*,\s*newtxmath\}|\\usepackage\{XCharter\}|\\usepackage\{lmodern\}|\\usepackage\{times\})/i;
+// All font packages we might swap in (used to find-and-replace the current one).
+const FONT_PATTERN = /(?:\\usepackage\{fontspec\}\s*\\setmainfont\{[^}]+\}\[[^\]]*\]|\\usepackage\{newtxtext\s*,\s*newtxmath\}|\\usepackage\{XCharter\}|\\usepackage\{charter\}|\\usepackage\{lmodern\}|\\usepackage\{times\})/i;
 
 export function detectTemplate(latex: string): TemplateId {
   if (/resumeSubheading|resumeProjectHeading|fullpage/i.test(latex)) return "T04";
+  // charter must be checked before generic fontspec/Lato since Elegant uses charter.
+  if (/\\usepackage\{charter\}/i.test(latex)) return "T05";
   if (/Lato-Regular|fontspec/i.test(latex)) return "T01";
   if (/XCharter/i.test(latex)) return "T03";
   if (/newtx/i.test(latex)) return "T02";

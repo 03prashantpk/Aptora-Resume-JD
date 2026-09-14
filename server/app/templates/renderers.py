@@ -336,7 +336,141 @@ def render_t04(d: ResumeJSON) -> str:
 """
 
 
-REGISTRY = {"T01": render_t01, "T02": render_t02, "T03": render_t03, "T04": render_t04}
+def render_t05(d: ResumeJSON) -> str:
+    """Elegant: warm Charter serif, centered section headings with a rule above+below."""
+    def experience() -> str:
+        blocks = []
+        for i, e in enumerate(d.experience):
+            head = f"\\textbf{{{esc(e.title)}}} \\hfill \\textit{{{esc(e.dates)}}}"
+            out = ("\\vspace{5pt}\n" if i else "") + head + f"\\\\\n\\textit{{{esc(e.org)}}}\n\\begin{{itemize}}\n"
+            for b in e.bullets:
+                out += f"    \\item {esc(b)}\n"
+            blocks.append(out + "\\end{itemize}\n")
+        return "".join(blocks)
+
+    def projects() -> str:
+        if not d.projects:
+            return ""
+        out = "\\begin{itemize}\n"
+        for p in d.projects:
+            out += f"  \\item \\textbf{{{esc(p.name)}}} --- {esc(p.description)}\n"
+        return out + "\\end{itemize}\n"
+
+    def skills() -> str:
+        return " \\\\[4pt]\n".join(f"\\noindent \\textbf{{{esc(s.label)}:}} {esc(s.items)}" for s in d.skills)
+
+    def education() -> str:
+        return " \\\\\n".join(f"{esc(e.text)} \\hfill {esc(e.dates)}" for e in d.education)
+
+    summary = _sec("Summary", esc(d.summary)) if d.summary else ""
+    exp = _sec("Experience", experience()) if d.experience else ""
+    proj = _sec("Projects", projects()) if d.projects else ""
+    sk = _sec("Skills", skills()) if d.skills else ""
+    edu = _sec("Education", education()) if d.education else ""
+    cert = _sec("Certifications", esc(d.certifications)) if d.certifications else ""
+    soft = _sec("Interests", esc(d.soft_skills)) if d.soft_skills else ""
+    footer = (f"\\vspace{{6pt}}\n\\begin{{center}}\n    {href(d.portfolio_line, d.portfolio_line)}\n\\end{{center}}\n" if d.portfolio_line else "")
+    return f"""\\documentclass[a4paper,11pt]{{article}}
+\\usepackage[margin=0.7in,top=0.5in,bottom=0.5in]{{geometry}}
+\\usepackage{{enumitem}}
+\\usepackage[hidelinks]{{hyperref}}
+\\usepackage{{titlesec}}
+\\usepackage{{parskip}}
+\\usepackage{{xcolor}}
+\\usepackage{{charter}}
+\\pagenumbering{{gobble}}
+\\usepackage{{tabularx}}
+% Centered small-caps headings framed by rules — an editorial feel.
+\\titleformat{{\\section}}[block]
+  {{\\centering\\large\\scshape}}
+  {{}}{{0em}}{{\\titlerule\\vspace{{3pt}}}}[\\vspace{{2pt}}\\titlerule]
+\\titlespacing*{{\\section}}{{0pt}}{{10pt}}{{6pt}}
+\\setlist[itemize]{{noitemsep, topsep=3pt, left=10pt}}
+\\renewcommand{{\\baselinestretch}}{{1.08}}
+\\begin{{document}}
+\\begin{{center}}
+    {{\\Huge \\scshape {esc(d.name)}}}\\\\[4pt]
+    {{\\large\\itshape {esc(d.headline)}}}\\\\[7pt]
+    \\small
+    {_contact(d)}
+\\end{{center}}
+{summary}{exp}{proj}{sk}{edu}{cert}{soft}{footer}
+\\end{{document}}
+"""
+
+
+def render_t06(d: ResumeJSON) -> str:
+    """Minimal: airy Lato sans, no section rules, letter-spaced uppercase headings."""
+    def experience() -> str:
+        out = ""
+        for e in d.experience:
+            out += f"\\textbf{{{esc(e.title)}}} \\hfill {esc(e.dates)}\\\\\n{{\\color{{gray}}{esc(e.org)}}}\n\\begin{{itemize}}\n"
+            for b in e.bullets:
+                out += f"    \\item {esc(b)}\n"
+            out += "\\end{itemize}\n\\vspace{4pt}\n"
+        return out
+
+    def projects() -> str:
+        if not d.projects:
+            return ""
+        out = "\\begin{itemize}\n"
+        for p in d.projects:
+            out += f"  \\item \\textbf{{{esc(p.name)}}} --- {esc(p.description)}\n"
+        return out + "\\end{itemize}\n"
+
+    def skills() -> str:
+        return " \\\\[5pt]\n".join(f"\\noindent \\textbf{{{esc(s.label)}:}} {esc(s.items)}" for s in d.skills)
+
+    def education() -> str:
+        return " \\\\\n".join(f"{esc(e.text)} \\hfill {{\\color{{gray}}{esc(e.dates)}}}" for e in d.education)
+
+    # No \titlerule — headings are just letter-spaced uppercase, lots of whitespace.
+    def sec(title: str, body: str) -> str:
+        return f"\\section*{{{esc(title)}}}\n{body}\n"
+
+    summary = sec("Summary", esc(d.summary)) if d.summary else ""
+    exp = sec("Experience", experience()) if d.experience else ""
+    proj = sec("Projects", projects()) if d.projects else ""
+    sk = sec("Skills", skills()) if d.skills else ""
+    edu = sec("Education", education()) if d.education else ""
+    cert = sec("Certifications", esc(d.certifications)) if d.certifications else ""
+    soft = sec("Interests", esc(d.soft_skills)) if d.soft_skills else ""
+    footer = (f"\\vspace{{8pt}}\n\\begin{{center}}\n    {{\\color{{gray}}{href(d.portfolio_line, d.portfolio_line)}}}\n\\end{{center}}\n" if d.portfolio_line else "")
+    return f"""\\documentclass[a4paper,11pt]{{article}}
+\\usepackage[margin=0.85in,top=0.6in,bottom=0.6in]{{geometry}}
+\\usepackage{{enumitem}}
+\\usepackage[hidelinks]{{hyperref}}
+\\usepackage{{titlesec}}
+\\usepackage{{parskip}}
+\\usepackage{{xcolor}}
+\\usepackage{{fontspec}}
+\\setmainfont{{Lato-Regular.ttf}}[
+  BoldFont=Lato-Bold.ttf,
+  ItalicFont=Lato-Italic.ttf,
+  BoldItalicFont=Lato-BoldItalic.ttf ]
+\\pagenumbering{{gobble}}
+% Understated headings: small, letter-spaced, uppercase, no rules.
+\\titleformat{{\\section}}{{\\normalsize\\bfseries\\uppercase}}{{}}{{0em}}{{}}
+\\titlespacing*{{\\section}}{{0pt}}{{14pt}}{{5pt}}
+\\setlist[itemize]{{noitemsep, topsep=3pt, left=10pt}}
+\\renewcommand{{\\baselinestretch}}{{1.15}}
+\\begin{{document}}
+\\begin{{center}}
+    {{\\Huge {esc(d.name)}}}\\\\[5pt]
+    {{\\large\\color{{gray}} {esc(d.headline)}}}\\\\[10pt]
+    \\small
+    {_contact(d)}
+\\end{{center}}
+\\vspace{{4pt}}
+{summary}{exp}{proj}{sk}{edu}{cert}{soft}{footer}
+\\end{{document}}
+"""
+
+
+REGISTRY = {
+    "T01": render_t01, "T02": render_t02, "T03": render_t03,
+    "T04": render_t04, "T05": render_t05, "T06": render_t06,
+}
 
 
 def render(template_id: str, d: ResumeJSON) -> str:

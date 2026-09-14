@@ -70,6 +70,17 @@ CREATE TABLE IF NOT EXISTS exports (
   expires_at  TIMESTAMPTZ NOT NULL DEFAULT now() + interval '6 hours'
 );
 CREATE INDEX IF NOT EXISTS idx_exports_owner ON exports(owner_id);
+
+-- Template upvotes. One row per (owner, template) enforces one vote each — the PK does
+-- the de-duplication. Displayed count = a per-template base (seeded in code) + real rows.
+-- owner_id is anonymous:<sid> today and user:<id> once auth lands (no schema change).
+CREATE TABLE IF NOT EXISTS template_votes (
+  template_id TEXT NOT NULL,
+  owner_id    TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (template_id, owner_id)
+);
+CREATE INDEX IF NOT EXISTS idx_template_votes_tid ON template_votes(template_id);
 `;
 
 /** Ensure schema exists. Safe to call repeatedly; runs once. */
