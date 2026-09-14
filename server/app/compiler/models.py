@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal, Optional, Protocol
 from pydantic import BaseModel
 
-TemplateId = Literal["T01", "T02", "T03", "T04"]
+TemplateId = Literal["T01", "T02", "T03", "T04", "T05", "T06"]
 
 
 class Contact(BaseModel):

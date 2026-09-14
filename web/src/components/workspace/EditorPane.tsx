@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import type { ViewUpdate } from "@codemirror/view";
 import { EditorView, Decoration, type DecorationSet } from "@codemirror/view";
 import { StateField, StateEffect, RangeSetBuilder } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
-import { Check, CircleAlert, LoaderCircle, ChevronDown, Check as CheckIcon } from "lucide-motion";
+import { Check, CircleAlert, LoaderCircle, ChevronDown, Check as CheckIcon, ChevronUp } from "lucide-motion";
 import { EditorSelection } from "@codemirror/state";
 import type { SaveState } from "./MenuBar";
 import { TEMPLATES, templateLabel as getTemplateLabel } from "@/lib/templates";
@@ -61,6 +61,13 @@ interface Props {
   jumpLine: number | null; // outline click -> scroll editor to this 1-based line
 }
 
+// Compact upvote count, e.g. 18000 -> "18k", 20400 -> "20.4k".
+function formatK(n: number): string {
+  if (n < 1000) return String(n);
+  const k = n / 1000;
+  return (k >= 100 || Number.isInteger(k) ? Math.round(k) : k.toFixed(1)) + "k";
+}
+
 function CompileStatus({ state, streaming }: { state: SaveState; streaming: boolean }) {
   if (streaming) return <span className="ed-status updating"><LoaderCircle size={13} className="spin-animate" /> Writing…</span>;
   if (state === "updating") return <span className="ed-status updating"><LoaderCircle size={13} className="spin-animate" /> Compiling…</span>;
@@ -74,6 +81,48 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const templateMenuRef = useRef<HTMLDivElement>(null);
   const ref = useRef<ReactCodeMirrorRef>(null);
+
+  // Template upvotes: displayed counts + which ones this session already upvoted.
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
+  const [voted, setVoted] = useState<Set<string>>(new Set());
+  const [votingId, setVotingId] = useState<string | null>(null);
+
+  // Load vote state when the template menu opens (once per open).
+  useEffect(() => {
+    if (!templateMenuOpen) return;
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/templates/votes");
+        if (!r.ok) return;
+        const s = (await r.json()) as { counts: Record<string, number>; voted: string[] };
+        if (!alive) return;
+        setVoteCounts(s.counts ?? {});
+        setVoted(new Set(s.voted ?? []));
+      } catch { /* votes are non-critical; menu still works */ }
+    })();
+    return () => { alive = false; };
+  }, [templateMenuOpen]);
+
+  const upvote = useCallback(async (tid: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // don't select the template when clicking its upvote
+    if (voted.has(tid) || votingId) return;
+    setVotingId(tid);
+    // Optimistic: bump + mark voted immediately.
+    setVoted((prev) => new Set(prev).add(tid));
+    setVoteCounts((prev) => ({ ...prev, [tid]: (prev[tid] ?? 0) + 1 }));
+    try {
+      const r = await fetch("/api/templates/vote", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ templateId: tid }),
+      });
+      if (r.ok) {
+        const body = (await r.json()) as { count?: number };
+        if (typeof body.count === "number") setVoteCounts((prev) => ({ ...prev, [tid]: body.count! }));
+      }
+    } catch { /* keep optimistic state */ }
+    finally { setVotingId(null); }
+  }, [voted, votingId]);
 
   // Close template menu on outside click
   useEffect(() => {
@@ -132,6 +181,8 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
                 <div className="ed-template-menu-header">Typography & Template</div>
                 {TEMPLATES.map((t) => {
                   const active = t.id === templateId;
+                  const hasVoted = voted.has(t.id);
+                  const count = voteCounts[t.id];
                   return (
                     <button
                       key={t.id}
@@ -148,6 +199,19 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
                         <span className="ed-template-item-name">{t.name}</span>
                         <span className="ed-template-item-badge">{t.typeface}</span>
                         {active && <CheckIcon size={13} className="ed-template-item-check" />}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className={`tpl-upvote ${hasVoted ? "voted" : ""}`}
+                          title={hasVoted ? "You upvoted this" : "Upvote this template"}
+                          aria-label={`Upvote ${t.name}`}
+                          aria-pressed={hasVoted}
+                          onClick={(e) => upvote(t.id, e)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") upvote(t.id, e as unknown as React.MouseEvent); }}
+                        >
+                          <ChevronUp size={12} className="tpl-upvote-icon" />
+                          <span className="tpl-upvote-count">{count != null ? formatK(count) : "—"}</span>
+                        </span>
                       </div>
                       <p className="ed-template-item-desc">{t.description}</p>
                     </button>

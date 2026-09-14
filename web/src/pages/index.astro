@@ -1051,6 +1051,17 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     .ed-template-item-badge { font-size: 10px; color: var(--muted); background: var(--subtle); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); }
     .ed-template-item.active .ed-template-item-badge { background: rgba(37,99,235,0.12); color: var(--accent); border-color: transparent; }
     .ed-template-item-check { color: var(--accent); margin-left: 6px; }
+    /* Per-template upvote pill (sits at the right of the item's top row). */
+    .ed-template-item-top { position: relative; }
+    .tpl-upvote { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--secondary); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 140ms ease; }
+    .tpl-upvote:hover { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,0.05); }
+    .tpl-upvote:focus-visible { outline: 2px solid rgba(37,99,235,0.4); outline-offset: 1px; }
+    .tpl-upvote.voted { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,0.10); cursor: default; }
+    .tpl-upvote-icon { transition: transform 140ms ease; }
+    .tpl-upvote:hover .tpl-upvote-icon { transform: translateY(-1px); }
+    .tpl-upvote.voted .tpl-upvote-icon { transform: translateY(-1px); }
+    .tpl-upvote-count { font-variant-numeric: tabular-nums; }
+    @media (prefers-reduced-motion: reduce) { .tpl-upvote-icon { transition: none; } }
     .ed-template-item-desc { font-size: 11px; color: var(--muted); margin: 0; line-height: 1.35; }
     .ed-header-right { display: flex; align-items: center; gap: 10px; }
     .ed-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
