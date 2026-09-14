@@ -25,6 +25,7 @@ storage/ownership; this dict is not application state we rely on."""
 from __future__ import annotations
 import gc
 import os
+import tempfile
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -101,26 +102,59 @@ def _warm_compiler_cache() -> None:
     threading.Thread(target=_compiler.warmup, daemon=True).start()
 
 
+@app.on_event("shutdown")
+def _cleanup_pdf_spill() -> None:
+    # Best-effort: remove any cached PDF files so we don't leave orphans on disk.
+    for document_id in list(_ARTIFACTS.keys()):
+        _evict(document_id)
+
+
 @dataclass
 class _Artifact:
-    pdf: bytes
+    # The PDF lives on DISK (a temp file), not in RAM. Only its path is held here.
+    # This is the big memory win on a 512MB box: the preview needs the page images,
+    # but the (often larger) PDF is only needed at export — keeping it on /tmp means
+    # RAM holds just a few small preview images, never the accumulated PDFs.
+    pdf_path: str
     pages: dict[int, PageImageBytes] = field(default_factory=dict)
 
 
-# Transient store {document_id: _Artifact} so the page/pdf endpoints can serve the
-# artifact from the preceding compile. BOUNDED with FIFO eviction: without a cap this
-# dict grows for every compile (full PDF + all page images) and eventually OOMs a
-# small instance. We only need the few most-recent documents in flight.
+# Where PDFs are spilled. /tmp on Render is ephemeral disk (does NOT count against the
+# 512MB RAM budget). Override via env if needed.
+_PDF_DIR = Path(os.environ.get("PDF_SPILL_DIR", tempfile.gettempdir())) / "aptora-pdfs"
+_PDF_DIR.mkdir(parents=True, exist_ok=True)
+
+# Transient store {document_id: _Artifact}. BOUNDED with FIFO eviction: without a cap
+# this grows for every compile and eventually OOMs a small instance. The preview
+# fetches happen immediately after a compile, so only a few docs are ever in flight.
 _ARTIFACTS: "OrderedDict[str, _Artifact]" = OrderedDict()
-_MAX_ARTIFACTS = int(os.environ.get("MAX_ARTIFACTS", "12"))
+_MAX_ARTIFACTS = int(os.environ.get("MAX_ARTIFACTS", "3"))
 
 
-def _store_artifact(document_id: str, art: _Artifact) -> None:
-    _ARTIFACTS[document_id] = art
+def _evict(document_id: str) -> None:
+    """Drop an artifact and delete its on-disk PDF."""
+    art = _ARTIFACTS.pop(document_id, None)
+    if art is not None:
+        try:
+            Path(art.pdf_path).unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def _store_artifact(document_id: str, pdf_bytes: bytes, imgs: list[PageImageBytes]) -> None:
+    # Spill the PDF to disk; keep only its path + the small preview images in RAM.
+    pdf_path = _PDF_DIR / f"{document_id}.pdf"
+    try:
+        pdf_path.write_bytes(pdf_bytes)
+    except Exception:
+        # If disk write fails we simply don't cache the PDF; export can recompile.
+        pdf_path = _PDF_DIR / f"{document_id}.pdf"
+    _ARTIFACTS[document_id] = _Artifact(pdf_path=str(pdf_path), pages={i.page: i for i in imgs})
     _ARTIFACTS.move_to_end(document_id)
     while len(_ARTIFACTS) > _MAX_ARTIFACTS:
-        _ARTIFACTS.popitem(last=False)  # evict oldest
-    gc.collect()  # release the just-evicted PDF/image buffers promptly
+        oldest, _ = next(iter(_ARTIFACTS.items()))
+        _evict(oldest)  # evict oldest + delete its PDF file
+    gc.collect()  # release the just-handled PDF bytes / evicted image buffers promptly
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -151,7 +185,7 @@ def compile_resume(inp: CompileInput):
             "error": {"code": result.error_code, "message": result.detail}
         })
     if pdf is not None and result.document_id:
-        _store_artifact(result.document_id, _Artifact(pdf=pdf, pages={i.page: i for i in imgs}))
+        _store_artifact(result.document_id, pdf, imgs)
     return result
 
 
@@ -175,7 +209,7 @@ def compile_tex(inp: CompileTexInput):
             "error": {"code": result.error_code, "message": result.detail}
         })
     if pdf is not None and result.document_id:
-        _store_artifact(result.document_id, _Artifact(pdf=pdf, pages={i.page: i for i in imgs}))
+        _store_artifact(result.document_id, pdf, imgs)
     return result
 
 
@@ -191,6 +225,8 @@ def get_page(document_id: str, page: int):
 @app.get("/api/documents/{document_id}/pdf")
 def get_pdf(document_id: str):
     art = _ARTIFACTS.get(document_id)
-    if art is None:
+    if art is None or not Path(art.pdf_path).exists():
         return JSONResponse(status_code=404, content={"error": {"code": "DOCUMENT_NOT_FOUND", "message": "no such document"}})
-    return Response(content=art.pdf, media_type="application/pdf")
+    # Stream the PDF from disk (FileResponse streams in chunks, so it doesn't load the
+    # whole file into RAM). The on-disk path is engine-internal and never returned.
+    return FileResponse(art.pdf_path, media_type="application/pdf", filename="document.pdf")

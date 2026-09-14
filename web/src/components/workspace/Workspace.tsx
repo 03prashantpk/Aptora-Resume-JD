@@ -76,6 +76,13 @@ export default function Workspace() {
   const revisionRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Wake/warm the rendering engine the moment the workspace opens, so it's ready by
+  // the time the user finishes editing and compiles. Same-origin call; the engine URL
+  // stays server-side. Fire-and-forget — never blocks the UI.
+  useEffect(() => {
+    fetch("/api/warm").catch(() => {});
+  }, []);
+
   useEffect(() => {
     let alive = true;
     (async () => {
