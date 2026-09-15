@@ -1,0 +1,200 @@
+---
+import Marketing from "@/layouts/Marketing.astro";
+const updated = "September 2026";
+---
+
+<Marketing
+  title="Refund & Cancellation Policy — Aptora"
+  description="Aptora's refund and cancellation policy for subscription plans. Understand your rights, how to request a refund, and what is covered."
+  path="/refund"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b hairline">
+    <div class="grid-bg pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+      <div class="grid gap-10 lg:grid-cols-[1fr_.6fr] lg:items-end">
+        <div class="reveal">
+          <nav class="mb-5 flex items-center gap-2 text-xs text-[#888]">
+            <a href="/home" class="hover:text-[#111]">Aptora</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18l6-6-6-6"/></svg>
+            <span>Refund</span>
+          </nav>
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Legal / Refund &amp; Cancellation Policy</p>
+          <h1 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl lg:text-[58px] lg:leading-[1.02]">Fair refunds. Clear expectations.</h1>
+          <p class="mt-5 max-w-xl text-base leading-7 text-[#666]">Aptora is a digital SaaS product. This policy explains when refunds apply, how to request one, and what is not covered. Operated by Enally.in. Last updated: {updated}.</p>
+        </div>
+        <div class="reveal rounded-2xl border hairline bg-[#111] p-6 text-white">
+          <div class="mono text-[9px] uppercase tracking-[.16em] text-[#666]">Aptora / Refund</div>
+          <blockquote class="mt-5 text-lg font-semibold leading-snug tracking-[-.02em]">Honest agreements. No hidden traps.</blockquote>
+          <p class="mt-4 text-xs leading-5 text-[#999]">Entrepreneur's Abode of Alliance<br />India — Est. 2020</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IN SHORT -->
+  <aside class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-4xl px-5 py-8 lg:px-8">
+      <div class="reveal flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+        <span class="mono shrink-0 text-[10px] uppercase tracking-[.14em] text-[#999]">In short</span>
+        <p class="text-sm leading-7 text-[#555]">Aptora is a digital product — no physical goods are shipped. Currently in free beta; paid plans, when introduced, will follow this policy. Duplicate or erroneous charges are refunded in full. Contact <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a> for any payment concern.</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- SECTION 1: Overview -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Overview</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">1. Refund Policy Overview.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>Aptora is operated by Enally.in (Prashant Kumar, Sole Proprietor), India. Aptora is a digital SaaS product — it delivers AI-powered resume tailoring and PDF export as a service. Since no physical products are shipped, traditional "return" policies do not apply.</p>
+          <p>Aptora is currently available as a free product in beta. When paid subscription plans are introduced, payments will be processed securely. This policy covers refund eligibility, cancellation rights, and dispute resolution for all future paid engagements.</p>
+          <p>All payments, when applicable, will be processed by PCI-DSS compliant payment infrastructure. Aptora does not store your full card numbers, CVV, or sensitive banking credentials directly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: When refunds apply (card grid) -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Refund eligibility</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">2. When Refunds Apply.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          { n: "01", title: "Subscription not yet used", body: "If you have paid for a subscription plan and have not accessed any paid features, you are eligible for a full refund. Request within 7 days of payment." },
+          { n: "02", title: "Service unavailable", body: "If a paid feature or plan was materially unavailable for a significant portion of your billing period due to issues on our side, a pro-rated refund or credit will be issued." },
+          { n: "03", title: "Duplicate or erroneous charges", body: "If you were charged twice or an incorrect amount was debited, contact us immediately. Confirmed duplicate or erroneous charges are refunded in full within 5–7 business days." },
+          { n: "04", title: "Free trial period", body: "Where a free trial is offered, cancelling before the trial ends results in no charge. You will not be billed as long as you cancel before the trial converts to a paid plan." },
+          { n: "05", title: "Annual plans (prorated)", body: "For annual subscriptions cancelled within 30 days of renewal and with no significant usage in that period, a prorated refund for unused months may be considered on a case-by-case basis." },
+          { n: "06", title: "Technical failure on our side", body: "If a PDF export fails or the tailoring engine produces an error that cannot be resolved, and we are unable to fix it within a reasonable time, a refund or credit will be offered." },
+        ].map((item) => (
+          <div class="lift rounded-2xl border hairline bg-white p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Cancellation -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Cancellation</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">3. Cancellation Terms.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>You may cancel your Aptora subscription at any time from your account settings. Cancelling stops future billing. You retain access to paid features until the end of your current billing period.</p>
+          <p><strong class="font-semibold text-[#111]">Cooling-off period.</strong> If you are charged for a plan and have not used any paid features, you may cancel within 48 hours for a full refund. Email <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a> with your account email and transaction reference.</p>
+          <p>Your resume data and tailored documents remain accessible to export for 30 days after cancellation. After that period, data is deleted per our Privacy Policy.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: How to request -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">How to request</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">4. How to Request a Refund.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>To request a refund, email <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a> with:</p>
+          <ul class="space-y-1 pl-4">
+            {["Your name and email address used during payment", "Transaction ID or payment reference number", "Plan name and billing date", "Reason for the refund request", "Preferred resolution (refund or account credit)"].map((item) => (
+              <li class="flex gap-2 text-sm text-[#555]"><span class="mt-1 shrink-0 text-[#bbb]">—</span>{item}</li>
+            ))}
+          </ul>
+          <p>We will acknowledge your request within 3 business days. Refund decisions are made within 15 business days of acknowledgement. Approved refunds are processed to the original payment method. Actual credit to your account depends on your bank or card issuer — typically 5–10 business days.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Non-refundable (card grid) -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Exceptions</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">5. Non-Refundable Situations.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2">
+        {[
+          { n: "01", title: "Plans already used", body: "Subscriptions where paid features (AI tailoring, PDF export) have been actively used are not eligible for refund on the basis of results or dissatisfaction with AI output." },
+          { n: "02", title: "Change of mind", body: "Refunds are not provided for a change of mind after the cooling-off period has passed and paid features have been accessed." },
+          { n: "03", title: "Third-party costs", body: "Any costs incurred on your behalf for third-party services (API usage, domain registrations, etc.) are non-refundable as they are paid to external providers." },
+          { n: "04", title: "Violation of Terms", body: "If your account is terminated due to violation of our Terms of Use, no refund will be issued for any prepaid amounts." },
+        ].map((item) => (
+          <div class="rounded-2xl border hairline bg-[#FAFAF8] p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: FAQ -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-4xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal text-center">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Questions, answered</p>
+        <h2 class="mt-3 text-3xl font-semibold tracking-[-.04em]">Useful context,<br />without the pitch.</h2>
+      </div>
+      <div class="mt-10 divide-y divide-[#E5E5E1] border-y border-[#E5E5E1]">
+        {[
+          { q: "Can I get a refund after using the AI tailoring?", a: "Generally no — once paid features have been actively used, the service has been delivered. If there was a technical failure on our side, contact us and we'll make it right." },
+          { q: "What happens to my data after I cancel?", a: "Your documents and resumes remain accessible for 30 days after cancellation, then are permanently deleted per our Privacy Policy." },
+          { q: "Is there a free trial?", a: "Aptora is currently available free in beta. When paid plans launch, trial details will be clearly communicated before any billing occurs." },
+          { q: "How long does a refund take?", a: "We process refund decisions within 15 business days of your request. After approval, credit typically reaches your account within 5–10 business days for cards or 1–3 days for UPI." },
+          { q: "What if I was charged in error?", a: "Contact admin@enally.in immediately with your transaction ID. Erroneous charges are refunded in full within 5–7 business days after verification." },
+          { q: "Who do I contact for a dispute?", a: "Email admin@enally.in with a detailed explanation. We aim to resolve all disputes fairly within 15 business days. If unresolved, you may pursue legal remedies under Indian jurisdiction." },
+        ].map((item) => (
+          <details class="group py-5">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
+              {item.q}
+              <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
+            </summary>
+            <p class="mt-3 text-sm leading-6 text-[#70706d]">{item.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: Dispute resolution + contact -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Disputes &amp; contact</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">6. Dispute Resolution.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>If you believe a refund is warranted that falls outside this policy, contact <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a> with a detailed explanation. We aim to resolve all disputes fairly and amicably within 15 business days.</p>
+          <p>If resolution is not achieved through direct communication, either party may pursue legal remedies under the jurisdiction of courts in India. Governing law: laws of India.</p>
+          <p>Aptora is operated by Enally.in (Prashant Kumar, Sole Proprietor) · India. MSME Reg: UDYAM-PB-11-0041847.</p>
+          <div class="mt-6">
+            <a href="/contact" class="inline-flex items-center gap-2 rounded-xl border hairline bg-[#fafaf8] px-5 py-3 text-sm font-semibold text-[#111] transition hover:border-[#d4d4d0] hover:shadow-sm">
+              Contact us
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Marketing>

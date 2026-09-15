@@ -1,0 +1,160 @@
+---
+import Marketing from "@/layouts/Marketing.astro";
+const updated = "September 2026";
+---
+
+<Marketing
+  title="Disclaimer — Aptora"
+  description="The information provided by Aptora is for general informational purposes only. All information is provided in good faith, however we make no representation or warranty of any kind."
+  path="/disclaimer"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b hairline">
+    <div class="grid-bg pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+      <div class="grid gap-10 lg:grid-cols-[1fr_.6fr] lg:items-end">
+        <div class="reveal">
+          <nav class="mb-5 flex items-center gap-2 text-xs text-[#888]">
+            <a href="/home" class="hover:text-[#111]">Aptora</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18l6-6-6-6"/></svg>
+            <span>Disclaimer</span>
+          </nav>
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Legal / Disclaimer</p>
+          <h1 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl lg:text-[58px] lg:leading-[1.02]">Use information responsibly.</h1>
+          <p class="mt-5 max-w-xl text-base leading-7 text-[#666]">The information provided by Aptora on aptora.enally.in is for general informational purposes only. All information is provided in good faith, however we make no representation or warranty of any kind. Last updated: {updated}.</p>
+        </div>
+        <div class="reveal rounded-2xl border hairline bg-[#111] p-6 text-white">
+          <div class="mono text-[9px] uppercase tracking-[.16em] text-[#666]">Aptora / Disclaimer</div>
+          <blockquote class="mt-5 text-lg font-semibold leading-snug tracking-[-.02em]">Good faith information. Your judgement applies.</blockquote>
+          <p class="mt-4 text-xs leading-5 text-[#999]">Entrepreneur's Abode of Alliance<br />India — Est. 2020</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IN SHORT -->
+  <aside class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-4xl px-5 py-8 lg:px-8">
+      <div class="reveal flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+        <span class="mono shrink-0 text-[10px] uppercase tracking-[.14em] text-[#999]">In short</span>
+        <p class="text-sm leading-7 text-[#555]">Aptora provides AI-assisted resume tailoring. Our content is offered in good faith but carries no warranties. AI can make mistakes — review all suggestions before submitting to any employer. We are not responsible for employment decisions made by third parties.</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- SECTION 1: General disclaimer -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Website disclaimer</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">1. General Disclaimer.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>The information provided by Aptora / Enally.in ("we", "us", or "our") on aptora.enally.in (the "Service") is for general informational purposes only. All information on the Service is provided in good faith; however, we make no representation or warranty of any kind, express or implied, regarding the accuracy, adequacy, validity, reliability, availability, or completeness of any information on the Service.</p>
+          <p>Under no circumstance shall we have any liability to you for any loss or damage of any kind incurred as a result of the use of the Service or reliance on any information provided on the Service. Your use of the Service and your reliance on any information on the Service is solely at your own risk.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Specific limitations (card grid) -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Specific disclaimers</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">2. Specific Limitations.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          { n: "01", title: "Not professional advice", body: "Aptora is a resume tailoring tool, not a careers advisor or legal service. Content generated should be reviewed by you before use. We are not responsible for decisions made by employers based on any resume produced using the Service." },
+          { n: "02", title: "AI-generated content", body: "Resume suggestions are generated by large language models. AI can produce inaccurate, outdated, or inappropriate content. You are responsible for reviewing all AI output before submitting it to any employer." },
+          { n: "03", title: "No employment guarantee", body: "Using Aptora does not guarantee any employment outcome. Resume quality is one of many factors in hiring decisions. We make no representation that use of the Service will result in interviews, offers, or employment." },
+          { n: "04", title: "External links", body: "The Service may contain links to third-party websites. Such links are not investigated, monitored, or checked for accuracy by us. We do not warrant, endorse, or assume responsibility for third-party content." },
+          { n: "05", title: "Testimonials", body: "Testimonials and user reviews reflect individual experiences. They are not intended to represent or guarantee that anyone will achieve the same results." },
+          { n: "06", title: "Product information", body: "Information about Aptora features, templates, and capabilities reflects the state of the product at the time of writing. Features, pricing, and availability may change without notice." },
+        ].map((item) => (
+          <div class="lift rounded-2xl border hairline bg-white p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Technical & availability (card grid) -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Technical disclaimers</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">3. Technical &amp; Availability.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2">
+        {[
+          { n: "01", title: "Service availability", body: "We do not guarantee that Aptora will be available at all times, uninterrupted, secure, or free from errors. We reserve the right to change, suspend, or discontinue the Service at any time without notice." },
+          { n: "02", title: "Content accuracy", body: "Technology and job market conditions evolve rapidly. AI-generated content may not reflect current requirements for a specific role. Always verify suggestions against your own knowledge of the role and industry." },
+          { n: "03", title: "Security", body: "While we implement reasonable security measures through Supabase and Vercel infrastructure, no system is 100% secure. Users should maintain their own security practices." },
+          { n: "04", title: "Jurisdiction", body: "The Service is operated from India. Those who access the Service from other jurisdictions do so at their own initiative and are responsible for compliance with local laws." },
+        ].map((item) => (
+          <div class="rounded-2xl border hairline bg-[#FAFAF8] p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: FAQ (native details/summary — no JS needed) -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-4xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal text-center">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Questions, answered</p>
+        <h2 class="mt-3 text-3xl font-semibold tracking-[-.04em]">Useful context,<br />without the pitch.</h2>
+      </div>
+      <div class="mt-10 divide-y divide-[#E5E5E1] border-y border-[#E5E5E1]">
+        {[
+          { q: "Is Aptora responsible for employer decisions?", a: "No. Aptora provides tools to help you present your existing experience more effectively. Hiring decisions are made by employers based on many factors beyond your resume." },
+          { q: "Can I rely on AI output without reviewing it?", a: "No. AI can make mistakes. Always review tailored content for accuracy, relevance, and truthfulness before submitting to any employer." },
+          { q: "Does Aptora guarantee I'll get interviews?", a: "No. Resume quality is one of many factors in hiring. We make no guarantee of specific outcomes." },
+          { q: "Is AI-generated content reviewed before I see it?", a: "The AI produces suggestions in real time. You see the output directly. It is your responsibility to review and validate it before use." },
+          { q: "Can Aptora be held liable for website downtime?", a: "No. The Service is provided 'as is' without warranties of any kind, including uninterrupted availability." },
+          { q: "What if information on the Service is outdated?", a: "Notify us at admin@enally.in. We review content regularly but cannot guarantee real-time accuracy." },
+        ].map((item) => (
+          <details class="group py-5">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
+              {item.q}
+              <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
+            </summary>
+            <p class="mt-3 text-sm leading-6 text-[#70706d]">{item.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Contact -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Contact</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">4. Questions.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>If you have questions about this disclaimer or need to report inaccurate information, contact <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a> or use our <a href="/contact" class="font-medium text-[#111] underline underline-offset-2">contact page</a>.</p>
+          <p>This disclaimer applies to all content on aptora.enally.in. Aptora is operated by Enally.in (Prashant Kumar, Sole Proprietor) · India. MSME Reg: UDYAM-PB-11-0041847.</p>
+          <div class="mt-6">
+            <a href="/contact" class="inline-flex items-center gap-2 rounded-xl border hairline bg-[#fafaf8] px-5 py-3 text-sm font-semibold text-[#111] transition hover:border-[#d4d4d0] hover:shadow-sm">
+              Contact us
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Marketing>

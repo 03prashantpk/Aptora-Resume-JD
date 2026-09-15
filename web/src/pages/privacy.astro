@@ -1,35 +1,204 @@
 ---
-import Legal from "@/layouts/Legal.astro";
+import Marketing from "@/layouts/Marketing.astro";
+const updated = "September 2026";
 ---
-<Legal title="Privacy Policy" description="How Aptora handles your resume, job description and account data — privacy by design." path="/privacy">
-  <h1>Privacy Policy</h1>
-  <p class="lg-updated">Last updated: September 2026</p>
 
-  <p>Your privacy matters. This policy explains what Aptora, by Enally, collects and how it is used and protected. Aptora handles resumes and job descriptions, which can contain personal details such as your name, contact information, and work history.</p>
+<Marketing
+  title="Privacy Policy — Aptora"
+  description="Learn what data Aptora collects, why we use it, which third-party services process it, and your rights under Indian and international privacy standards."
+  path="/privacy"
+>
+  <!-- HERO (matches enally.in page-hero pattern) -->
+  <section class="relative overflow-hidden border-b hairline">
+    <div class="grid-bg pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+      <div class="grid gap-10 lg:grid-cols-[1fr_.6fr] lg:items-end">
+        <div class="reveal">
+          <nav class="mb-5 flex items-center gap-2 text-xs text-[#888]">
+            <a href="/home" class="hover:text-[#111]">Aptora</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18l6-6-6-6"/></svg>
+            <span>Privacy</span>
+          </nav>
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Legal / Privacy Policy</p>
+          <h1 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl lg:text-[58px] lg:leading-[1.02]">Privacy should be understandable.</h1>
+          <p class="mt-5 max-w-xl text-base leading-7 text-[#666]">This privacy policy explains the information collected through Aptora (aptora.enally.in), how it is used, stored and your rights regarding it. Last updated: {updated}.</p>
+        </div>
+        <div class="reveal rounded-2xl border hairline bg-[#111] p-6 text-white">
+          <div class="mono text-[9px] uppercase tracking-[.16em] text-[#666]">Aptora / Privacy</div>
+          <blockquote class="mt-5 text-lg font-semibold leading-snug tracking-[-.02em]">Collect less. Explain clearly.</blockquote>
+          <p class="mt-4 text-xs leading-5 text-[#999]">Entrepreneur's Abode of Alliance<br />India — Est. 2020</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>What we process</h2>
-  <ul>
-    <li><strong>Resume and job description content</strong> you provide, to generate and tailor your document.</li>
-    <li><strong>Generated PDFs</strong>, stored temporarily so you can download them.</li>
-    <li><strong>An anonymous session identifier</strong> stored in a secure cookie, used to keep your work private to you and to count free usage. It is not derived from your email or IP.</li>
-  </ul>
+  <!-- IN SHORT -->
+  <aside class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-4xl px-5 py-8 lg:px-8">
+      <div class="reveal flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+        <span class="mono shrink-0 text-[10px] uppercase tracking-[.14em] text-[#999]">In short</span>
+        <p class="text-sm leading-7 text-[#555]">Aptora is operated by Enally.in (Prashant Kumar, Sole Proprietor, India). We collect the minimum data needed to run the service. We do not sell your data. Resume content is never used to train AI models. You can request deletion at any time.</p>
+      </div>
+    </div>
+  </aside>
 
-  <h2>How your data is protected</h2>
-  <ul>
-    <li>Your files and inputs are scoped to your session — only your session can access them.</li>
-    <li>Uploaded inputs and generated files are <strong>temporary</strong> and are automatically deleted after they expire.</li>
-    <li>We do not sell your personal data.</li>
-  </ul>
+  <!-- SECTION 1: About this policy -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">About this policy</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">Who we are and what this covers.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>Aptora ("we", "us", "our") is operated by Prashant Kumar (Sole Proprietor), based in India. MSME Registration: UDYAM-PB-11-0041847 (Micro Enterprise, Services). This Privacy Policy applies to all information collected through aptora.enally.in and associated digital services.</p>
+          <p>By using Aptora, you consent to the data practices described in this policy. If you do not agree with any part of this policy, please discontinue use immediately. The Site is intended for users who are at least 13 years of age.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>Temporary file hosting</h2>
-  <p>Generated PDFs may be hosted on a short-lived link so you can download them, and are removed after expiry. Do not treat these links as private or permanent.</p>
+  <!-- SECTION 2: Information we collect -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Information we collect</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">What data we gather.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p><strong class="font-semibold text-[#111]">Account data.</strong> When you sign in via email or an OAuth provider (Google), we store your email address and display name to identify your account.</p>
+          <p><strong class="font-semibold text-[#111]">Resume and job description content.</strong> Files and text you upload are used exclusively to provide the tailoring service. We do not use your resume content to train AI models, and we do not share it with third parties beyond the infrastructure needed to process it.</p>
+          <p><strong class="font-semibold text-[#111]">Technical / usage data.</strong> IP address, browser type and version, operating system, pages visited, time on page, and click behaviour — collected via Google Analytics. This data is aggregated and not linked to your resume content.</p>
+          <p><strong class="font-semibold text-[#111]">Cookies.</strong> Session cookies for authentication and analytics cookies from Google Analytics. We do not use third-party advertising cookies.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>AI processing</h2>
-  <p>To tailor and analyze your resume, content is sent to a third-party AI provider for processing. It is used only to produce your result and is not used to identify you.</p>
+  <!-- SECTION 3: How we use data (card grid, matching enally.in editorial-card pattern) -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">How we use data</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">Purpose of data collection.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          { n: "01", title: "Authenticate your account", body: "To identify you securely and link your resumes and workspace sessions to your account." },
+          { n: "02", title: "Deliver the service", body: "To run AI analysis on your resume and job description and generate your tailored document." },
+          { n: "03", title: "Improve the product", body: "Aggregate analytics help us understand which features are useful and where the experience can improve." },
+          { n: "04", title: "Security and fraud prevention", body: "To detect and prevent spam, abuse, and unauthorized access to the service." },
+          { n: "05", title: "Legal compliance", body: "To comply with applicable Indian and international law and respond to lawful requests." },
+          { n: "06", title: "Service communications", body: "Transactional emails such as password resets and important account updates. No marketing emails without opt-in." },
+        ].map((item) => (
+          <div class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
 
-  <h2>Your choices</h2>
-  <p>You can delete saved inputs from the "My files" area at any time. Clearing your session removes access to your temporary data.</p>
+  <!-- SECTION 4: Third-party services -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Third-party services</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">Services that process your data.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          { n: "01", title: "NVIDIA API", body: "Provides the large language model used for resume analysis and tailoring. Resume content is sent to NVIDIA's API under their data processing terms." },
+          { n: "02", title: "Supabase", body: "Database and authentication infrastructure. Stores your account data and resume content securely." },
+          { n: "03", title: "Vercel", body: "Hosts the web application. Server logs may contain IP addresses and request metadata." },
+          { n: "04", title: "Google Analytics 4", body: "Website analytics and event tracking. Collects anonymised usage data. You can opt out via the Google Analytics opt-out browser add-on." },
+          { n: "05", title: "Google AdSense", body: "May serve ads on public pages. Managed via Google Ad Settings. No ads are shown inside the authenticated workspace." },
+          { n: "06", title: "DiceBear", body: "Generates avatar images from initials for the public landing page. No personal data is sent — only an anonymised seed value." },
+        ].map((item) => (
+          <div class="lift rounded-2xl border hairline bg-white p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
 
-  <h2>Contact</h2>
-  <p>Privacy questions? Reach us through the contact options in the app's Help menu.</p>
-</Legal>
+  <!-- SECTION 5: Cookies -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Cookies</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">Cookies and tracking technologies.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2">
+        {[
+          { n: "01", title: "Essential cookies", body: "Required for authentication and basic workspace functionality. Cannot be disabled without breaking core features." },
+          { n: "02", title: "Analytics cookies", body: "Google Analytics (GA4) cookies measure visitor traffic and behaviour. Data is aggregated and anonymised." },
+          { n: "03", title: "Advertising cookies", body: "Google AdSense cookies may appear on public marketing pages. You can manage preferences via Google Ad Settings." },
+          { n: "04", title: "Functional cookies", body: "Store your preferences such as theme and dismissed notifications. No cross-site tracking." },
+        ].map((item) => (
+          <div class="rounded-2xl border hairline bg-[#FAFAF8] p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: Your rights -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Your rights</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">Your data protection rights.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>You have the right to access, correct, export or delete your personal data at any time. To exercise these rights, email us at <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a>. We will respond within 30 days.</p>
+          <p>You can delete your account from the workspace settings. This will permanently remove your stored resumes and account data from our active systems within 30 days, and from backups within 90 days.</p>
+          <p>You may opt out of Google Analytics tracking by installing the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" class="font-medium text-[#111] underline underline-offset-2">Google Analytics Opt-out Browser Add-on</a>.</p>
+          <p>These rights are consistent with the Information Technology Act, 2000 (India) and aligned with international privacy standards including GDPR principles.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: Data retention -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Data retention</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">How long we keep data.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>We retain your account data and resumes for as long as your account is active. After account deletion, data is removed from our active systems within 30 days and from all backups within 90 days.</p>
+          <p>Analytics data is retained by Google Analytics per their standard retention settings (26 months by default). This data is aggregated and not linked to individual resume content.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: Contact -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Contact</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">Questions about privacy.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>For any privacy-related questions or requests, contact us via the <a href="/contact" class="font-medium text-[#111] underline underline-offset-2">contact page</a> or email <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a>.</p>
+          <p>Aptora is operated by Enally.in (Prashant Kumar, Sole Proprietor) · India. MSME Reg: UDYAM-PB-11-0041847.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Marketing>

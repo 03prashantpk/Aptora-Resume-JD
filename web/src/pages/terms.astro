@@ -1,34 +1,165 @@
 ---
-import Legal from "@/layouts/Legal.astro";
+import Marketing from "@/layouts/Marketing.astro";
+const updated = "September 2026";
 ---
-<Legal title="Terms & Conditions" description="The terms governing your use of Aptora." path="/terms">
-  <h1>Terms &amp; Conditions</h1>
-  <p class="lg-updated">Last updated: September 2026</p>
 
-  <p>Welcome to Aptora, an AI-assisted document workspace by Enally. By using Aptora you agree to these terms. If you do not agree, please do not use the service.</p>
+<Marketing
+  title="Terms of Use — Aptora"
+  description="The terms governing your use of Aptora — the AI resume tailoring workspace built by Enally.in."
+  path="/terms"
+>
+  <!-- HERO (matching enally.in page-hero pattern) -->
+  <section class="relative overflow-hidden border-b hairline">
+    <div class="grid-bg pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+      <div class="grid gap-10 lg:grid-cols-[1fr_.6fr] lg:items-end">
+        <div class="reveal">
+          <nav class="mb-5 flex items-center gap-2 text-xs text-[#888]">
+            <a href="/home" class="hover:text-[#111]">Aptora</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18l6-6-6-6"/></svg>
+            <span>Terms</span>
+          </nav>
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Legal / Terms &amp; Conditions</p>
+          <h1 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl lg:text-[58px] lg:leading-[1.02]">Clear terms for honest use.</h1>
+          <p class="mt-5 max-w-xl text-base leading-7 text-[#666]">These Terms of Use constitute a legally binding agreement between you and Aptora / Enally.in. By accessing and using the service, you agree to be bound by these terms. Last updated: {updated}.</p>
+        </div>
+        <div class="reveal rounded-2xl border hairline bg-[#111] p-6 text-white">
+          <div class="mono text-[9px] uppercase tracking-[.16em] text-[#666]">Aptora / Terms</div>
+          <blockquote class="mt-5 text-lg font-semibold leading-snug tracking-[-.02em]">Fair use. Honest context.</blockquote>
+          <p class="mt-4 text-xs leading-5 text-[#999]">Entrepreneur's Abode of Alliance<br />India — Est. 2020</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>1. What Aptora does</h2>
-  <p>Aptora helps you tailor an existing resume to a specific job description and produce a professional PDF. Aptora assists with wording, ordering, and emphasis of the experience you already have. You are responsible for the accuracy and truthfulness of your resume content.</p>
+  <!-- IN SHORT -->
+  <aside class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-4xl px-5 py-8 lg:px-8">
+      <div class="reveal flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+        <span class="mono shrink-0 text-[10px] uppercase tracking-[.14em] text-[#999]">In short</span>
+        <p class="text-sm leading-7 text-[#555]">Aptora is operated by Enally.in (Prashant Kumar, Sole Proprietor, India). Use the service for your personal job-seeking. Don't misuse it to create fraudulent documents. Review AI suggestions before submitting to employers. Your resume content is yours — we don't claim ownership.</p>
+      </div>
+    </div>
+  </aside>
 
-  <h2>2. Acceptable use</h2>
-  <ul>
-    <li>Do not use Aptora to misrepresent your experience, qualifications, or identity.</li>
-    <li>Do not upload content you do not have the right to use.</li>
-    <li>Do not attempt to disrupt, reverse-engineer, or abuse the service.</li>
-  </ul>
+  <!-- SECTION 1: Agreement to terms -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Agreement to terms</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">1. Agreement to Terms.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>These Terms of Use constitute a legally binding agreement between you ("you") and Aptora / Enally.in ("Aptora", "we", "us", "our"), operated by Prashant Kumar (Sole Proprietor), India. MSME Registration: UDYAM-PB-11-0041847, concerning your access to and use of aptora.enally.in (the "Service").</p>
+          <p>If you do not agree with all of these Terms, you are prohibited from using the Service and must discontinue use immediately. We reserve the right to make changes to these Terms at any time. Your continued use of the Service after any changes constitutes acceptance of the updated Terms. The Service is intended for users who are at least 13 years of age.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>3. Free usage and accounts</h2>
-  <p>Aptora offers a limited number of free runs without an account. Continued use may require creating an account. We may change limits or features over time.</p>
+  <!-- SECTION 2: Intellectual property -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Intellectual property</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">2. Intellectual Property Rights.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>Unless otherwise indicated, the Service and all its software, designs, content and trademarks are the proprietary property of Enally.in, protected by copyright and intellectual property law.</p>
+          <p><strong class="font-semibold text-[#111]">Your content is yours.</strong> You retain full ownership of your resume, job descriptions and any content you upload. By uploading content you grant Aptora a limited, non-exclusive, royalty-free licence to process it solely for the purpose of delivering the tailoring service. We do not claim ownership and will not use your content for any other purpose.</p>
+          <p>You are granted a limited personal licence to access and use the Service for non-commercial job-seeking purposes. No part of the platform may be copied, reproduced, or exploited for any commercial purpose without express written permission.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>4. Files and retention</h2>
-  <p>Generated documents and uploaded inputs are stored temporarily and automatically deleted after they expire. You can regenerate documents at any time. Aptora is not a permanent storage service.</p>
+  <!-- SECTION 3: User obligations (card grid) -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">User obligations</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">3. User Representations &amp; Prohibited Activities.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2">
+        {[
+          { n: "01", title: "User representations", body: "By using the Service, you represent that you are at least 13 years old, have the legal capacity to agree to these Terms, and that your use will not violate any applicable law or regulation." },
+          { n: "02", title: "Prohibited activities", body: "You may not: create fraudulent documents; scrape or reverse-engineer the Service; impersonate another user; upload malware; attempt to bypass authentication or access controls; or use the Service to harass others." },
+          { n: "03", title: "Honest use of AI", body: "You agree to review all AI-generated content before submitting it to any employer. Do not submit tailored content you know to be false or that fabricates experience you do not have." },
+          { n: "04", title: "Account responsibility", body: "You are responsible for keeping your password confidential and for all activity under your account. Notify us immediately of any unauthorized access." },
+        ].map((item) => (
+          <div class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
 
-  <h2>5. No warranty</h2>
-  <p>Aptora is provided "as is" without warranties of any kind. We do not guarantee that using Aptora will result in interviews or employment.</p>
+  <!-- SECTION 4: AI, service & third parties -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="reveal mb-10">
+        <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Services and AI</p>
+        <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">4. AI, Service Availability &amp; Third-Party Links.</h2>
+      </div>
+      <div class="reveal grid gap-3 sm:grid-cols-2">
+        {[
+          { n: "01", title: "AI limitations", body: "Aptora uses large language models to suggest resume improvements. AI can make mistakes. The output is a tool to assist your application — not a guarantee of accuracy or employment outcomes. Always review before sending." },
+          { n: "02", title: "Service availability", body: "We aim to maintain uptime but provide no guarantee of uninterrupted, secure, or error-free operation. We may perform maintenance or modifications without prior notice." },
+          { n: "03", title: "Third-party services", body: "The Service uses NVIDIA API, Supabase, Vercel, Google Analytics and others. We are not responsible for the policies or availability of third-party services. Resume content sent to NVIDIA is governed by their data processing terms." },
+          { n: "04", title: "Links to other sites", body: "The platform may contain links to external websites. We have no control over their content or privacy practices. Linking does not imply endorsement. You access third-party sites at your own risk." },
+        ].map((item) => (
+          <div class="lift rounded-2xl border hairline bg-white p-6">
+            <span class="mono text-xs text-[#999]">{item.n}</span>
+            <h3 class="mt-8 text-sm font-semibold">{item.title}</h3>
+            <p class="mt-2 text-xs leading-5 text-[#777]">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
 
-  <h2>6. Limitation of liability</h2>
-  <p>To the maximum extent permitted by law, Enally is not liable for any indirect or consequential damages arising from your use of Aptora.</p>
+  <!-- SECTION 5: Liability and law -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Liability and law</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">5. Limitation of Liability &amp; Governing Law.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p><strong class="font-semibold text-[#111]">Disclaimer of warranties.</strong> The Service is provided "as is" without warranties of any kind, express or implied. We do not warrant that AI-generated suggestions will be accurate, complete, or suitable for any specific employer or role.</p>
+          <p><strong class="font-semibold text-[#111]">Limitation of liability.</strong> To the maximum extent permitted by law, Enally.in shall not be liable for any indirect, incidental, special or consequential damages arising from your use of the Service, including but not limited to employment decisions made by any third party based on your resume.</p>
+          <p><strong class="font-semibold text-[#111]">Governing law.</strong> These Terms are governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in India. By using the Service, you consent to this jurisdiction.</p>
+          <p><strong class="font-semibold text-[#111]">Changes to Terms.</strong> We may update these Terms at any time. Material changes will be communicated via email or a notice in the Service. Your continued use constitutes acceptance of the updated Terms.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>7. Contact</h2>
-  <p>Questions about these terms? Reach us through the contact options in the app's Help menu.</p>
-</Legal>
+  <!-- SECTION 6: Contact -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
+      <div class="grid gap-10 lg:grid-cols-[280px_1fr]">
+        <div class="reveal">
+          <p class="mono text-[10px] uppercase tracking-[.14em] text-[#888]">Contact</p>
+          <h2 class="mt-3 text-2xl font-semibold tracking-[-.03em]">Questions about these terms.</h2>
+        </div>
+        <div class="reveal space-y-4 text-sm leading-7 text-[#555]">
+          <p>For any questions about these Terms, use our <a href="/contact" class="font-medium text-[#111] underline underline-offset-2">contact page</a> or email <a href="mailto:admin@enally.in" class="font-medium text-[#111] underline underline-offset-2">admin@enally.in</a>. We will respond within one business day.</p>
+          <p>Aptora is operated by Enally.in (Prashant Kumar, Sole Proprietor) · India. MSME Reg: UDYAM-PB-11-0041847.</p>
+          <div class="mt-6">
+            <a href="/contact" class="inline-flex items-center gap-2 rounded-xl border hairline bg-white px-5 py-3 text-sm font-semibold text-[#111] transition hover:border-[#d4d4d0] hover:shadow-sm">
+              Contact us
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Marketing>

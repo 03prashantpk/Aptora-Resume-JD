@@ -1,79 +1,218 @@
 ---
 import Marketing from "@/layouts/Marketing.astro";
+const APP_URL = "https://aptora.enally.in/";
 ---
+
 <Marketing
-  title="About Aptora — the AI resume workspace"
-  description="Aptora is an AI document workspace for truthful, high-converting resume tailoring — built by Enally."
+  title="About Aptora — Built to keep your resume honest"
+  description="Aptora is an AI-powered resume workspace built on one principle: your experience is the truth. The AI's job is to make it clearer, not replace it."
   path="/about"
   active="about"
 >
-  <!-- Hero -->
-  <section class="relative overflow-hidden">
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b hairline">
     <div class="grid-bg pointer-events-none absolute inset-0"></div>
-    <div class="relative mx-auto max-w-4xl px-5 pt-20 pb-10 text-center lg:pt-28">
-      <div class="reveal inline-flex items-center gap-2 rounded-full border hairline bg-white px-3.5 py-2 text-xs font-medium text-[#555] shadow-sm">
-        <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
-        Our story
+    <div class="hero-glow pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-7xl px-5 lg:px-8">
+      <div class="grid gap-12 py-24 lg:grid-cols-[1fr_.9fr] lg:items-center lg:py-32">
+        <div>
+          <div class="reveal inline-flex items-center gap-2 rounded-full border hairline bg-white px-3.5 py-2 text-xs font-medium text-[#555] shadow-sm">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
+            Our story
+          </div>
+          <h1 class="reveal mt-7 text-5xl font-semibold leading-[1.02] tracking-[-.05em] sm:text-6xl lg:text-[68px]">
+            Built to keep<br />your resume<br /><span class="text-[#666]">honest.</span>
+          </h1>
+          <p class="reveal mt-7 max-w-xl text-base leading-7 text-[#666] sm:text-lg">
+            Every AI resume tool promises to help you land the job. Most do it by inventing experience you don't have.
+            We chose a different path.
+          </p>
+          <div class="reveal mt-9 flex flex-wrap items-center gap-4">
+            <a href={APP_URL} class="inline-flex items-center gap-2 rounded-xl btn-saas-primary px-5 py-3.5 text-sm font-semibold">
+              Try Aptora
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="https://enally.in" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm font-medium text-[#555] hover:text-[#111]">
+              Built by Enally.in
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
+            </a>
+          </div>
+        </div>
+        <!-- Right side accent card -->
+        <div class="reveal">
+          <div class="rounded-2xl border hairline bg-[#111] p-8 text-white">
+            <div class="mono text-[9px] uppercase tracking-[.18em] text-[#666]">Aptora / Mission</div>
+            <blockquote class="mt-6 text-2xl font-semibold leading-snug tracking-[-.03em]">
+              "Your experience is the truth. AI's job is to make it clearer — not replace it."
+            </blockquote>
+            <div class="mt-8 flex items-center gap-3 border-t border-white/10 pt-6">
+              <img src="/aptora_sq.webp" alt="Aptora" class="h-9 w-9 rounded-lg object-contain" />
+              <div>
+                <div class="text-sm font-semibold">Aptora</div>
+                <div class="text-xs text-[#999]">An Enally.in product · India</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <h1 class="reveal mt-7 text-4xl font-semibold leading-[1.05] tracking-[-.04em] sm:text-6xl">
-        Make your experience<br /><span class="text-[#666]">count.</span>
-      </h1>
-      <p class="reveal mx-auto mt-6 max-w-2xl text-base leading-7 text-[#666] sm:text-lg">
-        The AI document workspace built for truthful, high-converting career applications.
-      </p>
     </div>
   </section>
 
-  <!-- Content -->
-  <section class="border-t hairline bg-white">
-    <div class="mx-auto max-w-3xl px-5 py-16 lg:py-24">
-      <div class="reveal space-y-10">
-        <p class="text-lg leading-8 text-[#333]">
-          Aptora was built with a simple conviction: <strong>your experience counts, but how you
-          present it matters just as much.</strong> Job seekers face endless ATS filters and vague
-          rejections, while recruiters spend under 7 seconds skimming a resume. Aptora bridges this
-          gap without compromising integrity.
-        </p>
+  <!-- IN SHORT / SUMMARY BAND -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-4xl px-5 py-10 lg:px-8">
+      <div class="reveal flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+        <span class="mono shrink-0 text-[10px] uppercase tracking-[.14em] text-[#999]">In short</span>
+        <p class="text-sm leading-7 text-[#555]">Aptora is an AI-powered document workspace that tailors the resume you already have to a specific job description — then compiles a real, professional PDF. No invented facts. No blank-page anxiety. One document, preview and download identical.</p>
+      </div>
+    </div>
+  </section>
 
-        <div>
-          <h2 class="text-2xl font-semibold tracking-[-.02em]">Truthful alignment, not fabrication</h2>
-          <p class="mt-3 leading-7 text-[#555]">
-            Most AI resume generators invent achievements or flood documents with hallucinated
-            buzzwords. Aptora does the opposite: it operates strictly on the truthful experience you
-            already have. It identifies your strongest real-world proof points, aligns terminology
-            with the target role, closes keyword blindspots, and compiles real, publication-grade
-            LaTeX PDFs that human hiring managers and ATS parsers love.
+  <!-- THE PROBLEM WE SOLVE -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+      <div class="grid gap-14 lg:grid-cols-2 lg:items-start">
+        <div class="reveal">
+          <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">The problem</div>
+          <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
+            Job applications are a<br />presentation problem.
+          </h2>
+          <p class="mt-6 text-base leading-7 text-[#666]">
+            Most people already have the experience needed for the roles they're applying to. The gap isn't their career — it's how that career is presented relative to what a specific job description asks for.
+          </p>
+          <p class="mt-4 text-base leading-7 text-[#666]">
+            Generic resume tools make you start from scratch or generate content that sounds right but isn't true. Aptora starts from what's already real on your page, understands the role you want, and closes the gap — honestly.
           </p>
         </div>
-
-        <div>
-          <h2 class="text-2xl font-semibold tracking-[-.02em]">Designed documents, not cookie-cutter layouts</h2>
-          <p class="mt-3 leading-7 text-[#555]">
-            Resume templates shouldn't look like generic web builders. Aptora's rendering engine
-            compiles hardened LaTeX directly into clean, typographic single-page or multi-page
-            formats. Every margin, font hierarchy, and horizontal rule is balanced for readability
-            and visual density.
-          </p>
-        </div>
-
-        <div>
-          <h2 class="text-2xl font-semibold tracking-[-.02em]">Built by Enally</h2>
-          <p class="mt-3 leading-7 text-[#555]">
-            Aptora is an independent product incubated and engineered by <strong>Enally</strong> —
-            building tools, ecosystems, and opportunities for modern developers, engineers, and
-            professionals globally.
-          </p>
+        <div class="reveal grid gap-3 sm:grid-cols-2">
+          <div class="rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-5">
+            <div class="text-sm font-semibold text-[#c24141]">What's broken</div>
+            <ul class="mt-3 space-y-2 text-xs leading-5 text-[#777]">
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#c24141]">×</span> AI invents experience you never had</li>
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#c24141]">×</span> Blank templates waste your time</li>
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#c24141]">×</span> Preview doesn't match download</li>
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#c24141]">×</span> One-size resume sent everywhere</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-[#cdead6] bg-[#f6fbf7] p-5">
+            <div class="text-sm font-semibold text-[#16803c]">Aptora's approach</div>
+            <ul class="mt-3 space-y-2 text-xs leading-5 text-[#777]">
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#16803c]">✓</span> Grounded in your real experience</li>
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#16803c]">✓</span> Start with the resume you already have</li>
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#16803c]">✓</span> Preview and download are the same PDF</li>
+              <li class="flex gap-2"><span class="mt-0.5 shrink-0 text-[#16803c]">✓</span> Tailored to each specific role</li>
+            </ul>
+          </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <!-- CTA -->
-      <div class="reveal mt-14 rounded-2xl border hairline bg-[#111] p-8 text-center text-white sm:p-12">
-        <h2 class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">Ready to tailor your resume?</h2>
-        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-[#aaa]">Bring the resume you already have. Let AI make the strongest version of what's already true.</p>
-        <a href="/" class="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-[#111] transition hover:bg-[#ededeb]">
-          Start tailoring
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
+  <!-- HOW IT WORKS (condensed) -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+      <div class="reveal text-center">
+        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">How it works</div>
+        <h2 class="mx-auto mt-4 max-w-2xl text-4xl font-semibold tracking-[-.045em] sm:text-5xl">A workspace, not a generator.</h2>
+        <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-[#666]">Aptora is structured around a document you can see before you send it — not a black-box that dumps text into a template.</p>
+      </div>
+      <div class="mt-14 grid gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] md:grid-cols-4">
+        {[
+          { n: "01", icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5", title: "Upload your resume", body: "Start with the PDF you already use. Aptora extracts and structures everything already there." },
+          { n: "02", icon: "M4 5h16M4 12h11M4 19h16", title: "Add the job description", body: "Paste the role you're applying to. AI reads responsibilities, skills, qualifications and key language." },
+          { n: "03", icon: "M12 3v18M3 12h18", title: "See the gap analysis", body: "Aptora shows what aligns, what's missing, and where your existing evidence can be made clearer." },
+          { n: "04", icon: "M5 12h14M13 6l6 6-6 6", title: "Export a tailored PDF", body: "Choose your document template, review the tailored content, and export a real PDF — preview identical to download." },
+        ].map((step) => (
+          <div class="bg-white p-6 sm:p-7">
+            <div class="mono text-xs text-[#999]">{step.n}</div>
+            <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d={step.icon} /></svg>
+            </div>
+            <h3 class="mt-5 font-semibold">{step.title}</h3>
+            <p class="mt-2 text-sm leading-6 text-[#70706d]">{step.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLES -->
+  <section class="border-b hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+      <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
+        <div class="reveal">
+          <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">What we believe</div>
+          <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">The AI should surface your experience — not invent it.</h2>
+          <p class="mt-6 text-base leading-7 text-[#666]">
+            We built Aptora with a hard constraint from day one: the AI never fabricates jobs, companies, dates, skills, metrics or achievements. Every improvement it suggests must be grounded in content that's already on your resume.
+          </p>
+          <p class="mt-4 text-base leading-7 text-[#666]">
+            That's not a limitation. It's the whole point. A truthful, well-presented resume is a better long-term strategy than a fabricated one that falls apart in the first interview.
+          </p>
+        </div>
+        <div class="reveal grid gap-3 sm:grid-cols-2">
+          {[
+            { title: "No invented experience", body: "No fabricated jobs, employers, dates or achievements. Ever." },
+            { title: "No blank-page anxiety", body: "Start from the resume you already have. Aptora works from your truth." },
+            { title: "Role-specific context", body: "Every tailoring run uses the actual job description as its guide." },
+            { title: "One document workflow", body: "Analyze, edit, preview and export — the same PDF throughout." },
+            { title: "Preview = download", body: "What you see in the workspace is exactly the file you export." },
+            { title: "Built for iteration", body: "Refine, review, keep the version that works. No one-shot pressure." },
+          ].map((p) => (
+            <div class="rounded-2xl border hairline p-5">
+              <div class="text-sm font-semibold">{p.title}</div>
+              <p class="mt-2 text-xs leading-5 text-[#777]">{p.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MADE BY ENALLY -->
+  <section class="border-b hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+      <div class="reveal mx-auto max-w-3xl text-center">
+        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">The team</div>
+        <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Made by Enally.in</h2>
+        <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-[#666]">
+          Aptora is a product of <a href="https://enally.in" target="_blank" rel="noopener noreferrer" class="font-medium text-[#111] underline underline-offset-2">Enally.in</a> — a founder-led technology studio building useful products in India. We're a small team with a preference for focused, honest tools over feature-bloated platforms.
+        </p>
+        <p class="mt-4 text-base leading-7 text-[#666]">
+          We built Aptora because we saw job seekers struggling to present their genuine experience clearly — and existing tools making the problem worse by inventing credentials. We thought there was a better way.
+        </p>
+      </div>
+      <div class="mt-14 grid gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] text-center sm:grid-cols-3">
+        <div class="bg-white px-6 py-8">
+          <div class="text-2xl font-semibold tracking-[-.03em]">2020</div>
+          <div class="mt-1.5 text-xs text-[#777]">Enally.in founded</div>
+        </div>
+        <div class="bg-white px-6 py-8">
+          <div class="text-2xl font-semibold tracking-[-.03em]">India</div>
+          <div class="mt-1.5 text-xs text-[#777]">Based &amp; built here</div>
+        </div>
+        <div class="bg-white px-6 py-8">
+          <div class="text-2xl font-semibold tracking-[-.03em]">2,000+</div>
+          <div class="mt-1.5 text-xs text-[#777]">Resumes tailored</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="border-t hairline bg-[#111] text-white">
+    <div class="mx-auto max-w-4xl px-5 py-24 text-center lg:py-32">
+      <div class="reveal">
+        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">Ready to try it</div>
+        <h2 class="mt-5 text-4xl font-semibold tracking-[-.05em] sm:text-5xl">Start with the resume<br />you already have.</h2>
+        <p class="mx-auto mt-6 max-w-xl text-base leading-7 text-[#aaa]">No blank page. Upload your resume, add a job description and see what the AI finds — in under two minutes.</p>
+        <div class="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <a href={APP_URL} class="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-[#111] transition hover:bg-[#ededeb]">
+            Open Aptora
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="/contact" class="text-sm font-medium text-[#aaa] hover:text-white">Questions? Contact us →</a>
+        </div>
       </div>
     </div>
   </section>
