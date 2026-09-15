@@ -46,11 +46,52 @@ const SYSTEM = [
   "Output ONLY minified JSON: {\"targetRole\":\"...\",\"alignment\":n,\"identityMatch\":n,\"prepTimeEstimate\":\"...\",\"prepSummary\":\"...\",\"matched\":[],\"missing\":[],\"gaps\":[],\"opportunities\":[],\"suggestedRoles\":[]}",
 ].join(" ");
 
+/** Best-effort extraction of the analysis JSON from a model response. Handles: markdown
+ *  ```json fences, leading/trailing prose, and JSON that got truncated at the token cap
+ *  (we balance braces so a cut-off object still parses). Returns null only when there is
+ *  genuinely no JSON object at all. */
+function parseLoose(s: string): Record<string, unknown> | null {
+  if (!s) return null;
+  // Strip code fences if present.
+  let t = s.replace(/```(?:json|latex|tex)?/gi, "").trim();
+  const start = t.indexOf("{");
+  if (start === -1) return null;
+  t = t.slice(start);
+
+  // First try: the normal greedy match (complete object).
+  const full = t.match(/\{[\s\S]*\}/);
+  if (full) {
+    try { return JSON.parse(full[0]) as Record<string, unknown>; } catch { /* fall through */ }
+  }
+
+  // Truncated/malformed: walk the string tracking string state + brace depth, and close
+  // any unbalanced braces/brackets so a cut-off-at-token-limit response still parses.
+  let depth = 0, sq = 0, inStr = false, esc = false;
+  let end = -1;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (esc) { esc = false; continue; }
+    if (c === "\\") { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) { end = i; break; } }
+    else if (c === "[") sq++;
+    else if (c === "]") sq--;
+  }
+  let candidate = end !== -1 ? t.slice(0, end + 1) : t;
+  if (end === -1) {
+    // Never closed: drop a trailing partial token, then close open brackets/braces.
+    candidate = candidate.replace(/,\s*"[^"]*"\s*:?\s*[^,{}\[\]]*$/, "").replace(/,\s*$/, "");
+    candidate += "]".repeat(Math.max(0, sq)) + "}".repeat(Math.max(0, depth));
+  }
+  try { return JSON.parse(candidate) as Record<string, unknown>; } catch { return null; }
+}
+
 function extractJson(s: string): Analysis | null {
-  const m = s.match(/\{[\s\S]*\}/);
-  if (!m) return null;
+  const o = parseLoose(s);
+  if (!o) return null;
   try {
-    const o = JSON.parse(m[0]);
     return {
       targetRole: typeof o.targetRole === "string" && o.targetRole.trim() ? o.targetRole.trim() : "Target Role",
       alignment: clampPct(o.alignment),
@@ -97,6 +138,19 @@ export async function analyzeResume(latex: string, jd: string): Promise<Analysis
     "Return the structured analysis JSON now.",
   ].join("\n");
   const messages: ChatMessage[] = [{ role: "system", content: SYSTEM }, { role: "user", content: user }];
-  const out = await chatWithFallback(messages, { temperature: 0.25, max_tokens: 2400 });
-  return extractJson(out);
+  // Gemini 2.5 Flash spends output budget on internal reasoning before the JSON, so a low
+  // cap truncates the object mid-stream (the old 2400 caused empty/unparseable results).
+  // Give it ample room; parseLoose also recovers a truncated object as a last resort.
+  const out = await chatWithFallback(messages, { temperature: 0.2, max_tokens: 8192 });
+  const parsed = extractJson(out);
+  if (parsed) return parsed;
+  // One retry: nudge the model to emit ONLY the JSON object (no prose/reasoning preamble).
+  const retryMessages: ChatMessage[] = [
+    { role: "system", content: SYSTEM },
+    { role: "user", content: user },
+    { role: "assistant", content: out.slice(0, 200) },
+    { role: "user", content: "That was not valid JSON. Reply with ONLY the minified JSON object, nothing else." },
+  ];
+  const retry = await chatWithFallback(retryMessages, { temperature: 0.1, max_tokens: 8192 });
+  return extractJson(retry);
 }

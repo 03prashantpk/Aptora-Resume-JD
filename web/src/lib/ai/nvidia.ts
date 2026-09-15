@@ -1,125 +1,69 @@
-// Server-ONLY NVIDIA NIM client. The API key is read from server env and never
-// reaches the browser. Do NOT import this into a React island or any client code.
+// Server-ONLY NVIDIA NIM client + the multi-provider ORCHESTRATOR for all AI text tasks.
+// API keys are read from server env and NEVER reach the browser. Do NOT import into a
+// React island or any client code.
 //
-// Security notes (project rules 13, 24, 25):
-//  - Key stays server-side (NV_API_KEY in web/.env).
-//  - Treat resume/JD text as untrusted; callers must separate system instructions
-//    from user document text (prompt-injection aware).
-//  - Never log full prompts containing resume/JD/PII.
+// This module keeps the historical public surface (chat / chatStream / chatWithFallback /
+// models / TEXT_MODEL_CHAIN + the shared types) so task code doesn't change. Internally:
+//   - chatNvidia / chatNvidiaStream  -> the NVIDIA NIM (OpenAI-compatible) provider.
+//   - Gemini lives in ./gemini_ai.ts.
+//   - chat() / chatStream() DISPATCH by model name (models/… or gemini… -> Gemini).
+//   - chatWithFallback() walks TEXT_MODEL_CHAIN (Gemini -> Lightning -> Super -> Gemma),
+//     advancing only on transient failures.
+//
+// Security notes (rules 13, 24, 25): keys stay server-side, never logged; resume/JD text
+// is untrusted DATA; full prompts/PII are never logged.
+import {
+  env, aiLog, AI_LOG_VERBOSE, nextAiId, promptChars,
+  AIProviderError, isTransientStatus,
+  type ChatMessage, type ChatOptions, type StreamChunk,
+} from "./provider";
+import { chatGemini, chatGeminiStream } from "./gemini_ai";
 
-// Runtime env (Node SSR): read when the server RUNS so keys/models aren't baked at build.
-const env = (k: string): string | undefined => process.env[k] ?? (import.meta.env as Record<string, string | undefined>)[k];
+// Re-export shared types + helpers so existing imports from "./nvidia" keep working.
+export type { ChatMessage, ChatOptions, StreamChunk, Role, ContentPart } from "./provider";
+export { isTransientStatus } from "./provider";
+// Back-compat: some callers import NvidiaError from here.
+export { AIProviderError as NvidiaError } from "./provider";
+
+// --- Google Gemini (default provider) — model ids only; client is gemini_ai.ts ---
+const GOOGLE_FAST_MODAL = env("GOOGLE_FAST_MODAL") ?? "models/gemini-2.5-flash";
+
+// --- NVIDIA NIM (fallback provider) ---
 const NV_BASE_URL = (env("NV_BASE_URL") ?? "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
 const NV_API_KEY = env("NV_API_KEY");
-// Lightning is the DEFAULT for every task (fastest working model on this account). The
-// others are fallbacks, tried in order only when the primary hits a transient failure.
 const NV_LIGHTNING_FAST_MODEL = env("NV_LIGHTNING_FAST_MODEL") ?? "nvidia/nemotron-3.5-lightning-30b-a3b";
 const NV_TEXT_FAST_MODEL = env("NV_TEXT_FAST_MODEL") ?? "nvidia/nemotron-3-super-120b-a12b";
 const NV_TEXT_ALT_MODEL = env("NV_TEXT_ALT_MODEL") ?? "google/gemma-4-31b-it";
 const NV_TEXT_FAST_VISION_MODEL = env("NV_TEXT_FAST_VISION_MODEL") ?? "meta/llama-3.2-90b-vision-instruct";
 
 export const models = {
-  /** DEFAULT for all text tasks: Nemotron-3.5 Lightning (fast, reliable on this account). */
-  text: NV_LIGHTNING_FAST_MODEL,
-  /** Fallback A: Nemotron-3 Super (adaptive reasoning; used if lightning is unavailable). */
+  /** DEFAULT for all text tasks: Google Gemini 2.5 Flash. */
+  text: GOOGLE_FAST_MODAL,
+  /** Fallback A: Nemotron-3.5 Lightning (fast NVIDIA model). */
+  lightning: NV_LIGHTNING_FAST_MODEL,
+  /** Fallback B: Nemotron-3 Super (adaptive reasoning). */
   fast: NV_TEXT_FAST_MODEL,
-  /** Fallback B: Gemma 4 (standard instruction model). */
+  /** Fallback C: Gemma 4 (standard instruction model). */
   textAlt: NV_TEXT_ALT_MODEL,
   vision: NV_TEXT_FAST_VISION_MODEL,
 };
 
-/** Ordered model chain for text tasks: primary first, then fallbacks. De-duplicated so
- *  the same model is never tried twice if two env vars point at it. */
-export const TEXT_MODEL_CHAIN: string[] = [...new Set([models.text, models.fast, models.textAlt])];
+/** Ordered model chain for text tasks: Gemini → Lightning → Super → Gemma. De-duplicated. */
+export const TEXT_MODEL_CHAIN: string[] = [...new Set([models.text, models.lightning, models.fast, models.textAlt])];
 
-// ---- Server-side AI logging (terminal only) --------------------------------
-// Prints what the model is doing to the SERVER console: the request metadata, the
-// live "thinking" (reasoning) trace, and the output size/timing. It NEVER prints the
-// resume/JD prompt content or PII (rules 24/25) — only sizes, counts and the model's
-// own reasoning/answer. Toggle with AI_LOG=0 to silence; AI_LOG_VERBOSE=1 to also echo
-// the answer text. Reasoning traces are on by default because they're the "thinking".
-const AI_LOG = (env("AI_LOG") ?? "1") !== "0";
-const AI_LOG_VERBOSE = (env("AI_LOG_VERBOSE") ?? "0") === "1";
-let _aiSeq = 0;
-
-function aiLog(...args: unknown[]): void {
-  if (AI_LOG) console.log("[AI]", ...args);
-}
-
-/** Rough prompt size (chars) without ever logging the content itself. */
-function promptChars(messages: ChatMessage[]): number {
-  let n = 0;
-  for (const m of messages) {
-    if (typeof m.content === "string") n += m.content.length;
-    else for (const p of m.content) if (p.type === "text") n += p.text.length;
-  }
-  return n;
-}
-
-/** One-line request summary: id, model, message roles, size, limits, thinking flag. */
-function logRequest(kind: "chat" | "stream", messages: ChatMessage[], opts: ChatOptions): number {
-  const id = ++_aiSeq;
-  const model = opts.model ?? models.text;
-  const roles = messages.map((m) => m.role).join(">");
-  aiLog(
-    `#${id} ${kind} → model=${model} msgs=${messages.length} [${roles}] ` +
-    `prompt≈${promptChars(messages)}c max_tokens=${opts.max_tokens ?? 4096} ` +
-    `temp=${opts.temperature ?? 1} thinking=${opts.enableThinking ? "on" : "off"}`,
-  );
-  return id;
-}
-
-export type Role = "system" | "user" | "assistant";
-
-// Text or multimodal content (vision).
-export type ContentPart =
-  | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
-
-export interface ChatMessage {
-  role: Role;
-  content: string | ContentPart[];
-}
-
-export interface ChatOptions {
-  model?: string;
-  temperature?: number;
-  top_p?: number;
-  max_tokens?: number;
-  frequency_penalty?: number;
-  presence_penalty?: number;
-  /** Enable Nemotron reasoning traces (chat_template_kwargs.enable_thinking). */
-  enableThinking?: boolean;
-  signal?: AbortSignal;
+/** Which upstream serves a given model name. Gemini ids start with "models/" or "gemini". */
+function providerFor(model: string): "gemini" | "nvidia" {
+  return /^models\/|^gemini/i.test(model) ? "gemini" : "nvidia";
 }
 
 function assertKey(): string {
-  if (!NV_API_KEY) {
-    throw new Error("NV_API_KEY is not set (server env). AI is unavailable.");
-  }
+  if (!NV_API_KEY) throw new AIProviderError(401, "NV_API_KEY not set (server env)", "nvidia");
   return NV_API_KEY;
-}
-
-/** Error carrying the upstream HTTP status so callers can retry/fall back on transient
- *  failures (e.g. 503 model-overloaded) vs. give up on hard errors. */
-export class NvidiaError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "NvidiaError";
-    this.status = status;
-  }
-}
-
-/** True for transient upstream failures worth retrying on a different model (overloaded,
- *  gateway, rate-limited). Not for 4xx (bad request) which would just fail again. */
-export function isTransientStatus(status: number): boolean {
-  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
 }
 
 function buildPayload(messages: ChatMessage[], opts: ChatOptions, stream: boolean) {
   const payload: Record<string, unknown> = {
-    model: opts.model ?? models.text,
+    model: opts.model ?? models.lightning,
     messages,
     temperature: opts.temperature ?? 1,
     top_p: opts.top_p ?? 0.95,
@@ -132,11 +76,18 @@ function buildPayload(messages: ChatMessage[], opts: ChatOptions, stream: boolea
   return payload;
 }
 
-/** Non-streaming chat completion. Returns the assistant text. */
-export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Promise<string> {
+// ---- NVIDIA provider -------------------------------------------------------
+
+/** Non-streaming NVIDIA NIM completion. Returns the assistant text. */
+async function chatNvidia(messages: ChatMessage[], opts: ChatOptions = {}): Promise<string> {
   const key = assertKey();
-  const id = logRequest("chat", messages, opts);
+  const id = nextAiId();
+  const model = opts.model ?? models.lightning;
   const t0 = Date.now();
+  aiLog(
+    `#${id} nvidia → model=${model} msgs=${messages.length} prompt≈${promptChars(messages)}c ` +
+    `max_tokens=${opts.max_tokens ?? 4096} temp=${opts.temperature ?? 1} thinking=${opts.enableThinking ? "on" : "off"}`,
+  );
   const res = await fetch(`${NV_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json", accept: "application/json" },
@@ -144,8 +95,8 @@ export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Pro
     signal: opts.signal,
   });
   if (!res.ok) {
-    aiLog(`#${id} chat ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
-    throw new NvidiaError(res.status, `NVIDIA chat failed: ${res.status}`);
+    aiLog(`#${id} nvidia ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
+    throw new AIProviderError(res.status, `NVIDIA chat failed: ${res.status}`, "nvidia");
   }
   const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
@@ -154,57 +105,23 @@ export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Pro
   const out = data.choices?.[0]?.message?.content ?? "";
   const u = data.usage;
   aiLog(
-    `#${id} chat ✓ ${Date.now() - t0}ms out≈${out.length}c` +
+    `#${id} nvidia ✓ ${Date.now() - t0}ms out≈${out.length}c` +
     (u ? ` tokens(p=${u.prompt_tokens ?? "?"} c=${u.completion_tokens ?? "?"} t=${u.total_tokens ?? "?"})` : ""),
   );
   if (AI_LOG_VERBOSE && out) aiLog(`#${id} answer:\n${out}`);
   return out;
 }
 
-/** Non-streaming chat with automatic model fallback. Tries each model in `chain`
- *  (default: lightning → super → gemma) and moves to the next only on a TRANSIENT
- *  failure (503/429/5xx/network). Hard errors (4xx) and success stop immediately.
- *  This is the default entry point for all text tasks. */
-export async function chatWithFallback(
-  messages: ChatMessage[],
-  opts: ChatOptions = {},
-  chain: string[] = TEXT_MODEL_CHAIN,
-): Promise<string> {
-  let lastErr: unknown;
-  for (let i = 0; i < chain.length; i++) {
-    const model = chain[i];
-    try {
-      return await chat(messages, { ...opts, model });
-    } catch (e) {
-      lastErr = e;
-      const transient = e instanceof NvidiaError ? isTransientStatus(e.status) : true; // network error -> try next
-      const hasNext = i < chain.length - 1;
-      if (transient && hasNext) {
-        aiLog(`fallback: "${model}" failed (${e instanceof NvidiaError ? e.status : "network"}) -> trying "${chain[i + 1]}"`);
-        continue;
-      }
-      throw e; // hard error, or no models left
-    }
-  }
-  throw lastErr;
-}
-
-export interface StreamChunk {
-  /** Reasoning trace text (when enableThinking). */
-  reasoning?: string;
-  /** Visible content delta. */
-  content?: string;
-}
-
-/** Streaming chat completion. Yields incremental chunks parsed from the SSE stream.
- *  Use from an Astro server route that re-streams to the browser. */
-export async function* chatStream(
+/** Streaming NVIDIA NIM completion. Yields incremental chunks parsed from the SSE stream. */
+async function* chatNvidiaStream(
   messages: ChatMessage[],
   opts: ChatOptions = {},
 ): AsyncGenerator<StreamChunk, void, unknown> {
   const key = assertKey();
-  const id = logRequest("stream", messages, opts);
+  const id = nextAiId();
+  const model = opts.model ?? models.lightning;
   const t0 = Date.now();
+  aiLog(`#${id} nvidia-stream → model=${model} msgs=${messages.length} prompt≈${promptChars(messages)}c`);
   const res = await fetch(`${NV_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json", accept: "text/event-stream" },
@@ -212,16 +129,14 @@ export async function* chatStream(
     signal: opts.signal,
   });
   if (!res.ok || !res.body) {
-    aiLog(`#${id} stream ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
-    throw new NvidiaError(res.status, `NVIDIA stream failed: ${res.status}`);
+    aiLog(`#${id} nvidia-stream ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
+    throw new AIProviderError(res.status, `NVIDIA stream failed: ${res.status}`, "nvidia");
   }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-
-  // Live logging state: accumulate reasoning ("thinking") + content, flushing whole
-  // lines to the terminal so you can watch the model work without per-token spam.
+  // Live logging state: flush whole reasoning lines to the terminal (no per-token spam).
   let thinkChars = 0, outChars = 0;
   let thinkBuf = "", firstThink = true, firstContent = true;
   const flushThink = (final = false) => {
@@ -238,8 +153,6 @@ export async function* chatStream(
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-
-      // SSE frames are separated by blank lines; each carries `data: ...`.
       let sep: number;
       while ((sep = buffer.indexOf("\n")) !== -1) {
         const line = buffer.slice(0, sep).trim();
@@ -279,6 +192,52 @@ export async function* chatStream(
   } finally {
     reader.releaseLock();
     flushThink(true);
-    aiLog(`#${id} stream ✓ ${Date.now() - t0}ms thinking≈${thinkChars}c out≈${outChars}c`);
+    aiLog(`#${id} nvidia-stream ✓ ${Date.now() - t0}ms thinking≈${thinkChars}c out≈${outChars}c`);
   }
+}
+
+// ---- Orchestrator (public API) ---------------------------------------------
+
+/** Non-streaming chat. Dispatches to Gemini or NVIDIA based on the model name. */
+export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Promise<string> {
+  const model = opts.model ?? models.text;
+  return providerFor(model) === "gemini"
+    ? chatGemini(messages, { ...opts, model })
+    : chatNvidia(messages, { ...opts, model });
+}
+
+/** Streaming chat. Dispatches to Gemini or NVIDIA based on the model name. */
+export function chatStream(messages: ChatMessage[], opts: ChatOptions = {}): AsyncGenerator<StreamChunk, void, unknown> {
+  const model = opts.model ?? models.text;
+  return providerFor(model) === "gemini"
+    ? chatGeminiStream(messages, { ...opts, model })
+    : chatNvidiaStream(messages, { ...opts, model });
+}
+
+/** Non-streaming chat with automatic model fallback across providers. Tries each model in
+ *  `chain` (default: Gemini → Lightning → Super → Gemma) and moves to the next only on a
+ *  TRANSIENT failure (503/429/5xx/network). Hard errors (4xx) and success stop immediately.
+ *  This is the default entry point for all text tasks. */
+export async function chatWithFallback(
+  messages: ChatMessage[],
+  opts: ChatOptions = {},
+  chain: string[] = TEXT_MODEL_CHAIN,
+): Promise<string> {
+  let lastErr: unknown;
+  for (let i = 0; i < chain.length; i++) {
+    const model = chain[i];
+    try {
+      return await chat(messages, { ...opts, model });
+    } catch (e) {
+      lastErr = e;
+      const transient = e instanceof AIProviderError ? isTransientStatus(e.status) : true; // network error -> try next
+      const hasNext = i < chain.length - 1;
+      if (transient && hasNext) {
+        aiLog(`fallback: "${model}" failed (${e instanceof AIProviderError ? e.status : "network"}) -> trying "${chain[i + 1]}"`);
+        continue;
+      }
+      throw e; // hard error, or no models left
+    }
+  }
+  throw lastErr;
 }
