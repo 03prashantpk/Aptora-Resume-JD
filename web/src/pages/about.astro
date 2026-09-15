@@ -1,21 +1,80 @@
 ---
-import Legal from "@/layouts/Legal.astro";
+import Marketing from "@/layouts/Marketing.astro";
 ---
-<Legal title="About Aptora">
-  <h1>About Aptora</h1>
-  <p class="lg-updated">The AI Document Workspace built for truthful, high-converting career applications.</p>
+<Marketing
+  title="About Aptora — the AI resume workspace"
+  description="Aptora is an AI document workspace for truthful, high-converting resume tailoring — built by Enally."
+  path="/about"
+  active="about"
+>
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div class="grid-bg pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-4xl px-5 pt-20 pb-10 text-center lg:pt-28">
+      <div class="reveal inline-flex items-center gap-2 rounded-full border hairline bg-white px-3.5 py-2 text-xs font-medium text-[#555] shadow-sm">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
+        Our story
+      </div>
+      <h1 class="reveal mt-7 text-4xl font-semibold leading-[1.05] tracking-[-.04em] sm:text-6xl">
+        Make your experience<br /><span class="text-[#666]">count.</span>
+      </h1>
+      <p class="reveal mx-auto mt-6 max-w-2xl text-base leading-7 text-[#666] sm:text-lg">
+        The AI document workspace built for truthful, high-converting career applications.
+      </p>
+    </div>
+  </section>
 
-  <p>Aptora was built with a simple conviction: <strong>Your experience counts, but how you present it matters just as much.</strong> Job seekers face endless ATS filters and vague rejections, while recruiters spend under 7 seconds skimming a resume. Aptora bridges this gap without compromising integrity.</p>
+  <!-- Content -->
+  <section class="border-t hairline bg-white">
+    <div class="mx-auto max-w-3xl px-5 py-16 lg:py-24">
+      <div class="reveal space-y-10">
+        <p class="text-lg leading-8 text-[#333]">
+          Aptora was built with a simple conviction: <strong>your experience counts, but how you
+          present it matters just as much.</strong> Job seekers face endless ATS filters and vague
+          rejections, while recruiters spend under 7 seconds skimming a resume. Aptora bridges this
+          gap without compromising integrity.
+        </p>
 
-  <h2>Our philosophy: Truthful alignment, not fabrication</h2>
-  <p>Most AI resume generators generate fake achievements or flood documents with hallucinated buzzwords. Aptora does the opposite: it operates strictly on the truthful experience you already have. It identifies your strongest real-world proof points, aligns terminology with the target role, closes keyword blindspots, and compiles real, publication-grade LaTeX PDFs that human hiring managers and ATS parsers love.</p>
+        <div>
+          <h2 class="text-2xl font-semibold tracking-[-.02em]">Truthful alignment, not fabrication</h2>
+          <p class="mt-3 leading-7 text-[#555]">
+            Most AI resume generators invent achievements or flood documents with hallucinated
+            buzzwords. Aptora does the opposite: it operates strictly on the truthful experience you
+            already have. It identifies your strongest real-world proof points, aligns terminology
+            with the target role, closes keyword blindspots, and compiles real, publication-grade
+            LaTeX PDFs that human hiring managers and ATS parsers love.
+          </p>
+        </div>
 
-  <h2>Designed documents, not cookie-cutter layouts</h2>
-  <p>Resume templates shouldn't look like generic web builders. Aptora's rendering engine compiles hardened LaTeX directly into clean, typographic single-page or multi-page formats. Every millimeter, margin, font hierarchy, and horizontal rule is mathematically balanced for readability and visual density.</p>
+        <div>
+          <h2 class="text-2xl font-semibold tracking-[-.02em]">Designed documents, not cookie-cutter layouts</h2>
+          <p class="mt-3 leading-7 text-[#555]">
+            Resume templates shouldn't look like generic web builders. Aptora's rendering engine
+            compiles hardened LaTeX directly into clean, typographic single-page or multi-page
+            formats. Every margin, font hierarchy, and horizontal rule is balanced for readability
+            and visual density.
+          </p>
+        </div>
 
-  <h2>Built by Enally</h2>
-  <p>Aptora is an independent product incubated and engineered by <strong>Enally</strong>, building tools, ecosystems, and opportunities for modern developers, engineers, and professionals globally.</p>
+        <div>
+          <h2 class="text-2xl font-semibold tracking-[-.02em]">Built by Enally</h2>
+          <p class="mt-3 leading-7 text-[#555]">
+            Aptora is an independent product incubated and engineered by <strong>Enally</strong> —
+            building tools, ecosystems, and opportunities for modern developers, engineers, and
+            professionals globally.
+          </p>
+        </div>
+      </div>
 
-  <h2>Get in touch</h2>
-  <p>Have questions, feedback, or enterprise inquiries? We'd love to hear from you. Visit our <a href="/contact" style="color:var(--accent); font-weight:600;">Contact page</a> or email us at <a href="mailto:support@enally.in" style="color:var(--accent); font-weight:600;">support@enally.in</a>.</p>
-</Legal>
+      <!-- CTA -->
+      <div class="reveal mt-14 rounded-2xl border hairline bg-[#111] p-8 text-center text-white sm:p-12">
+        <h2 class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">Ready to tailor your resume?</h2>
+        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-[#aaa]">Bring the resume you already have. Let AI make the strongest version of what's already true.</p>
+        <a href="/" class="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-[#111] transition hover:bg-[#ededeb]">
+          Start tailoring
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+</Marketing>

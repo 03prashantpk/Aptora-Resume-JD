@@ -1,0 +1,12 @@
+---
+// Google Analytics 4 (gtag.js). Rendered once in the <head> of every layout.
+// Loads async so it never blocks page render.
+const GA_ID = "G-DZR8LZ9WP8";
+---
+<script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+<script is:inline define:vars={{ GA_ID }}>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', GA_ID);
+</script>

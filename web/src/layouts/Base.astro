@@ -1,8 +1,18 @@
 ---
+import Analytics from "@/components/Analytics.astro";
+
 interface Props {
   title?: string;
+  description?: string;
+  path?: string;
 }
-const { title = "Aptora" } = Astro.props;
+const {
+  title = "Aptora — AI Resume Tailoring",
+  description = "Aptora tailors the resume you already have to a job description with AI, then compiles a real, professional PDF. Truthful, role-aware, WYSIWYG.",
+  path = "",
+} = Astro.props;
+const SITE = "https://aptora.enally.in";
+const canonical = `${SITE}${path}`;
 ---
 
 <!doctype html>
@@ -13,8 +23,21 @@ const { title = "Aptora" } = Astro.props;
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="apple-touch-icon" href="/aptora_sq.webp" />
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aptora" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={`${SITE}/aptora_rec.webp`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={`${SITE}/aptora_rec.webp`} />
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <Analytics />
   </head>
   <body>
     <slot />

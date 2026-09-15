@@ -28,7 +28,7 @@ DEFAULT_RESUME_TEX = r"""\documentclass[a4paper,11pt]{article}
 % ======= Header =========
 \vspace*{-5pt}
 \begin{center}
-    {\Huge \textbf{ALEX CARTER}}\\[5pt]
+    {\Huge \textbf{PRASHANT KUMAR}}\\[5pt]
     {\large\textbf{FULL-STACK DEVELOPER}}\\[9pt]
     \normalsize
     \textbullet\ +1 (555) 010-2020 \textbullet\

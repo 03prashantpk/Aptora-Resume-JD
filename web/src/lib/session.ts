@@ -5,11 +5,17 @@ import { randomUUID } from "node:crypto";
 import { query } from "./db";
 
 const COOKIE = "aptora_sid";
-const FREE_LIMIT = Number(process.env.FREE_USAGE_LIMIT ?? (import.meta.env as Record<string, string>).FREE_USAGE_LIMIT ?? 3);
+const env = (k: string): string | undefined => process.env[k] ?? (import.meta.env as Record<string, string>)[k];
+// Export budgets: anonymous visitors get 1; a verified account gets 3 total.
+const ANON_LIMIT = Number(env("FREE_EXPORT_LIMIT_ANON") ?? 1);
+const USER_LIMIT = Number(env("FREE_EXPORT_LIMIT_USER") ?? 3);
 
-/** Read (or create) the anonymous session id, setting the cookie if new. */
+/** Owner identity from the session cookie. Logged-in => "user:<id>"; otherwise a
+ *  stable "anonymous:<sid>" (cookie created on first visit). */
 export async function getOwnerId(ctx: APIContext): Promise<string> {
-  let sid = ctx.cookies.get(COOKIE)?.value;
+  const existing = ctx.cookies.get(COOKIE)?.value;
+  if (existing?.startsWith("user:")) return existing; // logged in
+  let sid = existing;
   if (!sid) {
     sid = randomUUID();
     ctx.cookies.set(COOKIE, sid, {
@@ -18,6 +24,11 @@ export async function getOwnerId(ctx: APIContext): Promise<string> {
     await query("INSERT INTO anonymous_sessions (id) VALUES ($1) ON CONFLICT (id) DO NOTHING", [sid]);
   }
   return `anonymous:${sid}`;
+}
+
+/** The export/usage budget for this owner: 1 for anonymous, 3 for a logged-in user. */
+export function limitFor(ownerId: string): number {
+  return ownerId.startsWith("user:") ? USER_LIMIT : ANON_LIMIT;
 }
 
 export interface UsageState {
@@ -39,7 +50,8 @@ async function readUsage(ownerId: string): Promise<{ ai_calls: number; exports_u
 export async function getUsage(ownerId: string): Promise<UsageState> {
   const u = await readUsage(ownerId);
   const used = Math.max(u.ai_calls, u.exports_used);
-  return { aiCalls: u.ai_calls, exportsUsed: u.exports_used, freeLimit: FREE_LIMIT, allowed: used < FREE_LIMIT };
+  const freeLimit = limitFor(ownerId);
+  return { aiCalls: u.ai_calls, exportsUsed: u.exports_used, freeLimit, allowed: used < freeLimit };
 }
 
 /** Atomically bump a usage counter for today. kind = 'ai_calls' | 'exports_used' | 'compiles'. */
