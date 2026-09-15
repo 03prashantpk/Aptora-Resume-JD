@@ -12,6 +12,7 @@ const RESEND_AUDIENCE_ID = env("RESEND_AUDIENCE_ID");
 const TPL_OTP = env("RESEND_TPL_OTP");
 const TPL_WELCOME = env("RESEND_TPL_WELCOME");
 const TPL_CONTACT_ACK = env("RESEND_TPL_CONTACT_ACK");
+const TPL_EXPORT = env("RESEND_TPL_EXPORT");
 
 const API = "https://api.resend.com";
 
@@ -51,6 +52,33 @@ export function sendWelcome(to: string, name?: string): Promise<boolean> {
 
 export function sendContactAck(to: string, name: string, message: string): Promise<boolean> {
   return sendTemplate(TPL_CONTACT_ACK, to, { NAME: name || "there", MESSAGE: message });
+}
+
+/** Email the freshly-exported resume PDF, using the export template. Sends BOTH the PDF
+ *  as an attachment (yours to keep) AND a temporary download link (valid ~60 min via the
+ *  temp-file host). `pdf` is the raw bytes; we base64-encode them for Resend. Best-effort. */
+export async function sendExportPdf(
+  to: string,
+  pdf: Uint8Array,
+  opts: { name?: string; docTitle?: string; filename?: string; link?: string } = {},
+): Promise<boolean> {
+  if (!TPL_EXPORT) return false;
+  const filename = (opts.filename || "aptora-resume.pdf").replace(/[^\w.\-]+/g, "_");
+  const content = Buffer.from(pdf).toString("base64");
+  return post("/emails", {
+    from: RESEND_FROM,
+    to: [to],
+    template: {
+      id: TPL_EXPORT,
+      variables: {
+        NAME: opts.name || "there",
+        DOC_TITLE: opts.docTitle || "Your resume",
+        // Fall back to the app URL if no temp link was produced, so the button still works.
+        LINK: opts.link || "https://aptora.enally.in/",
+      },
+    },
+    attachments: [{ filename, content }],
+  });
 }
 
 /** Add a contact to the Resend audience (best-effort). */

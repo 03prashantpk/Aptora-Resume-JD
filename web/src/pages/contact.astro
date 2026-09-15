@@ -131,23 +131,32 @@ const APP_URL = "https://aptora.enally.in/";
     btn.textContent = "Sending…";
     status.className = "hidden rounded-xl border p-4 text-sm";
 
-    const data = Object.fromEntries(new FormData(form));
+    const raw = Object.fromEntries(new FormData(form));
+    // Our /api/contact expects { name, email, message }. Fold the optional subject line
+    // into the message so nothing is lost.
+    const subject = (raw.subject || "").toString().trim();
+    const message = subject
+      ? `Subject: ${subject}\n\n${(raw.message || "").toString()}`
+      : (raw.message || "").toString();
+    const payload = { name: (raw.name || "").toString(), email: (raw.email || "").toString(), message };
     try {
-      const res = await fetch("https://formspree.io/f/xnnqkyqy", {
+      const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Accept": "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
+      const body = await res.json().catch(() => ({}));
       if (res.ok) {
         status.className = "rounded-xl border border-[#cdead6] bg-[#f6fbf7] p-4 text-sm text-[#16803c]";
-        status.textContent = "Message sent! We'll be in touch soon.";
+        status.textContent = "Message sent! We'll be in touch within one business day.";
         form.reset();
       } else {
-        throw new Error("Server error");
+        status.className = "rounded-xl border border-[#fecaca] bg-[#fef2f2] p-4 text-sm text-[#c24141]";
+        status.textContent = (body && body.error && body.error.message) || "Something went wrong. Please try again later.";
       }
     } catch {
       status.className = "rounded-xl border border-[#fecaca] bg-[#fef2f2] p-4 text-sm text-[#c24141]";
-      status.textContent = "Something went wrong. Please try again later.";
+      status.textContent = "Network error. Please try again later.";
     } finally {
       btn.disabled = false;
       btn.innerHTML = 'Send message <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
