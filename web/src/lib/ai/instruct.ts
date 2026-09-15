@@ -184,11 +184,19 @@ async function contentEdit(latex: string, instruction: string): Promise<Instruct
   }
 
   const n = patched.changed.length;
-  return {
-    latex: patched.latex,
-    summary: n > 0 ? `Updated ${n} section${n > 1 ? "s" : ""} — formatting untouched.` : "No changes were needed.",
-    intent: "content",
-  };
+  if (n > 0) {
+    return {
+      latex: patched.latex,
+      summary: `Updated ${n} section${n > 1 ? "s" : ""} — formatting untouched.`,
+      intent: "content",
+    };
+  }
+
+  // The surgical patch touched nothing — the target text lives OUTSIDE the extracted
+  // regions (e.g. the phone/email/contact line, a header, or free-form text). Fall back
+  // to a scoped whole-.tex edit, but keep CONTENT-strict integrity so typography still
+  // can't change. This guarantees the edit actually happens instead of a silent no-op.
+  return scopedEdit(latex, instruction, "content");
 }
 
 // ─── STRUCTURAL / FORMAT path: scoped whole-.tex edit ──────────────────────────
@@ -208,7 +216,9 @@ const SCOPED_SYSTEM = [
 async function scopedEdit(latex: string, instruction: string, intent: EditIntent): Promise<InstructResult> {
   const scopeNote = intent === "format"
     ? "This is a FORMATTING request: you MAY change the specific typography/layout the user asked for (font, size, margins, spacing, alignment). Do not change anything else."
-    : "This is a STRUCTURAL request: you may add/remove/reorder the specific section or entry requested. Do not change typography, fonts, margins, packages, or unrelated content.";
+    : intent === "structural"
+      ? "This is a STRUCTURAL request: you may add/remove/reorder the specific section or entry requested. Do not change typography, fonts, margins, packages, or unrelated content."
+      : "This is a CONTENT request: change ONLY the text the user asked about (e.g. a phone number, email, a word, a sentence). Do NOT change any LaTeX commands, font sizes, margins, spacing, packages, or layout — only the literal text content.";
 
   const user = [
     "<USER_INSTRUCTION>", instruction.trim(), "</USER_INSTRUCTION>", "",
