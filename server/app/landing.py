@@ -245,6 +245,8 @@ def landing_html() -> str:
     gtag('js', new Date());
     gtag('config', 'G-DZR8LZ9WP8');
   </script>
+  <!-- Google AdSense (Auto Ads: Google places ads on its own; no manual slots) -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4554043228187575" crossorigin="anonymous"></script>
   <style>
     :root {{
       --bg: #fafaf8;

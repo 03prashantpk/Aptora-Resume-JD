@@ -1,7 +1,11 @@
 ---
-// Google Analytics 4 (gtag.js). Rendered once in the <head> of every layout.
-// Loads async so it never blocks page render.
+// Site-wide head tags, rendered once in the <head> of every layout. Both load async
+// so they never block page render.
+//   - Google Analytics 4 (gtag.js)
+//   - Google AdSense Auto Ads: we load ONLY the loader script; Google decides where
+//     and when to place ads on its own. No manual ad slots / <ins> units.
 const GA_ID = "G-DZR8LZ9WP8";
+const ADSENSE_CLIENT = "ca-pub-4554043228187575";
 ---
 <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
 <script is:inline define:vars={{ GA_ID }}>
@@ -10,3 +14,5 @@ const GA_ID = "G-DZR8LZ9WP8";
   gtag('js', new Date());
   gtag('config', GA_ID);
 </script>
+
+<script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`} crossorigin="anonymous"></script>

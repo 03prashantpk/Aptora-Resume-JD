@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -45,6 +46,12 @@ class TectonicCompiler:
     def __init__(self, only_cached: bool = True):
         self.only_cached = only_cached
         self.exe = find_tectonic()
+        # Serialize EVERY Tectonic run (user compiles AND the startup warmup) through one
+        # lock. On a 512MB host, two concurrent Tectonic + rasterize runs stack their
+        # memory and the box OOM-kills the process (seen as a 502 + restart loop). The
+        # warmup thread previously bypassed the API-level lock in main.py; guarding _run
+        # here guarantees only one compile ever executes at a time, warmup included.
+        self._run_lock = threading.Lock()
 
     # Hardening limits for arbitrary .tex (the pivot). Applies to every compile.
     MAX_TEX_BYTES = 400_000   # ~400 KB of source is plenty for a résumé
@@ -106,6 +113,15 @@ class TectonicCompiler:
         return result, pdf, imgs
 
     def _run(
+        self, latex: str, do_raster: bool, dpi: int, fmt: str, t0: float, only_cached: bool | None = None,
+    ) -> tuple[CompileResult, bytes | None, list[PageImageBytes]]:
+        # One compile at a time (see __init__): prevents concurrent Tectonic+raster runs
+        # from stacking memory and OOM-killing a small (512MB) host. Warmup and user
+        # compiles all pass through here, so all are mutually exclusive.
+        with self._run_lock:
+            return self._run_locked(latex, do_raster, dpi, fmt, t0, only_cached)
+
+    def _run_locked(
         self, latex: str, do_raster: bool, dpi: int, fmt: str, t0: float, only_cached: bool | None = None,
     ) -> tuple[CompileResult, bytes | None, list[PageImageBytes]]:
         if only_cached is None:
