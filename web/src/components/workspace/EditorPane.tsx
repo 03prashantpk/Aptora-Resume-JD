@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import type { ViewUpdate } from "@codemirror/view";
-import { EditorView, Decoration, type DecorationSet } from "@codemirror/view";
-import { StateField, StateEffect, RangeSetBuilder } from "@codemirror/state";
+import { EditorView, Decoration, type DecorationSet, GutterMarker, gutter } from "@codemirror/view";
+import { StateField, StateEffect, RangeSet } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
 import { Check, CircleAlert, LoaderCircle, ChevronDown, Check as CheckIcon, ChevronUp, Trash2, Plus } from "lucide-motion";
@@ -18,26 +18,62 @@ import { toast } from "../ui/toast";
 
 const latexLang = StreamLanguage.define(stex);
 
-// --- AI highlight decorations: mark a set of 1-based line numbers as AI-changed. ---
+// --- AI highlight decorations + pencil gutter: mark 1-based line numbers as AI-changed.
+// The set is applied via a StateEffect. On document changes we REMAP the decorations
+// through the change (so they follow the text) instead of dropping them — the highlight
+// only clears when an explicit empty set is pushed (Keep/Undo) or a new set replaces it.
 const setAiLines = StateEffect.define<Set<number>>();
 const aiLineDeco = Decoration.line({ class: "cm-ai-line" });
 
-const aiField = StateField.define<DecorationSet>({
-  create: () => Decoration.none,
-  update(deco, tr) {
-    for (const e of tr.effects) {
-      if (e.is(setAiLines)) {
-        const lines = e.value;
-        const b = new RangeSetBuilder<Decoration>();
-        for (let n = 1; n <= tr.state.doc.lines; n++) {
-          if (lines.has(n)) b.add(tr.state.doc.line(n).from, tr.state.doc.line(n).from, aiLineDeco);
-        }
-        return b.finish();
-      }
+/** Pencil (✎) gutter marker rendered on every AI-changed line. */
+class PencilMarker extends GutterMarker {
+  toDOM() {
+    const el = document.createElement("span");
+    el.className = "cm-ai-pencil";
+    el.textContent = "✎";
+    el.title = "Edited by Aptora AI";
+    return el;
+  }
+}
+const pencilMarker = new PencilMarker();
+
+function buildAiSets(doc: import("@codemirror/state").Text, lines: Set<number>) {
+  const decos: { from: number; deco: Decoration }[] = [];
+  const marks: { from: number; marker: GutterMarker }[] = [];
+  for (let n = 1; n <= doc.lines; n++) {
+    if (lines.has(n)) {
+      const at = doc.line(n).from;
+      decos.push({ from: at, deco: aiLineDeco });
+      marks.push({ from: at, marker: pencilMarker });
     }
-    return tr.docChanged ? Decoration.none : deco; // clear on manual edits
+  }
+  return {
+    deco: RangeSet.of(decos.map((d) => d.deco.range(d.from)), true),
+    marks: RangeSet.of(marks.map((m) => m.marker.range(m.from)), true),
+  };
+}
+
+interface AiState { deco: DecorationSet; marks: RangeSet<GutterMarker> }
+
+const aiField = StateField.define<AiState>({
+  create: () => ({ deco: Decoration.none, marks: RangeSet.empty }),
+  update(state, tr) {
+    for (const e of tr.effects) {
+      if (e.is(setAiLines)) return buildAiSets(tr.state.doc, e.value);
+    }
+    // Follow the text through edits rather than clearing (kept until Keep/Undo replaces it).
+    if (tr.docChanged) {
+      return { deco: state.deco.map(tr.changes), marks: state.marks.map(tr.changes) };
+    }
+    return state;
   },
-  provide: (f) => EditorView.decorations.from(f),
+  provide: (f) => EditorView.decorations.from(f, (s) => s.deco),
+});
+
+// Gutter that shows the pencil marker for AI-changed lines (reads the same field).
+const aiPencilGutter = gutter({
+  class: "cm-ai-gutter",
+  markers: (view) => view.state.field(aiField).marks,
 });
 
 const cmTheme = EditorView.theme({
@@ -47,6 +83,13 @@ const cmTheme = EditorView.theme({
   ".cm-activeLine": { backgroundColor: "rgba(37,99,235,0.05)" },
   ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--secondary)" },
   ".cm-ai-line": { backgroundColor: "rgba(37,99,235,0.10)", boxShadow: "inset 2px 0 0 var(--accent)" },
+  // Pencil gutter: a thin column that shows ✎ next to AI-edited lines.
+  ".cm-ai-gutter": { width: "16px" },
+  ".cm-ai-pencil": {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    width: "16px", color: "var(--accent)", fontSize: "11px", lineHeight: "1.6",
+    cursor: "default", opacity: "0.9",
+  },
   "&.cm-focused": { outline: "none" },
 });
 
@@ -364,7 +407,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
           onChange={onChange}
           onUpdate={onUpdate}
           editable={!streaming}
-          extensions={[latexLang, aiField, EditorView.lineWrapping]}
+          extensions={[latexLang, aiField, aiPencilGutter, EditorView.lineWrapping]}
           theme={cmTheme}
           basicSetup={{ lineNumbers: true, highlightActiveLine: true, highlightActiveLineGutter: true, foldGutter: false, bracketMatching: true }}
           height="100%"

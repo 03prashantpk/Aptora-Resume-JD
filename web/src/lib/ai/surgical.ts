@@ -13,6 +13,7 @@ import {
   extractRegions, patchLatex,
   type TextRegion, type AiRegionOutput,
 } from "./latexRegions";
+import { checkIntegrity } from "./integrity";
 
 // Re-export region types for existing importers of surgical.ts.
 export type { RegionKind, TextRegion } from "./latexRegions";
@@ -92,10 +93,52 @@ export async function surgicalTailor(
   intensity: Intensity = "balanced",
 ): Promise<SurgicalResult> {
   const regions = extractRegions(latex);
-  if (regions.length === 0) {
-    return { latex, changed: [], skipped: [] };
+  if (regions.length > 0) {
+    const aiOutput = await callSurgicalAI(regions, jd, intensity);
+    const patched = patchLatex(latex, regions, aiOutput);
+    // If the surgical pass actually changed something, we're done — typography is safe
+    // by construction (offset patch of text only).
+    if (patched.changed.length > 0) return patched;
   }
 
-  const aiOutput = await callSurgicalAI(regions, jd, intensity);
-  return patchLatex(latex, regions, aiOutput);
+  // Fallback: the extractor found nothing editable, or the model returned no edits. Do a
+  // whole-.tex tailor so JD tailoring still produces changes, but keep typography frozen
+  // via the CONTENT-strict integrity check — if the model touched fonts/margins/layout,
+  // we discard it and keep the original.
+  const whole = await wholeDocTailor(latex, jd, intensity);
+  if (whole && whole !== latex && checkIntegrity(latex, whole, "content").ok) {
+    return { latex: whole, changed: [], skipped: [] };
+  }
+  return { latex, changed: [], skipped: [] };
+}
+
+const WHOLE_TAILOR_SYSTEM = [
+  "You are a resume-tailoring assistant editing a full LaTeX resume against a job description.",
+  "Rewrite ONLY the textual CONTENT (summary sentences, bullet wording, the target title, skill lists) to align with the JD, truthfully — never invent employers, dates, degrees, or metrics.",
+  "Do NOT change any LaTeX commands, font sizes (\\Huge/\\large/etc.), margins, \\usepackage, custom macros, spacing, section formatting, or layout. Only the human-readable text between commands may change.",
+  "Keep special characters escaped (\\& \\% \\$ \\# \\_). Keep every environment and brace balanced.",
+  "Output ONLY the complete LaTeX document — no markdown fences, no commentary. Must start with \\documentclass and end with \\end{document}.",
+].join(" ");
+
+async function wholeDocTailor(latex: string, jd: string, intensity: Intensity): Promise<string> {
+  const note: Record<Intensity, string> = {
+    light: "Make minimal wording tweaks.",
+    balanced: "Refine the summary and emphasize relevant bullets/skills for the role.",
+    aggressive: "Substantially reframe summary and bullet phrasing for maximum relevance (still truthful).",
+  };
+  const user = [
+    "<RESUME>", latex, "</RESUME>", "",
+    "<JOB_DESCRIPTION>", jd, "</JOB_DESCRIPTION>", "",
+    note[intensity],
+    "Return the full tailored LaTeX now.",
+  ].join("\n");
+  const out = await chatWithFallback(
+    [{ role: "system", content: WHOLE_TAILOR_SYSTEM }, { role: "user", content: user }],
+    { temperature: 0.35, max_tokens: 8192 },
+  );
+  return out
+    .replace(/^```(?:latex|tex)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim()
+    .replace(/\\\\&/g, "\\&").replace(/\\\\%/g, "\\%").replace(/\\\\#/g, "\\#");
 }
