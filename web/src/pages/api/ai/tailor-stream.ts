@@ -9,6 +9,7 @@
 import type { APIRoute } from "astro";
 import { surgicalTailor } from "@/lib/ai/surgical";
 import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
+import { logRoute } from "@/lib/ai/log";
 
 export const prerender = false;
 
@@ -25,9 +26,11 @@ export const POST: APIRoute = async (ctx) => {
   if (latex.length > MAX_LATEX || jd.length > MAX_JD) return bad("Input is too large");
   const level = intensity === "light" || intensity === "aggressive" ? intensity : "balanced";
 
+  const rlog = logRoute("ai/tailor", { resume: `${latex.length}c`, jd: `${jd.length}c`, intensity: level });
   const ownerId = await getOwnerId(ctx);
   const usage = await getUsage(ownerId);
   if (!usage.allowed) {
+    rlog.done("402 free-limit");
     return new Response(JSON.stringify({ error: { code: "FREE_LIMIT", message: "You've used your free runs. Create an account for more." } }), {
       status: 402, headers: { "content-type": "application/json" },
     });
@@ -37,11 +40,13 @@ export const POST: APIRoute = async (ctx) => {
     const result = await surgicalTailor(latex, jd, level);
     // Only bump usage AFTER a successful AI call (fix: old code bumped before the call)
     await bumpUsage(ownerId, "ai_calls");
+    rlog.done(`200 ok (${result.changed.length} regions changed)`);
     return new Response(
       JSON.stringify({ latex: result.latex, changedCount: result.changed.length }),
       { status: 200, headers: { "content-type": "application/json" } },
     );
   } catch {
+    rlog.done("502 unavailable");
     // Never leak provider errors or keys.
     return new Response(
       JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "Tailoring is unavailable right now." } }),
