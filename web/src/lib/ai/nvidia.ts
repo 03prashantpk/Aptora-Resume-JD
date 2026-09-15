@@ -23,6 +23,43 @@ export const models = {
   vision: NV_TEXT_FAST_VISION_MODEL,
 };
 
+// ---- Server-side AI logging (terminal only) --------------------------------
+// Prints what the model is doing to the SERVER console: the request metadata, the
+// live "thinking" (reasoning) trace, and the output size/timing. It NEVER prints the
+// resume/JD prompt content or PII (rules 24/25) — only sizes, counts and the model's
+// own reasoning/answer. Toggle with AI_LOG=0 to silence; AI_LOG_VERBOSE=1 to also echo
+// the answer text. Reasoning traces are on by default because they're the "thinking".
+const AI_LOG = (env("AI_LOG") ?? "1") !== "0";
+const AI_LOG_VERBOSE = (env("AI_LOG_VERBOSE") ?? "0") === "1";
+let _aiSeq = 0;
+
+function aiLog(...args: unknown[]): void {
+  if (AI_LOG) console.log("[AI]", ...args);
+}
+
+/** Rough prompt size (chars) without ever logging the content itself. */
+function promptChars(messages: ChatMessage[]): number {
+  let n = 0;
+  for (const m of messages) {
+    if (typeof m.content === "string") n += m.content.length;
+    else for (const p of m.content) if (p.type === "text") n += p.text.length;
+  }
+  return n;
+}
+
+/** One-line request summary: id, model, message roles, size, limits, thinking flag. */
+function logRequest(kind: "chat" | "stream", messages: ChatMessage[], opts: ChatOptions): number {
+  const id = ++_aiSeq;
+  const model = opts.model ?? models.text;
+  const roles = messages.map((m) => m.role).join(">");
+  aiLog(
+    `#${id} ${kind} → model=${model} msgs=${messages.length} [${roles}] ` +
+    `prompt≈${promptChars(messages)}c max_tokens=${opts.max_tokens ?? 4096} ` +
+    `temp=${opts.temperature ?? 1} thinking=${opts.enableThinking ? "on" : "off"}`,
+  );
+  return id;
+}
+
 export type Role = "system" | "user" | "assistant";
 
 // Text or multimodal content (vision).
@@ -72,6 +109,8 @@ function buildPayload(messages: ChatMessage[], opts: ChatOptions, stream: boolea
 /** Non-streaming chat completion. Returns the assistant text. */
 export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Promise<string> {
   const key = assertKey();
+  const id = logRequest("chat", messages, opts);
+  const t0 = Date.now();
   const res = await fetch(`${NV_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json", accept: "application/json" },
@@ -79,12 +118,21 @@ export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Pro
     signal: opts.signal,
   });
   if (!res.ok) {
+    aiLog(`#${id} chat ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
     throw new Error(`NVIDIA chat failed: ${res.status}`);
   }
   const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
   };
-  return data.choices?.[0]?.message?.content ?? "";
+  const out = data.choices?.[0]?.message?.content ?? "";
+  const u = data.usage;
+  aiLog(
+    `#${id} chat ✓ ${Date.now() - t0}ms out≈${out.length}c` +
+    (u ? ` tokens(p=${u.prompt_tokens ?? "?"} c=${u.completion_tokens ?? "?"} t=${u.total_tokens ?? "?"})` : ""),
+  );
+  if (AI_LOG_VERBOSE && out) aiLog(`#${id} answer:\n${out}`);
+  return out;
 }
 
 export interface StreamChunk {
@@ -101,6 +149,8 @@ export async function* chatStream(
   opts: ChatOptions = {},
 ): AsyncGenerator<StreamChunk, void, unknown> {
   const key = assertKey();
+  const id = logRequest("stream", messages, opts);
+  const t0 = Date.now();
   const res = await fetch(`${NV_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "content-type": "application/json", accept: "text/event-stream" },
@@ -108,12 +158,26 @@ export async function* chatStream(
     signal: opts.signal,
   });
   if (!res.ok || !res.body) {
+    aiLog(`#${id} stream ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
     throw new Error(`NVIDIA stream failed: ${res.status}`);
   }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+
+  // Live logging state: accumulate reasoning ("thinking") + content, flushing whole
+  // lines to the terminal so you can watch the model work without per-token spam.
+  let thinkChars = 0, outChars = 0;
+  let thinkBuf = "", firstThink = true, firstContent = true;
+  const flushThink = (final = false) => {
+    let nl: number;
+    while ((nl = thinkBuf.indexOf("\n")) !== -1) {
+      const l = thinkBuf.slice(0, nl); thinkBuf = thinkBuf.slice(nl + 1);
+      if (l.trim()) aiLog(`#${id} 🧠 ${l.trim()}`);
+    }
+    if (final && thinkBuf.trim()) { aiLog(`#${id} 🧠 ${thinkBuf.trim()}`); thinkBuf = ""; }
+  };
 
   try {
     while (true) {
@@ -128,7 +192,7 @@ export async function* chatStream(
         buffer = buffer.slice(sep + 1);
         if (!line.startsWith("data:")) continue;
         const data = line.slice(5).trim();
-        if (data === "[DONE]") return;
+        if (data === "[DONE]") { flushThink(true); break; }
         try {
           const json = JSON.parse(data) as {
             choices?: { delta?: { content?: string | null; reasoning_content?: string | null } }[];
@@ -138,6 +202,20 @@ export async function* chatStream(
           const chunk: StreamChunk = {};
           if (delta.reasoning_content) chunk.reasoning = delta.reasoning_content;
           if (delta.content) chunk.content = delta.content;
+          if (chunk.reasoning) {
+            if (firstThink) { aiLog(`#${id} thinking…`); firstThink = false; }
+            thinkChars += chunk.reasoning.length;
+            thinkBuf += chunk.reasoning;
+            flushThink();
+          }
+          if (chunk.content) {
+            if (firstContent) {
+              flushThink(true);
+              aiLog(`#${id} writing answer… (first token ${Date.now() - t0}ms)`);
+              firstContent = false;
+            }
+            outChars += chunk.content.length;
+          }
           if (chunk.reasoning || chunk.content) yield chunk;
         } catch {
           /* skip malformed frame */
@@ -146,5 +224,7 @@ export async function* chatStream(
     }
   } finally {
     reader.releaseLock();
+    flushThink(true);
+    aiLog(`#${id} stream ✓ ${Date.now() - t0}ms thinking≈${thinkChars}c out≈${outChars}c`);
   }
 }

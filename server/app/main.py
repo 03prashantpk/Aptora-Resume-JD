@@ -24,6 +24,7 @@ production the Astro app receives the artifact server-to-server and owns durable
 storage/ownership; this dict is not application state we rely on."""
 from __future__ import annotations
 import gc
+import logging
 import os
 import tempfile
 from collections import OrderedDict
@@ -40,6 +41,18 @@ from .compiler.models import CompileInput, CompileResult, PageImageBytes
 from .compiler.tectonic import TectonicCompiler, tectonic_version, COMPILER_VERSION
 from .landing import landing_html
 from .default_resume import DEFAULT_RESUME_TEX
+
+# Surface our own "aptora.*" loggers (e.g. the remote/HF compile call + fallback lines)
+# in the uvicorn console at INFO. Attach to uvicorn's handler so formatting matches its
+# other lines; fall back to a basic handler if uvicorn's isn't present.
+_uvicorn_handlers = logging.getLogger("uvicorn").handlers
+_aptora_log = logging.getLogger("aptora")
+_aptora_log.setLevel(logging.INFO)
+if _uvicorn_handlers:
+    _aptora_log.handlers = _uvicorn_handlers
+    _aptora_log.propagate = False
+else:
+    logging.basicConfig(level=logging.INFO)
 
 
 class CompileTexInput(BaseModel):

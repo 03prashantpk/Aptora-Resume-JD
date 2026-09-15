@@ -24,7 +24,7 @@ import EditorPane from "./EditorPane";
 import PreviewPane from "./PreviewPane";
 import FilesView from "../pages/FilesView";
 import UsageView from "../pages/UsageView";
-import Toaster from "../ui/toast";
+import Toaster, { toast } from "../ui/toast";
 import type { View } from "./LeftRail";
 import type { CompileResult, TemplateId } from "@/lib/types";
 import type { Analysis } from "@/lib/ai/analyze";
@@ -234,14 +234,16 @@ export default function Workspace() {
     try {
       const res = await fetch(`/api/export/${documentId}`);
       if (res.status === 402) { setShowAccountPrompt(true); return; }
-      if (!res.ok) return;
+      if (!res.ok) { toast("Export failed. Please try again.", "error"); return; }
+      const emailed = res.headers.get("x-aptora-emailed") === "1";
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = "aptora-resume.pdf"; a.click();
       URL.revokeObjectURL(url);
       refreshUsage();
-    } catch { /* calm */ }
+      toast(emailed ? "Exported — we also emailed you the PDF." : "Resume exported.", "success");
+    } catch { toast("Export failed. Please try again.", "error"); }
   }, [documentId, exportsLeft, refreshUsage]);
 
   const [instructLoading, setInstructLoading] = useState(false);
