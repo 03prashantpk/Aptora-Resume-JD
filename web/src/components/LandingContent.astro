@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#FAFAF8" />
+  <title>Aptora — AI Resume Tailoring</title>
+  <meta name="description" content="Aptora is an AI-powered document workspace that understands your experience and a job description, finds the gaps, surfaces your strongest evidence, and helps you build a truthful, tailored application for each role." />
+  <link rel="icon" type="image/webp" href="/static/favicon.webp" />
+  <link rel="apple-touch-icon" href="/static/aptora_sq.webp" />
+  <meta property="og:image" content="/static/aptora_rec.webp" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["DM Sans", "ui-sans-serif", "system-ui"],
+            mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular"]
+          }
+        }
+      }
+    }
+  </script>
+  <script type="application/ld+json">{}</script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DZR8LZ9WP8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-DZR8LZ9WP8');
+  </script>
+  <style>
+    :root {
+      --bg: #fafaf8;
+      --surface: #ffffff;
+      --ink: #111111;
+      --muted: #696967;
+      --soft: #f3f3f0;
+      --line: #e5e5e1;
+      --blue: #2563eb;
+      --green: #16803c;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: #dbeafe; color: #111; }
+    .grid-bg {
+      background-image:
+        linear-gradient(to right, rgba(17,17,17,.045) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(17,17,17,.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, black 0%, rgba(0,0,0,.65) 48%, transparent 100%);
+    }
+    .hero-glow { background: radial-gradient(circle at 50% 38%, rgba(37,99,235,.08), transparent 35%); }
+    .paper { box-shadow: 0 24px 70px rgba(0,0,0,.11), 0 2px 8px rgba(0,0,0,.07); }
+    .hairline { border-color: var(--line); }
+    .lift { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    .lift:hover { transform: translateY(-3px); box-shadow: 0 18px 45px rgba(0,0,0,.07); border-color: #d4d4d0; }
+    .reveal { opacity: 0; transform: translateY(14px); transition: opacity .55s ease, transform .55s ease; }
+    .reveal.show { opacity: 1; transform: translateY(0); }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+    .btn-saas-primary { background: #111111; color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.12); transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1); }
+    .btn-saas-primary:hover { background: #222222; box-shadow: 0 4px 12px rgba(0,0,0,0.18); transform: translateY(-1px); }
+    .btn-saas-primary:active { transform: translateY(0) scale(0.98); }
+    .btn-saas-secondary { background: #ffffff; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1); }
+    .btn-saas-secondary:hover { background: #fafaf9; border-color: #cbd5e1; transform: translateY(-1px); }
+    .btn-saas-secondary:active { transform: translateY(0) scale(0.98); }
+    #mainHeader { transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .nav-scrolled { background: rgba(250, 250, 248, 0.88) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(229, 229, 225, 0.8) !important; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 4px 12px -2px rgba(0, 0, 0, 0.03) !important; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <header id="mainHeader" class="sticky top-[1%] z-50 mx-auto max-w-7xl px-3 sm:px-5 lg:px-8 transition-all duration-300">
+    <div id="navInner" class="flex h-16 w-full items-center justify-between px-5 lg:px-8 rounded-2xl transition-all duration-300 bg-transparent border border-transparent">
+      <a href="#" class="flex items-center gap-2.5 font-semibold tracking-[-.02em]">
+        <img src="/static/aptora_sq.webp" alt="Aptora" class="h-8 w-8 rounded-lg object-contain" />
+        <span>Aptora</span>
+      </a>
+      <nav class="hidden items-center gap-7 text-sm text-[#666] md:flex">
+        <a href="#ai" class="transition hover:text-[#111]">AI</a>
+        <a href="#workflow" class="transition hover:text-[#111]">How it works</a>
+        <a href="#workspace" class="transition hover:text[#111]">Workspace</a>
+        <a href="#templates" class="transition hover:text[#111]">Templates</a>
+        <a href="#testimonials" class="transition hover:text[#111]">Reviews</a>
+        <a href="#faq" class="transition hover:text[#111]">FAQ</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <a href="/" class="hidden text-sm font-medium text-[#555] sm:block">Sign in</a>
+        <a href="/" class="rounded-xl btn-saas-primary px-4 py-2.5 text-sm font-semibold">Start tailoring</a>
+        <button id="menuBtn" class="rounded-lg border hairline p-2 md:hidden" aria-label="Open menu" aria-expanded="false">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="mobileMenu" class="hidden mt-2 rounded-2xl border hairline bg-[#FAFAF8]/95 backdrop-blur-md px-5 py-4 shadow-lg md:hidden">
+      <div class="flex flex-col gap-4 text-sm text-[#555]">
+        <a href="#ai">AI</a>
+        <a href="#workflow">How it works</a>
+        <a href="#workspace">Workspace</a>
+        <a href="#templates">Templates</a>
+        <a href="#testimonials">Reviews</a>
+        <a href="#faq">FAQ</a>
+      </div>
+    </div>
+  </header>
+  <!-- HERO -->
+  <main>
+    <section class="relative overflow-hidden">
+      <div class="grid-bg pointer-events-none absolute inset-0"></div>
+      <div class="hero-glow pointer-events-none absolute inset-0"></div>
+      <div class="relative mx-auto max-w-7xl px-5 pb-16 pt-20 sm:pt-28 lg:px-8 lg:pb-24 lg:pt-32">
+        <div class="mx-auto max-w-4xl text-center">
+          <div class="reveal inline-flex items-center gap-2 rounded-full border hairline bg-white px-3.5 py-2 text-xs font-medium text-[#555] shadow-sm">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
+            AI-powered resume tailoring
+          </div>
+          <h1 class="reveal mt-7 text-5xl font-semibold leading-[1.02] tracking-[-.055em] sm:text-6xl lg:text-[76px]">
+            Make your resume<br />
+            <span class="text-[#666]">fit the job.</span>
+          </h1>
+          <p class="reveal mx-auto mt-7 max-w-2xl text-base leading-7 text-[#666] sm:text-lg">
+            Upload the resume you already have. Add the job description.
+            AI understands both, finds what matters, and tailors your real experience for the role — without making things up.
+          </p>
+          <div class="reveal mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a href="/" class="inline-flex w-full items-center justify-center gap-2 rounded-xl btn-saas-primary px-5 py-3.5 text-sm font-semibold sm:w-auto">
+              Tailor my resume
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#workflow" class="inline-flex w-full items-center justify-center rounded-xl btn-saas-secondary px-5 py-3.5 text-sm font-semibold text-[#333] sm:w-auto">
+              See how it works
+            </a>
+          </div>
+          <p class="mt-4 text-xs text-[#8a8a86]">Start with your existing resume. No blank page required.</p>
+        </div>
+        <!-- PRODUCT PREVIEW -->
+        <div class="reveal relative mx-auto mt-16 max-w-6xl lg:mt-20">
+          <div class="overflow-hidden rounded-2xl border border-[#dcdcd7] bg-white paper">
+            <div class="flex h-11 items-center justify-between border-b hairline bg-[#fbfbf9] px-4">
+              <div class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-[#ddd]"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-[#ddd]"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-[#ddd]"></span>
+              </div>
+              <div class="mono text-[10px] text-[#888]">APTORA / WORKSPACE</div>
+              <div class="flex items-center gap-2 text-[10px] text-[#777]"><span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>Ready</div>
+            </div>
+            <div class="grid min-h-[520px] lg:grid-cols-[190px_1fr_250px]">
+              <aside class="hidden border-r hairline bg-[#fafaf8] p-4 lg:block">
+                <p class="mono text-[9px] uppercase tracking-[.16em] text-[#999]">Workspace</p>
+                <div class="mt-4 space-y-1 text-xs">
+                  <div class="rounded-lg bg-white px-3 py-2 font-medium text-[#222] shadow-sm">Resume</div>
+                  <div class="px-3 py-2 text-[#777]">Job description</div>
+                  <div class="px-3 py-2 text-[#777]">AI analysis</div>
+                  <div class="px-3 py-2 text-[#777]">Tailored version</div>
+                </div>
+                <div class="mt-8 border-t hairline pt-5">
+                  <p class="mono text-[9px] uppercase tracking-[.16em] text-[#999]">Document</p>
+                  <div class="mt-3 rounded-lg border hairline bg-white p-3">
+                    <div class="h-1.5 w-16 rounded bg-[#222]"></div>
+                    <div class="mt-2 h-1 w-24 rounded bg-[#ddd]"></div>
+                    <div class="mt-1 h-1 w-20 rounded bg-[#ddd]"></div>
+                  </div>
+                </div>
+              </aside>
+              <div class="relative bg-[#e9e9e6] p-5 sm:p-8">
+                <div class="mb-4 flex items-center justify-between lg:hidden">
+                  <span class="text-xs font-medium text-[#555]">Tailored preview</span>
+                  <span class="rounded-full bg-white px-2.5 py-1 text-[10px] text-[#777]">1 page</span>
+                </div>
+                <div class="paper mx-auto max-w-[560px] bg-white px-7 py-8 text-[#222] sm:px-10 sm:py-9">
+                  <div class="flex items-start justify-between gap-6 border-b border-[#222] pb-4">
+                    <div>
+                      <div class="text-xl font-bold tracking-[-.03em]">Alex Morgan</div>
+                      <div class="mt-1 text-[9px] font-medium text-[#444]">Product Engineer · Software Development</div>
+                    </div>
+                    <div class="text-right text-[7.5px] leading-[1.5] text-[#666]">
+                      alex.morgan@example.test<br />
+                      +1 (415) 555‑0142 · San Francisco, CA<br />
+                      linkedin.com/in/alexmorgan · github.com/alexm
+                    </div>
+                  </div>
+                  <div class="mt-5 grid gap-[14px] text-[8px] leading-[1.55]">
+                    <div>
+                      <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Summary</div>
+                      <p class="text-[#555]">Product engineer with 5+ years building reliable web products with React, TypeScript and cloud infrastructure. Focused on turning complex workflows into simple user experiences that ship and scale.</p>
+                    </div>
+                    <div>
+                      <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Experience</div>
+                      <div class="flex items-baseline justify-between">
+                        <div class="font-semibold">Senior Product Engineer · Example Labs</div>
+                        <div class="text-[7.5px] text-[#888]">2022 — Present</div>
+                      </div>
+                      <div class="text-[7.5px] italic text-[#888]">San Francisco, CA</div>
+                      <ul class="mt-1.5 ml-3 list-disc space-y-1 text-[#555] marker:text-[#bbb]">
+                        <li>Led the redesign of a customer workflow used by 40k+ users, lifting task completion 28%.</li>
+                        <li>Cut page load time from 3.1s to 0.9s by reworking the data layer and caching strategy.</li>
+                        <li>Mentored 3 engineers and set the team's React + TypeScript review standards.</li>
+                      </ul>
+                      <div class="mt-2.5 flex items-baseline justify-between">
+                        <div class="font-semibold">Software Engineer · Northwind Systems</div>
+                        <div class="text-[7.5px] text-[#888]">2019 — 2022</div>
+                      </div>
+                      <ul class="mt-1.5 ml-3 list-disc space-y-1 text-[#555] marker:text-[#bbb]">
+                        <li>Shipped billing and onboarding features across a React/Node stack serving 12k accounts.</li>
+                        <li>Built CI checks that reduced production regressions by roughly 35%.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Selected Projects</div>
+                      <div class="flex items-baseline justify-between">
+                        <div class="font-semibold">Workflow Platform</div>
+                        <div class="text-[7.5px] text-[#888]">React · Node.js · PostgreSQL</div>
+                      </div>
+                      <p class="mt-1 text-[#555]">Designed a structured pipeline that transforms complex input into clear, actionable output — adopted by two internal teams.</p>
+                      <div class="grid grid-cols-2 gap-5 border-t hairline pt-3">
+                        <div>
+                          <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Skills</div>
+                          <p class="text-[#555]">React · TypeScript · Node.js · PostgreSQL · AWS · Docker · GraphQL</p>
+                        </div>
+                        <div>
+                          <div class="mb-1.5 text-[8px] font-bold uppercase tracking-[.12em]">Education</div>
+                          <p class="text-[#555]">B.Tech, Computer Science<br /><span class="text-[7.5px] text-[#888]">State University · 2019</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <aside class="border-l hairline bg-white p-5">
+                <div class="flex items-center gap-2">
+                  <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-[#111] text-white">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 12h18"/><path d="m5 5 14 14M19 5 5 19"/></svg>
+                  </span>
+                  <div>
+                    <div class="text-xs font-semibold">AI insights</div>
+                    <div class="text-[10px] text-[#888]">Based on this role</div>
+                  </div>
+                </div>
+                <div class="mt-5 rounded-xl border hairline bg-[#fafaf8] p-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-medium">Role alignment</span>
+                    <span class="text-xs font-semibold">Strong</span>
+                  </div>
+                  <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e7e7e3]"><div class="h-full w-[82%] rounded-full bg-[#16803C]"></div></div>
+                </div>
+                <div class="mt-3 space-y-2">
+                  <div class="rounded-xl border hairline p-3">
+                    <div class="text-[10px] font-semibold">Matched evidence</div>
+                    <div class="mt-1 text-[10px] leading-4 text-[#777]">React, cloud infrastructure, product delivery</div>
+                  </div>
+                  <div class="rounded-xl border border-[#dbeafe] bg-[#f8fbff] p-3">
+                    <div class="text-[10px] font-semibold text-[#1d4ed8]">Opportunity</div>
+                    <div class="mt-1 text-[10px] leading-4 text-[#5d6b80]">Bring your workflow ownership closer to the top.</div>
+                  </div>
+                  <div class="rounded-xl border hairline p-3">
+                    <div class="text-[10px] font-semibold">AI suggestion</div>
+                    <div class="mt-1 text-[10px] leading-4 text-[#777]">Emphasize the project delivery evidence already present.</div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+        <div class="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-[#888]">
+          <span>Upload once</span><span>·</span><span>AI understands context</span><span>·</span><span>Preview the result</span><span>·</span><span>Export when ready</span>
+        </div>
+      </div>
+    </section>
+    <!-- SOCIAL PROOF BAND -->
+    <section class="border-t hairline bg-[#F7F7F5]">
+      <div class="mx-auto max-w-6xl px-5 py-14 lg:px-8 lg:py-16">
+        <div class="reveal flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+          <div class="flex -space-x-2.5">
+            <img src="/static/avatar_placeholder.webp" alt="Aditya M." loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="/static/avatar_placeholder.webp" alt="Sara R." loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="/static/avatar_placeholder.webp" alt="Jordan D." loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="/static/avatar_placeholder.webp" alt="Meera K." loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <img src="/static/avatar_placeholder.webp" alt="Priya N." loading="lazy" class="h-9 w-9 rounded-full border-2 border-[#F7F7F5] bg-white object-cover" />
+            <span class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#F7F7F5] bg-[#111] text-[9px] font-semibold text-white">+2k</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-0.5 text-[#f5a623]"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+            <span class="text-sm text-[#666]"><span class="font-semibold text-[#111]">4.9/5</span> from job seekers who tailored with Aptora</span>
+          </div>
+        </div>
+        <div class="reveal mx-auto mt-9 grid max-w-3xl grid-cols-1 gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] text-center sm:grid-cols-3">
+          <div class="bg-white px-4 py-7"><div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">2 min</div><div class="mt-1 text-xs text-[#777]">From upload to tailored draft</div></div>
+          <div class="bg-white px-4 py-7"><div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">0</div><div class="mt-1 text-xs text-[#777]">Invented facts, ever</div></div>
+          <div class="bg-white px-4 py-7"><div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">1 PDF</div><div class="mt-1 text-xs text-[#777]">Preview equals download</div></div>
+        </div>
+      </div>
+    </section>
+    <!-- AI -->
+    <section id="ai" class="border-t hairline bg-white">
+      <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+        <div class="grid gap-14 lg:grid-cols-[.85fr_1.15fr] lg:items-start">
+          <div class="reveal">
+            <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">The AI layer</div>
+            <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">AI does more than<br />write bullet points.</h2>
+            <p class="mt-6 max-w-xl text-base leading-7 text-[#666]">
+              The useful part is understanding the relationship between your experience and the role. Aptora turns both into structured context before it starts suggesting changes.
+            </p>
+            <div class="mt-8 rounded-2xl border hairline bg-[#FAFAF8] p-5">
+              <div class="text-sm font-semibold">Grounded by your source</div>
+              <p class="mt-1.5 text-xs leading-5 text-[#777]">AI can improve wording and relevance. It should not manufacture experience, companies, dates, skills, metrics or achievements.</p>
+            </div>
+          </div>
+          <div class="reveal grid gap-3 sm:grid-cols-2">
+            <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">01</div><h3 class="mt-8 text-lg font-semibold">Understand</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Extracts your experience, projects, skills, education and achievements from the resume you already have.</p></article>
+            <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">02</div><h3 class="mt-8 text-lg font-semibold">Read the role</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Breaks a job description into responsibilities, skills, technologies, qualifications and important language.</p></article>
+            <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">03</div><h3 class="mt-8 text-lg font-semibold">Find the gaps</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Shows what already matches, what is weak, what is missing and where existing evidence can be made clearer.</p></article>
+            <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">04</div><h3 class="mt-8 text-lg font-semibold">Tailor the content</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Rewrites, shortens, reorders and emphasizes relevant evidence without changing the truth of your experience.</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- WORKFLOW -->
+    <section id="workflow" class="border-t hairline bg-[#F7F7F5]">
+      <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+        <div class="reveal max-w-2xl">
+          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">One focused workflow</div>
+          <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">From old resume to role-ready.</h2>
+          <p class="mt-5 text-base leading-7 text-[#666]">No starting from a blank template. Bring the document you already know and let the workspace guide the transformation.</p>
+        </div>
+        <div class="mt-14 grid gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] md:grid-cols-4">
+          <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">01</div><div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div><h3 class="mt-5 font-semibold">Upload resume</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">Start with a PDF. Aptora extracts and structures what is already there.</p></div>
+          <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">02</div><div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16M4 12h11M4 19h16"/><circle cx="19" cy="12" r="2"/></svg></div><h3 class="mt-5 font-semibold">Add the JD</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">Paste or upload the job description you are applying to.</p></div>
+          <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">03</div><div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg></div><h3 class="mt-5 font-semibold">Review AI analysis</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">See matches, gaps, opportunities and the evidence worth bringing forward.</p></div>
+          <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">04</div><div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div><h3 class="mt-5 font-semibold">Tailor & export</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">Choose your trusted document style, review the result and export the finished resume.</p></div>
+        </div>
+      </div>
+    </section>
+    <!-- WORKSPACE -->
+    <section id="workspace" class="border-t hairline bg-white">
+      <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+        <div class="reveal text-center">
+          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">The workspace</div>
+          <h2 class="mx-auto mt-4 max-w-3xl text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Everything you need to make one strong application.</h2>
+          <p class="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#666]">
+            Keep the source resume, role context, AI reasoning and tailored document together instead of bouncing between disconnected tools.
+          </p>
+        </div>
+        <div class="mt-14 grid gap-4 lg:grid-cols-3">
+          <article class="lift rounded-2xl border hairline p-7">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F3F0]"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h10M4 18h16"/></svg></div>
+            <h3 class="mt-6 text-lg font-semibold">Structured resume</h3>
+            <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Your resume becomes structured information that can be understood, compared and tailored rather than repeatedly copied between prompts.</p>
+          </article>
+          <article class="lift rounded-2xl border hairline p-7">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F3F0]"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="6"/><path d="m16 16 5 5"/></svg></div>
+            <h3 class="mt-6 text-lg font-semibold">Role-aware insights</h3>
+            <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Understand where your current resume aligns with the role and where better evidence or wording could help.</p>
+          </article>
+          <article class="lift rounded-2xl border hairline p-7">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F3F0]"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></div>
+            <h3 class="mt-6 text-lg font-semibold">Live document preview</h3>
+            <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Review the actual document as you work, so you can judge content and presentation together.</p>
+          </article>
+          <div class="mt-4 grid gap-4 lg:grid-cols-[1.3fr_.7fr]">
+            <div class="rounded-2xl border hairline bg-[#FAFAF8] p-7">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-semibold">Built for iteration</p>
+                  <p class="mt-1 text-xs text-[#777]">Change the content. Review the result. Keep the version you want.</p>
+                </div>
+                <span class="mono rounded-lg border hairline bg-white px-2.5 py-1.5 text-[9px] text-[#777]">REVISION 04</span>
+              </div>
+              <div class="mt-7 space-y-3">
+                <div class="flex items-center gap-3 rounded-xl border hairline bg-white p-3">
+                  <img src="/static/aptora_sq.webp" alt="Aptora" class="h-7 w-7 rounded-lg object-contain" />
+                  <div class="min-w-0 flex-1"><div class="text-xs font-medium">Original resume</div><div class="text-[10px] text-[#888]">Source of truth</div></div>
+                  <span class="text-[10px] text-[#888]">Imported</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border border-[#dbeafe] bg-white p-3">
+                  <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-[#eff6ff] text-xs font-semibold text-[#2563eb]">AI</span>
+                  <div class="min-w-0 flex-1"><div class="text-xs font-medium">Tailored content</div><div class="text-[10px] text-[#888]">Role-aware revision</div></div>
+                  <span class="text-[10px] font-medium text-[#2563eb]">Updated</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border hairline bg-white p-3">
+                  <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f1f1ee] text-xs font-semibold">PDF</span>
+                  <div class="min-w-0 flex-1"><div class="text-xs font-medium">Final document</div><div class="text-[10px] text-[#888]">Ready to review</div></div>
+                  <span class="text-[10px] text-[#16803c]">Ready</span>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-2xl border hairline bg-[#111] p-7 text-white">
+              <div class="mono text-[9px] uppercase tracking-[.18em] text-[#999]">Principle</div>
+              <h3 class="mt-6 text-2xl font-semibold tracking-[-.03em]">Better relevance.<br />Not more fiction.</h3>
+              <p class="mt-4 text-sm leading-6 text-[#aaa]">Your resume should become clearer and more targeted — not become a story about a career you never had.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- TEMPLATES -->
+    <section id="templates" class="border-t hairline bg-[#F7F7F5]">
+      <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+        <div class="reveal flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">Templates</div>
+            <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Designed documents. Not AI-generated layouts.</h2>
+            <p class="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#666]">Start with a trusted document style and let AI focus on the content. Six typographic templates — Modern, Classic, Compact, Overleaf, Elegant and Minimal.</p>
+          </div>
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
+            {[
+              "Modern",
+              "Classic",
+              "Compact",
+              "Overleaf",
+              "Elegant",
+              "Minimal"
+            ].map((t) => (
+              <span class="rounded-full border hairline bg-[#FAFAF8] px-4 py-2 text-sm font-medium text-[#333]">{t}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- FINAL CTA -->
+    <section class="border-t hairline bg-[#111] text-white">
+      <div class="mx-auto max-w-5xl px-5 py-24 text-center lg:py-32">
+        <div class="reveal">
+          <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">Ready when you are</div>
+          <h2 class="mt-5 text-4xl font-semibold tracking-[-.05em] sm:text-6xl">Your next application<br />deserves a better fit.</h2>
+          <p class="mx-auto mt-6 max-w-xl text-base leading-7 text-[#aaa]">Bring your resume. Bring the role. Let AI help you make the strongest version of what is already true.</p>
+          <a href="/" class="mt-9 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-[#111] transition hover:bg-[#ededeb]">
+            Start tailoring
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const menuBtn = document.getElementById("menuBtn");
+      const mobileMenu = document.getElementById("mobileMenu");
+      menuBtn?.addEventListener("click", () => {
+        const open = mobileMenu.classList.toggle("hidden") === false;
+        menuBtn.setAttribute("aria-expanded", String(open));
+      });
+      mobileMenu?.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => {
+          mobileMenu.classList.add("hidden");
+          menuBtn?.setAttribute("aria-expanded", "false");
+        });
+      });
+      const mainHeader = document.getElementById("mainHeader");
+      const navInner = document.getElementById("navInner");
+      const handleNavScroll = () => {
+        if (window.scrollY > 16) {
+          navInner?.classList.add("nav-scrolled");
+          mainHeader?.classList.remove("max-w-7xl");
+          mainHeader?.classList.add("max-w-6xl");
+        } else {
+          navInner?.classList.remove("nav-scrolled");
+          mainHeader?.classList.remove("max-w-6xl");
+          mainHeader?.classList.add("max-w-7xl");
+        }
+      };
+      window.addEventListener("scroll", handleNavScroll, { passive: true });
+      handleNavScroll();
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("show");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.08 });
+      document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+    })();
+  </script>
+</body>
+</html>
