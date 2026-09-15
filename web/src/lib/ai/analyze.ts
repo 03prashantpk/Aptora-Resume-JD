@@ -1,6 +1,6 @@
 // Server-only: analyze Resume vs JD -> structured JSON (match %, gaps with preparation time,
 // suggested roles with prep times, matched/missing keywords, opportunities). Real AI (NVIDIA).
-import { chat, models, type ChatMessage } from "./nvidia";
+import { chatWithFallback, type ChatMessage } from "./nvidia";
 
 export interface GapItem {
   skill: string;
@@ -97,6 +97,6 @@ export async function analyzeResume(latex: string, jd: string): Promise<Analysis
     "Return the structured analysis JSON now.",
   ].join("\n");
   const messages: ChatMessage[] = [{ role: "system", content: SYSTEM }, { role: "user", content: user }];
-  const out = await chat(messages, { model: models.textAlt, temperature: 0.25, max_tokens: 2400 });
+  const out = await chatWithFallback(messages, { temperature: 0.25, max_tokens: 2400 });
   return extractJson(out);
 }
