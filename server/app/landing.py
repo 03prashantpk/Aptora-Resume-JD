@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-_APP_URL = "https://aptora-resume.vercel.app/"
+_APP_URL = "https://aptora.enally.in/"
 _SITE_NAME = "Aptora"
 _TAGLINE = "Make your experience count."
 _DESCRIPTION = (
@@ -237,6 +237,14 @@ def landing_html() -> str:
     }}
   </script>
   <script type="application/ld+json">{_JSONLD}</script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DZR8LZ9WP8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){{dataLayer.push(arguments);}}
+    gtag('js', new Date());
+    gtag('config', 'G-DZR8LZ9WP8');
+  </script>
   <style>
     :root {{
       --bg: #fafaf8;

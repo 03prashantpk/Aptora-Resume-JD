@@ -1,11 +1,70 @@
 ---
 import Legal from "@/layouts/Legal.astro";
 ---
-<Legal title="Contact Aptora & Enally">
+<Legal title="Contact" description="Get help with Aptora, or reach the team for partnerships and enterprise inquiries." path="/contact">
   <h1>Contact Us</h1>
   <p class="lg-updated">We're here to help you get the most out of your career applications.</p>
 
   <p>Whether you're an engineer tailoring for high-tier tech roles, a team looking for enterprise batch processing, or someone who encountered an issue, our product team is available.</p>
+
+  <form id="contactForm" class="ct-form" novalidate>
+    <div class="ct-row">
+      <label class="ct-field">
+        <span>Name</span>
+        <input type="text" name="name" placeholder="Your name" autocomplete="name" />
+      </label>
+      <label class="ct-field">
+        <span>Email</span>
+        <input type="email" name="email" required placeholder="you@example.com" autocomplete="email" />
+      </label>
+    </div>
+    <label class="ct-field">
+      <span>Message</span>
+      <textarea name="message" required rows="5" placeholder="How can we help?"></textarea>
+    </label>
+    <div class="ct-actions">
+      <button type="submit" class="ct-submit">Send message</button>
+      <span id="contactStatus" class="ct-status" aria-live="polite"></span>
+    </div>
+  </form>
+
+  <style>
+    .ct-form { margin: 8px 0 28px; display: flex; flex-direction: column; gap: 14px; padding: 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+    .ct-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 560px) { .ct-row { grid-template-columns: 1fr; } }
+    .ct-field { display: flex; flex-direction: column; gap: 6px; }
+    .ct-field span { font-size: 12.5px; font-weight: 600; color: #333; }
+    .ct-field input, .ct-field textarea { width: 100%; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fafaf9; color: #111; resize: vertical; }
+    .ct-field input:focus, .ct-field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); background: #fff; }
+    .ct-actions { display: flex; align-items: center; gap: 14px; }
+    .ct-submit { font: inherit; font-size: 13.5px; font-weight: 600; padding: 11px 20px; border: none; border-radius: 10px; background: #111; color: #fff; cursor: pointer; transition: background 140ms ease, transform 140ms ease; }
+    .ct-submit:hover:not(:disabled) { background: #222; transform: translateY(-1px); }
+    .ct-submit:disabled { opacity: 0.55; cursor: default; }
+    .ct-status { font-size: 13px; }
+    .ct-status.ok { color: var(--accent); } .ct-status.err { color: #c24141; }
+  </style>
+
+  <script is:inline>
+    (() => {
+      const form = document.getElementById("contactForm");
+      const status = document.getElementById("contactStatus");
+      const btn = form?.querySelector(".ct-submit");
+      form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        status.textContent = "Sending…"; status.className = "ct-status";
+        btn.disabled = true;
+        try {
+          const r = await fetch("/api/contact", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+          const body = await r.json().catch(() => ({}));
+          if (r.ok) { status.textContent = "Thanks! We'll be in touch."; status.className = "ct-status ok"; form.reset(); }
+          else { status.textContent = (body && body.error && body.error.message) || "Something went wrong."; status.className = "ct-status err"; }
+        } catch {
+          status.textContent = "Network error. Please try again."; status.className = "ct-status err";
+        } finally { btn.disabled = false; }
+      });
+    })();
+  </script>
 
   <h2>Direct Email</h2>
   <p>General inquiries &amp; support: <a href="mailto:support@enally.in" style="color:var(--accent); font-weight:600;">support@enally.in</a><br />

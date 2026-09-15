@@ -27,11 +27,13 @@ export const POST: APIRoute = async (ctx) => {
     return json({ error: { code: "BAD_REQUEST", message: "templateId is required" } }, 400);
   }
 
-  // --- Future login gate (activate when auth lands) ---
-  // const ownerId = await getOwnerId(ctx);
-  // if (!ownerId.startsWith("user:")) return json({ error: { code: "LOGIN_REQUIRED", message: "Sign in to upvote." } }, 401);
-
+  // Login gate: only a real, logged-in user (owner_id === user:<id>) can upvote. This,
+  // combined with the (template_id, owner_id) primary key, guarantees one vote per user.
   const ownerId = await getOwnerId(ctx);
+  if (!ownerId.startsWith("user:")) {
+    return json({ error: { code: "LOGIN_REQUIRED", message: "Sign in to upvote a template." } }, 401);
+  }
+
   const result = await addVote(ownerId, templateId);
   if (!result.ok) {
     return json({ error: { code: "UNKNOWN_TEMPLATE", message: "unknown template" } }, 400);

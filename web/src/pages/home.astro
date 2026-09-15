@@ -1,0 +1,125 @@
+---
+import Marketing from "@/layouts/Marketing.astro";
+---
+<Marketing
+  title="Aptora — Make your resume fit the job"
+  description="Upload the resume you already have and a job description. Aptora's AI tailors your real experience for the role and compiles a real, professional PDF."
+  path="/home"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="grid-bg pointer-events-none absolute inset-0"></div>
+    <div class="hero-glow pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-7xl px-5 pb-16 pt-20 sm:pt-28 lg:px-8 lg:pb-24 lg:pt-32">
+      <div class="mx-auto max-w-4xl text-center">
+        <div class="reveal inline-flex items-center gap-2 rounded-full border hairline bg-white px-3.5 py-2 text-xs font-medium text-[#555] shadow-sm">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
+          AI-powered resume tailoring
+        </div>
+        <h1 class="reveal mt-7 text-5xl font-semibold leading-[1.02] tracking-[-.055em] sm:text-6xl lg:text-[76px]">
+          Make your resume<br />
+          <span class="text-[#666]">fit the job.</span>
+        </h1>
+        <p class="reveal mx-auto mt-7 max-w-2xl text-base leading-7 text-[#666] sm:text-lg">
+          Upload the resume you already have. Add the job description. AI understands both, finds
+          what matters, and tailors your real experience for the role — without making things up.
+        </p>
+        <div class="reveal mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a href="/" class="inline-flex w-full items-center justify-center gap-2 rounded-xl btn-saas-primary px-5 py-3.5 text-sm font-semibold sm:w-auto">
+            Tailor my resume
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#workflow" class="inline-flex w-full items-center justify-center rounded-xl btn-saas-secondary px-5 py-3.5 text-sm font-semibold text-[#333] sm:w-auto">
+            See how it works
+          </a>
+        </div>
+        <p class="mt-4 text-xs text-[#8a8a86]">Start with your existing resume. No blank page required.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOCIAL PROOF -->
+  <section class="border-t hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-6xl px-5 py-14 lg:px-8 lg:py-16">
+      <div class="reveal mx-auto mt-0 grid max-w-3xl grid-cols-1 gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] text-center sm:grid-cols-3">
+        <div class="bg-white px-4 py-7"><div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">2 min</div><div class="mt-1 text-xs text-[#777]">From upload to tailored draft</div></div>
+        <div class="bg-white px-4 py-7"><div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">0</div><div class="mt-1 text-xs text-[#777]">Invented facts, ever</div></div>
+        <div class="bg-white px-4 py-7"><div class="text-2xl font-semibold tracking-[-.03em] sm:text-3xl">1 PDF</div><div class="mt-1 text-xs text-[#777]">Preview equals download</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI -->
+  <section id="ai" class="border-t hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+      <div class="grid gap-14 lg:grid-cols-[.85fr_1.15fr] lg:items-start">
+        <div class="reveal">
+          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">The AI layer</div>
+          <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">AI does more than<br />write bullet points.</h2>
+          <p class="mt-6 max-w-xl text-base leading-7 text-[#666]">
+            The useful part is understanding the relationship between your experience and the role.
+            Aptora turns both into structured context before it starts suggesting changes.
+          </p>
+          <div class="mt-8 rounded-2xl border hairline bg-[#FAFAF8] p-5">
+            <div class="text-sm font-semibold">Grounded by your source</div>
+            <p class="mt-1.5 text-xs leading-5 text-[#777]">AI can improve wording and relevance. It should not manufacture experience, companies, dates, skills, metrics or achievements.</p>
+          </div>
+        </div>
+        <div class="reveal grid gap-3 sm:grid-cols-2">
+          <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">01</div><h3 class="mt-8 text-lg font-semibold">Understand</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Extracts your experience, projects, skills, education and achievements from the resume you already have.</p></article>
+          <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">02</div><h3 class="mt-8 text-lg font-semibold">Read the role</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Breaks a job description into responsibilities, skills, technologies, qualifications and important language.</p></article>
+          <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">03</div><h3 class="mt-8 text-lg font-semibold">Find the gaps</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Shows what already matches, what is weak, what is missing and where existing evidence can be made clearer.</p></article>
+          <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6"><div class="mono text-xs text-[#999]">04</div><h3 class="mt-8 text-lg font-semibold">Tailor the content</h3><p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Rewrites, shortens, reorders and emphasizes relevant evidence without changing the truth of your experience.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKFLOW -->
+  <section id="workflow" class="border-t hairline bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+      <div class="reveal max-w-2xl">
+        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">One focused workflow</div>
+        <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">From old resume to role-ready.</h2>
+        <p class="mt-5 text-base leading-7 text-[#666]">No starting from a blank template. Bring the document you already know and let the workspace guide the transformation.</p>
+      </div>
+      <div class="mt-14 grid gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] md:grid-cols-4">
+        <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">01</div><h3 class="mt-8 font-semibold">Upload resume</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">Start with a PDF. Aptora extracts and structures what is already there.</p></div>
+        <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">02</div><h3 class="mt-8 font-semibold">Add the JD</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">Paste or upload the job description you are applying to.</p></div>
+        <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">03</div><h3 class="mt-8 font-semibold">Review AI analysis</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">See matches, gaps, opportunities and the evidence worth bringing forward.</p></div>
+        <div class="bg-white p-6 sm:p-7"><div class="mono text-xs text-[#999]">04</div><h3 class="mt-8 font-semibold">Tailor & export</h3><p class="mt-2 text-sm leading-6 text-[#70706d]">Choose a trusted document style, review the result and export the finished resume.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEMPLATES -->
+  <section id="templates" class="border-t hairline bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+      <div class="reveal text-center">
+        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">Templates</div>
+        <h2 class="mx-auto mt-4 max-w-3xl text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Designed documents. Not AI-generated layouts.</h2>
+        <p class="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#666]">Start with a trusted document style and let AI focus on the content. Six typographic templates — Modern, Classic, Compact, Overleaf, Elegant and Minimal.</p>
+      </div>
+      <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
+        {["Modern","Classic","Compact","Overleaf","Elegant","Minimal"].map((t) => (
+          <span class="rounded-full border hairline bg-[#FAFAF8] px-4 py-2 text-sm font-medium text-[#333]">{t}</span>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="border-t hairline bg-[#111] text-white">
+    <div class="mx-auto max-w-5xl px-5 py-24 text-center lg:py-32">
+      <div class="reveal">
+        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">Ready when you are</div>
+        <h2 class="mt-5 text-4xl font-semibold tracking-[-.05em] sm:text-6xl">Your next application<br />deserves a better fit.</h2>
+        <p class="mx-auto mt-6 max-w-xl text-base leading-7 text-[#aaa]">Bring your resume. Bring the role. Let AI help you make the strongest version of what is already true.</p>
+        <a href="/" class="mt-9 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-[#111] transition hover:bg-[#ededeb]">
+          Start tailoring
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+</Marketing>

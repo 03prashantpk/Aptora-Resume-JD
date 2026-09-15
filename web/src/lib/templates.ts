@@ -12,7 +12,7 @@ export interface TemplateOption {
 
 export const OVERLEAF_BASE_TEX = `%-------------------------
 % Resume in LaTeX
-% Author: Alex Carter (sample)
+% Author: Sushant Kumar
 %-------------------------
 
 \\documentclass[letterpaper,11pt]{article}
@@ -93,7 +93,7 @@ export const OVERLEAF_BASE_TEX = `%-------------------------
 
 %----------HEADING----------
 \\begin{center}
-    \\textbf{\\Huge \\scshape Alex Carter} \\\\ \\vspace{2pt}
+    \\textbf{\\Huge \\scshape Sushant Kumar} \\\\ \\vspace{2pt}
     {\\large\\textbf{DATA ENGINEER \\& AI SPECIALIST}} \\\\ \\vspace{2pt}
     \\small +1 (555) 010-2020 $|$
     \\href{mailto:alex.carter@example.com}{\\underline{alex.carter@example.com}} $|$

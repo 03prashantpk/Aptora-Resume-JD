@@ -81,6 +81,50 @@ CREATE TABLE IF NOT EXISTS template_votes (
   PRIMARY KEY (template_id, owner_id)
 );
 CREATE INDEX IF NOT EXISTS idx_template_votes_tid ON template_votes(template_id);
+
+-- Accounts. Password is stored only as a scrypt hash (salt:hash). Email is unique and
+-- lowercased. verified flips true after OTP confirmation.
+CREATE TABLE IF NOT EXISTS users (
+  id            TEXT PRIMARY KEY,
+  email         TEXT UNIQUE NOT NULL,
+  name          TEXT,
+  password_hash TEXT NOT NULL,
+  verified      BOOLEAN NOT NULL DEFAULT false,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Short-lived OTP codes for signup email verification (and future flows). Code is stored
+-- HASHED, never in plaintext. attempts caps brute force; expires_at bounds the window.
+CREATE TABLE IF NOT EXISTS email_verifications (
+  email       TEXT PRIMARY KEY,
+  code_hash   TEXT NOT NULL,
+  purpose     TEXT NOT NULL DEFAULT 'signup',
+  attempts    INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at  TIMESTAMPTZ NOT NULL DEFAULT now() + interval '15 minutes'
+);
+
+-- User-saved templates. Owner-scoped starting points a logged-in user stores from the
+-- current editor document. owner_id is always user:<id> (anonymous sessions don't save
+-- templates). Shown in the picker alongside the built-in catalog.
+CREATE TABLE IF NOT EXISTS user_templates (
+  id          TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  latex       TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_user_templates_owner ON user_templates(owner_id);
+
+-- Contact-form submissions.
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id          TEXT PRIMARY KEY,
+  name        TEXT,
+  email       TEXT NOT NULL,
+  message     TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_contact_created ON contact_messages(created_at);
 `;
 
 /** Ensure schema exists. Safe to call repeatedly; runs once. */

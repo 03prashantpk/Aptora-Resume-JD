@@ -1,0 +1,43 @@
+# Aptora
+
+> Aptora is an AI-powered document workspace that tailors the resume you already have to a specific job description, then compiles a real, professional PDF. It is truthful by design: it rewrites, reorders and emphasizes your genuine experience for the role, and does not fabricate jobs, skills, dates, metrics or achievements.
+
+Aptora — "Make your experience count."
+
+## How it works
+
+- Upload the resume you already have (PDF) and paste the target job description.
+- The AI structures your resume, understands the role, compares the two, and identifies gaps and opportunities.
+- It tailors real content (title, summary, bullets, ordering) grounded in your resume.
+- A real PDF is compiled with the Tectonic LaTeX engine.
+- Preview is shown as rasterized page images; export releases the exact same validated PDF (preview and export are the same artifact, verified by SHA-256).
+
+## Key principles
+
+- Truthful alignment, not fabrication: the AI never invents experience, employers, dates or metrics.
+- Start from your existing resume — no blank page.
+- One document workflow: analyze, edit, preview and export in one place.
+- Designed, typographic templates (LaTeX), not generic web-builder layouts.
+
+## Templates
+
+- Modern (clean sans-serif), Classic (traditional serif), Compact (dense serif), Overleaf (Jake's layout with icons), Elegant (warm editorial serif), Minimal (airy sans-serif). Users can upvote templates.
+
+## Pages
+
+- [Home](https://aptora.enally.in/home): product overview.
+- [Workspace](https://aptora.enally.in/): the editor + live preview.
+- [About](https://aptora.enally.in/about): philosophy and background.
+- [Contact](https://aptora.enally.in/contact): support and inquiries.
+- [Terms](https://aptora.enally.in/terms) and [Privacy](https://aptora.enally.in/privacy).
+
+## FAQ
+
+- Can AI invent experience on my resume? No. Aptora tailors the experience you already have; it does not fabricate jobs, skills, metrics, dates or achievements.
+- How does Aptora tailor a resume? Upload your resume and the job description; the AI structures both, compares them, finds gaps, and produces tailored content grounded in your resume.
+- Will the preview and downloaded resume be the same? Yes — the product is built around a single generated PDF artifact, so the preview is the same document you download.
+- Do I need to rewrite my resume from scratch? No. Start with the resume you already have.
+
+## Built by
+
+- Aptora is an independent product by Enally (https://enally.in).

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# The compile/preview/export API is server-to-server; no value in crawling it.
+Disallow: /api/
+
+Sitemap: https://aptora.enally.in/sitemap.xml

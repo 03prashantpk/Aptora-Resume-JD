@@ -165,6 +165,15 @@ def favicon():
     return Response(status_code=404)
 
 
+@app.get("/ads.txt", include_in_schema=False)
+def ads_txt():
+    # IAB ads.txt must be served from the domain root (static is under /static).
+    f = _STATIC_DIR / "ads.txt"
+    if f.exists():
+        return FileResponse(f, media_type="text/plain")
+    return Response(status_code=404)
+
+
 @app.get("/", response_class=HTMLResponse)
 def landing():
     # Product landing page (intentional deviation; see module docstring + landing.py).

@@ -24,6 +24,8 @@ import EditorPane from "./EditorPane";
 import PreviewPane from "./PreviewPane";
 import FilesView from "../pages/FilesView";
 import UsageView from "../pages/UsageView";
+import Toaster from "../ui/toast";
+import AdSlot from "../ui/AdSlot";
 import type { View } from "./LeftRail";
 import type { CompileResult, TemplateId } from "@/lib/types";
 import type { Analysis } from "@/lib/ai/analyze";
@@ -281,6 +283,9 @@ export default function Workspace() {
 
   return (
     <div className="app" data-mobile={isMobile ? "true" : "false"}>
+      <Toaster />
+      {/* Engaged-session ad: renders nothing until the user has stayed ~5 min. */}
+      {view === "editor" && <AdSlot />}
       <MenuBar
         docName={docName} onRename={setDocName} saveState={saveState}
         exportsLeft={exportsLeft} onExport={onExport} canExport={!!documentId && saveState !== "error"}
