@@ -1,84 +1,156 @@
 ---
-import Legal from "@/layouts/Legal.astro";
+import Marketing from "@/layouts/Marketing.astro";
+const APP_URL = "https://aptora.enally.in/";
 ---
-<Legal title="Contact" description="Get help with Aptora, or reach the team for partnerships and enterprise inquiries." path="/contact">
-  <h1>Contact Us</h1>
-  <p class="lg-updated">We're here to help you get the most out of your career applications.</p>
 
-  <p>Whether you're an engineer tailoring for high-tier tech roles, a team looking for enterprise batch processing, or someone who encountered an issue, our product team is available.</p>
-
-  <form id="contactForm" class="ct-form" novalidate>
-    <div class="ct-row">
-      <label class="ct-field">
-        <span>Name</span>
-        <input type="text" name="name" placeholder="Your name" autocomplete="name" />
-      </label>
-      <label class="ct-field">
-        <span>Email</span>
-        <input type="email" name="email" required placeholder="you@example.com" autocomplete="email" />
-      </label>
+<Marketing
+  title="Contact — Aptora"
+  description="Have a question about Aptora? Get in touch with the team."
+  path="/contact"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b hairline">
+    <div class="grid-bg pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-3xl px-5 pb-16 pt-24 text-center lg:px-8 lg:pb-20 lg:pt-28">
+      <div class="reveal inline-flex items-center gap-2 rounded-full border hairline bg-white px-3.5 py-2 text-xs font-medium text-[#555] shadow-sm">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
+        Get in touch
+      </div>
+      <h1 class="reveal mt-7 text-5xl font-semibold leading-[1.05] tracking-[-.05em] sm:text-6xl">
+        We'd love to<br /><span class="text-[#666]">hear from you.</span>
+      </h1>
+      <p class="reveal mx-auto mt-6 max-w-xl text-base leading-7 text-[#666]">
+        Questions about Aptora, feedback on the product, or anything else — send us a note and we'll get back to you.
+      </p>
     </div>
-    <label class="ct-field">
-      <span>Message</span>
-      <textarea name="message" required rows="5" placeholder="How can we help?"></textarea>
-    </label>
-    <div class="ct-actions">
-      <button type="submit" class="ct-submit">Send message</button>
-      <span id="contactStatus" class="ct-status" aria-live="polite"></span>
+  </section>
+
+  <!-- CONTACT FORM -->
+  <section class="bg-[#F7F7F5]">
+    <div class="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
+      <div class="grid gap-12 lg:grid-cols-[1fr_1.4fr] lg:items-start">
+        <!-- Left: contact info -->
+        <div class="reveal space-y-6">
+          <div>
+            <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">Reach us</div>
+            <h2 class="mt-4 text-3xl font-semibold tracking-[-.04em]">We read every message.</h2>
+            <p class="mt-4 text-sm leading-6 text-[#666]">We're a small, focused team. Every message goes to a real person. Typical response time is within one business day.</p>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-center gap-3 rounded-2xl border hairline bg-white p-4">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F3F3F0]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+              </span>
+              <div>
+                <div class="text-xs font-medium text-[#777]">Response time</div>
+                <div class="text-sm font-semibold">Within 1 business day</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 rounded-2xl border hairline bg-white p-4">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F3F3F0]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <div>
+                <div class="text-xs font-medium text-[#777]">Based in</div>
+                <div class="text-sm font-semibold">India — Enally.in</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 rounded-2xl border hairline bg-white p-4">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F3F3F0]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+              </span>
+              <div>
+                <div class="text-xs font-medium text-[#777]">Product</div>
+                <a href={APP_URL} class="text-sm font-semibold hover:underline">Open Aptora →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: form -->
+        <div class="reveal rounded-2xl border hairline bg-white p-8 shadow-[0_2px_12px_rgba(0,0,0,.04)]">
+          <form id="contactForm" class="space-y-5">
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="name" class="mono mb-1.5 block text-[10px] uppercase tracking-[.12em] text-[#888]">Your name</label>
+                <input id="name" name="name" type="text" required placeholder="Alex Morgan" class="w-full rounded-xl border hairline bg-[#fafaf8] px-4 py-3 text-sm outline-none transition placeholder:text-[#bbb] focus:border-[#111] focus:bg-white" />
+              </div>
+              <div>
+                <label for="email" class="mono mb-1.5 block text-[10px] uppercase tracking-[.12em] text-[#888]">Email address</label>
+                <input id="email" name="email" type="email" required placeholder="you@example.com" class="w-full rounded-xl border hairline bg-[#fafaf8] px-4 py-3 text-sm outline-none transition placeholder:text-[#bbb] focus:border-[#111] focus:bg-white" />
+              </div>
+            </div>
+            <div>
+              <label for="subject" class="mono mb-1.5 block text-[10px] uppercase tracking-[.12em] text-[#888]">Subject</label>
+              <input id="subject" name="subject" type="text" placeholder="Question about Aptora" class="w-full rounded-xl border hairline bg-[#fafaf8] px-4 py-3 text-sm outline-none transition placeholder:text-[#bbb] focus:border-[#111] focus:bg-white" />
+            </div>
+            <div>
+              <label for="message" class="mono mb-1.5 block text-[10px] uppercase tracking-[.12em] text-[#888]">Message</label>
+              <textarea id="message" name="message" required rows="5" placeholder="Tell us what's on your mind..." class="w-full resize-none rounded-xl border hairline bg-[#fafaf8] px-4 py-3 text-sm outline-none transition placeholder:text-[#bbb] focus:border-[#111] focus:bg-white"></textarea>
+            </div>
+            <div id="formStatus" class="hidden rounded-xl border p-4 text-sm"></div>
+            <button type="submit" id="submitBtn" class="inline-flex w-full items-center justify-center gap-2 rounded-xl btn-saas-primary px-5 py-3.5 text-sm font-semibold">
+              Send message
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
-  </form>
+  </section>
 
-  <style>
-    .ct-form { margin: 8px 0 28px; display: flex; flex-direction: column; gap: 14px; padding: 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
-    .ct-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    @media (max-width: 560px) { .ct-row { grid-template-columns: 1fr; } }
-    .ct-field { display: flex; flex-direction: column; gap: 6px; }
-    .ct-field span { font-size: 12.5px; font-weight: 600; color: #333; }
-    .ct-field input, .ct-field textarea { width: 100%; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fafaf9; color: #111; resize: vertical; }
-    .ct-field input:focus, .ct-field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); background: #fff; }
-    .ct-actions { display: flex; align-items: center; gap: 14px; }
-    .ct-submit { font: inherit; font-size: 13.5px; font-weight: 600; padding: 11px 20px; border: none; border-radius: 10px; background: #111; color: #fff; cursor: pointer; transition: background 140ms ease, transform 140ms ease; }
-    .ct-submit:hover:not(:disabled) { background: #222; transform: translateY(-1px); }
-    .ct-submit:disabled { opacity: 0.55; cursor: default; }
-    .ct-status { font-size: 13px; }
-    .ct-status.ok { color: var(--accent); } .ct-status.err { color: #c24141; }
-  </style>
+  <!-- TRUST STRIP -->
+  <section class="border-t hairline bg-white">
+    <div class="mx-auto max-w-4xl px-5 py-16 lg:px-8">
+      <div class="reveal grid gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] text-center sm:grid-cols-3">
+        <div class="bg-white px-6 py-8">
+          <div class="text-2xl font-semibold tracking-[-.03em]">Real team</div>
+          <div class="mt-1.5 text-xs text-[#777]">Humans reading your messages</div>
+        </div>
+        <div class="bg-white px-6 py-8">
+          <div class="text-2xl font-semibold tracking-[-.03em]">&lt; 1 day</div>
+          <div class="mt-1.5 text-xs text-[#777]">Average response time</div>
+        </div>
+        <div class="bg-white px-6 py-8">
+          <div class="text-2xl font-semibold tracking-[-.03em]">Open</div>
+          <div class="mt-1.5 text-xs text-[#777]">We welcome honest feedback</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Marketing>
 
-  <script is:inline>
-    (() => {
-      const form = document.getElementById("contactForm");
-      const status = document.getElementById("contactStatus");
-      const btn = form?.querySelector(".ct-submit");
-      form?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const data = Object.fromEntries(new FormData(form).entries());
-        status.textContent = "Sending…"; status.className = "ct-status";
-        btn.disabled = true;
-        try {
-          const r = await fetch("/api/contact", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
-          const body = await r.json().catch(() => ({}));
-          if (r.ok) { status.textContent = "Thanks! We'll be in touch."; status.className = "ct-status ok"; form.reset(); }
-          else { status.textContent = (body && body.error && body.error.message) || "Something went wrong."; status.className = "ct-status err"; }
-        } catch {
-          status.textContent = "Network error. Please try again."; status.className = "ct-status err";
-        } finally { btn.disabled = false; }
+<script is:inline>
+  const form = document.getElementById("contactForm");
+  const status = document.getElementById("formStatus");
+  const btn = document.getElementById("submitBtn");
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+    status.className = "hidden rounded-xl border p-4 text-sm";
+
+    const data = Object.fromEntries(new FormData(form));
+    try {
+      const res = await fetch("https://formspree.io/f/xnnqkyqy", {
+        method: "POST",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
-    })();
-  </script>
-
-  <h2>Direct Email</h2>
-  <p>General inquiries &amp; support: <a href="mailto:support@enally.in" style="color:var(--accent); font-weight:600;">support@enally.in</a><br />
-  Partnerships &amp; enterprise: <a href="mailto:prashant@enally.in" style="color:var(--accent); font-weight:600;">prashant@enally.in</a></p>
-
-  <h2>Connect Online</h2>
-  <ul>
-    <li><strong>Main Ecosystem:</strong> <a href="https://enally.in" target="_blank" rel="noreferrer" style="color:var(--accent); font-weight:600;">Enally.in</a></li>
-    <li><strong>Developer &amp; Product Lead:</strong> <a href="https://www.linkedin.com/in/03prashantpk/" target="_blank" rel="noreferrer" style="color:var(--accent); font-weight:600;">Prashant Kumar on LinkedIn</a></li>
-    <li><strong>Community &amp; Support:</strong> <a href="https://enally.in/contact" target="_blank" rel="noreferrer" style="color:var(--accent); font-weight:600;">Enally Support Desk</a></li>
-  </ul>
-
-  <h2>Office &amp; Headquarters</h2>
-  <p>Aptora by Enally<br />
-  Bengaluru, Karnataka, India<br />
-  Remote-first team operating worldwide.</p>
-</Legal>
+      if (res.ok) {
+        status.className = "rounded-xl border border-[#cdead6] bg-[#f6fbf7] p-4 text-sm text-[#16803c]";
+        status.textContent = "Message sent! We'll be in touch soon.";
+        form.reset();
+      } else {
+        throw new Error("Server error");
+      }
+    } catch {
+      status.className = "rounded-xl border border-[#fecaca] bg-[#fef2f2] p-4 text-sm text-[#c24141]";
+      status.textContent = "Something went wrong. Please try again later.";
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Send message <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+    }
+  });
+</script>
