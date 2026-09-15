@@ -156,7 +156,8 @@ export default function Workspace() {
       });
       if (res.status === 402) { setShowAccountPrompt(true); return; }
       if (res.ok) { setAnalysis((await res.json()) as Analysis); refreshUsage(); }
-    } catch { /* calm */ }
+      else { toast("Fit analysis is busy — please try again in a moment.", "error"); }
+    } catch { toast("Couldn't run fit analysis. Check your connection and retry.", "error"); }
     finally { setAnalyzing(false); }
   }, [jd, latex, analyzing, refreshUsage]);
 

@@ -108,13 +108,24 @@ CREATE TABLE IF NOT EXISTS email_verifications (
 -- current editor document. owner_id is always user:<id> (anonymous sessions don't save
 -- templates). Shown in the picker alongside the built-in catalog.
 CREATE TABLE IF NOT EXISTS user_templates (
-  id          TEXT PRIMARY KEY,
-  owner_id    TEXT NOT NULL,
-  name        TEXT NOT NULL,
-  latex       TEXT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id            TEXT PRIMARY KEY,
+  owner_id      TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  latex         TEXT NOT NULL,
+  -- Custom-template fields (optional). kind='snapshot' = a saved editor doc (latex only);
+  -- kind='custom' = a reusable LaTeX template with {{PLACEHOLDER}} tokens. For custom
+  -- templates, source_latex holds the ORIGINAL template verbatim (never overwritten) and
+  -- mappings is an optional JSON map of field -> placeholder/value hints.
+  kind          TEXT NOT NULL DEFAULT 'snapshot',
+  source_latex  TEXT,
+  mappings      JSONB,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_user_templates_owner ON user_templates(owner_id);
+-- Idempotent upgrades for databases created before the custom-template columns existed.
+ALTER TABLE user_templates ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'snapshot';
+ALTER TABLE user_templates ADD COLUMN IF NOT EXISTS source_latex TEXT;
+ALTER TABLE user_templates ADD COLUMN IF NOT EXISTS mappings JSONB;
 
 -- Contact-form submissions.
 CREATE TABLE IF NOT EXISTS contact_messages (
