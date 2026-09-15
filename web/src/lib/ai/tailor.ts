@@ -1,7 +1,7 @@
 // Server-only: AI "tailor" — rewrite the Resume LaTeX to fit a job description.
 // Prompt-injection aware (rule 25): system rules are fixed; the Resume and JD are
 // clearly delimited as untrusted DATA the model must not treat as instructions.
-import { chat, chatStream, models, type ChatMessage } from "./nvidia";
+import { chatWithFallback, chatStream, models, type ChatMessage } from "./nvidia";
 
 const SYSTEM = [
   "You are a Resume-tailoring assistant that edits LaTeX source.",
@@ -41,21 +41,21 @@ export function stripFences(s: string): string {
   return (m ? m[1] : s).trim();
 }
 
-/** Non-streaming tailor (fallback). */
+/** Non-streaming tailor. Default lightning model with automatic fallback chain. */
 export async function tailorLatex(latex: string, jd: string, intensity: Intensity = "balanced"): Promise<string> {
-  const out = await chat(buildMessages(latex, jd, intensity), { model: models.text, temperature: 0.4, max_tokens: 8192 });
+  const out = await chatWithFallback(buildMessages(latex, jd, intensity), { temperature: 0.4, max_tokens: 8192 });
   return stripFences(out);
 }
 
 /** Streaming tailor: yields visible content deltas (LaTeX) as they arrive.
- *  Uses the standard instruction model (textAlt/Gemma) which always streams
- *  output into chunk.content. Includes a reasoning fallback for thinking models. */
+ *  Uses the default lightning model; keeps a reasoning fallback for thinking models.
+ *  (Streaming can't switch models mid-stream, so it uses the primary only.) */
 export async function* tailorLatexStream(latex: string, jd: string, intensity: Intensity = "balanced"): AsyncGenerator<string, void, unknown> {
   let reasoningBuf = "";
   let hadContent = false;
 
   for await (const chunk of chatStream(buildMessages(latex, jd, intensity), {
-    model: models.textAlt,   // Gemma 4 — standard model, no thinking tokens
+    model: models.text,   // lightning (default fast model)
     temperature: 0.4,
     max_tokens: 8192,
   })) {

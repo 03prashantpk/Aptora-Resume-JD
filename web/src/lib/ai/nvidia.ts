@@ -11,17 +11,26 @@
 const env = (k: string): string | undefined => process.env[k] ?? (import.meta.env as Record<string, string | undefined>)[k];
 const NV_BASE_URL = (env("NV_BASE_URL") ?? "https://integrate.api.nvidia.com/v1").replace(/\/$/, "");
 const NV_API_KEY = env("NV_API_KEY");
+// Lightning is the DEFAULT for every task (fastest working model on this account). The
+// others are fallbacks, tried in order only when the primary hits a transient failure.
+const NV_LIGHTNING_FAST_MODEL = env("NV_LIGHTNING_FAST_MODEL") ?? "nvidia/nemotron-3.5-lightning-30b-a3b";
 const NV_TEXT_FAST_MODEL = env("NV_TEXT_FAST_MODEL") ?? "nvidia/nemotron-3-super-120b-a12b";
 const NV_TEXT_ALT_MODEL = env("NV_TEXT_ALT_MODEL") ?? "google/gemma-4-31b-it";
 const NV_TEXT_FAST_VISION_MODEL = env("NV_TEXT_FAST_VISION_MODEL") ?? "meta/llama-3.2-90b-vision-instruct";
 
 export const models = {
-  /** Adaptive reasoning model (Nemotron-3-Super). Good for analysis; uses thinking tokens. */
-  text: NV_TEXT_FAST_MODEL,
-  /** Standard instruction model (Gemma 4). Reliable for streaming; always outputs to `content`. */
+  /** DEFAULT for all text tasks: Nemotron-3.5 Lightning (fast, reliable on this account). */
+  text: NV_LIGHTNING_FAST_MODEL,
+  /** Fallback A: Nemotron-3 Super (adaptive reasoning; used if lightning is unavailable). */
+  fast: NV_TEXT_FAST_MODEL,
+  /** Fallback B: Gemma 4 (standard instruction model). */
   textAlt: NV_TEXT_ALT_MODEL,
   vision: NV_TEXT_FAST_VISION_MODEL,
 };
+
+/** Ordered model chain for text tasks: primary first, then fallbacks. De-duplicated so
+ *  the same model is never tried twice if two env vars point at it. */
+export const TEXT_MODEL_CHAIN: string[] = [...new Set([models.text, models.fast, models.textAlt])];
 
 // ---- Server-side AI logging (terminal only) --------------------------------
 // Prints what the model is doing to the SERVER console: the request metadata, the
@@ -91,6 +100,23 @@ function assertKey(): string {
   return NV_API_KEY;
 }
 
+/** Error carrying the upstream HTTP status so callers can retry/fall back on transient
+ *  failures (e.g. 503 model-overloaded) vs. give up on hard errors. */
+export class NvidiaError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "NvidiaError";
+    this.status = status;
+  }
+}
+
+/** True for transient upstream failures worth retrying on a different model (overloaded,
+ *  gateway, rate-limited). Not for 4xx (bad request) which would just fail again. */
+export function isTransientStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
 function buildPayload(messages: ChatMessage[], opts: ChatOptions, stream: boolean) {
   const payload: Record<string, unknown> = {
     model: opts.model ?? models.text,
@@ -119,7 +145,7 @@ export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Pro
   });
   if (!res.ok) {
     aiLog(`#${id} chat ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
-    throw new Error(`NVIDIA chat failed: ${res.status}`);
+    throw new NvidiaError(res.status, `NVIDIA chat failed: ${res.status}`);
   }
   const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
@@ -133,6 +159,34 @@ export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Pro
   );
   if (AI_LOG_VERBOSE && out) aiLog(`#${id} answer:\n${out}`);
   return out;
+}
+
+/** Non-streaming chat with automatic model fallback. Tries each model in `chain`
+ *  (default: lightning → super → gemma) and moves to the next only on a TRANSIENT
+ *  failure (503/429/5xx/network). Hard errors (4xx) and success stop immediately.
+ *  This is the default entry point for all text tasks. */
+export async function chatWithFallback(
+  messages: ChatMessage[],
+  opts: ChatOptions = {},
+  chain: string[] = TEXT_MODEL_CHAIN,
+): Promise<string> {
+  let lastErr: unknown;
+  for (let i = 0; i < chain.length; i++) {
+    const model = chain[i];
+    try {
+      return await chat(messages, { ...opts, model });
+    } catch (e) {
+      lastErr = e;
+      const transient = e instanceof NvidiaError ? isTransientStatus(e.status) : true; // network error -> try next
+      const hasNext = i < chain.length - 1;
+      if (transient && hasNext) {
+        aiLog(`fallback: "${model}" failed (${e instanceof NvidiaError ? e.status : "network"}) -> trying "${chain[i + 1]}"`);
+        continue;
+      }
+      throw e; // hard error, or no models left
+    }
+  }
+  throw lastErr;
 }
 
 export interface StreamChunk {
@@ -159,7 +213,7 @@ export async function* chatStream(
   });
   if (!res.ok || !res.body) {
     aiLog(`#${id} stream ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
-    throw new Error(`NVIDIA stream failed: ${res.status}`);
+    throw new NvidiaError(res.status, `NVIDIA stream failed: ${res.status}`);
   }
 
   const reader = res.body.getReader();

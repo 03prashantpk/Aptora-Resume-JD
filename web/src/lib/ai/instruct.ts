@@ -2,7 +2,7 @@
 // Handles user instructions (e.g. "reduce margins", "fit to 1 page", "update bullet 2", "make summary punchier")
 // with a hybrid of instant deterministic layout adjustments and targeted AI refinement.
 
-import { chat, models, type ChatMessage } from "./nvidia";
+import { chatWithFallback, type ChatMessage } from "./nvidia";
 
 export interface InstructResult {
   latex: string;
@@ -170,11 +170,10 @@ export async function instructLatex(latex: string, instruction: string): Promise
     { role: "user", content: userPrompt },
   ];
 
-  const rawOut = await chat(messages, {
-    model: models.textAlt,
-    temperature: 0.2,
-    max_tokens: 8192,
-  });
+  // Default lightning model with automatic fallback (lightning -> super -> gemma) on any
+  // transient failure, so a 503 never breaks a Manual Edit. thinking stays off (default):
+  // a direct edit, not a reasoning pass — low latency.
+  const rawOut = await chatWithFallback(messages, { temperature: 0.2, max_tokens: 8192 });
 
   // Clean fences if model added them
   let updatedTex = rawOut

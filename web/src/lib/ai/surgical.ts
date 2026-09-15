@@ -11,7 +11,7 @@
 //   2. AI receives compact JSON (~50 short strings) and rewrites text to match the target JD
 //   3. Patched back into the untouched template with exact offset safety
 
-import { chat, models } from "./nvidia";
+import { chatWithFallback } from "./nvidia";
 import type { Intensity } from "./tailor";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -246,9 +246,9 @@ async function callSurgicalAI(
     "Return the tailored JSON now.",
   ].join("\n");
 
-  const out = await chat(
+  const out = await chatWithFallback(
     [{ role: "system", content: SURGICAL_SYSTEM }, { role: "user", content: user }],
-    { model: models.textAlt, temperature: 0.35, max_tokens: 4096 },
+    { temperature: 0.35, max_tokens: 4096 },
   );
 
   const jsonMatch = out.match(/\{[\s\S]*\}/);
