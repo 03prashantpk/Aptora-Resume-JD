@@ -3,12 +3,13 @@ import {
   Upload, ChevronLeft, Check, Circle, ListTree, FileUp, Clock,
   User, Code, Layers, GraduationCap, Award, Sparkles, Target,
   SlidersHorizontal, Minimize2, Type, Zap, Scissors, FileText, Briefcase,
-  Info, LoaderCircle, CircleAlert,
+  Info, LoaderCircle, CircleAlert, FileDown,
 } from "lucide-motion";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
 import Gauge from "../ui/Gauge";
 import { BrainIcon } from "../ui/brain";
+import { toast } from "../ui/toast";
 import type { DrawerTab } from "./LeftRail";
 import type { Analysis } from "@/lib/ai/analyze";
 
@@ -58,6 +59,8 @@ interface Props {
   analysis: Analysis | null;
   analyzing: boolean;
   onAnalyze: () => void;
+  onExportAnalysis: () => void;
+  exportingAnalysis: boolean;
   intensity: Intensity;
   onIntensity: (i: Intensity) => void;
   tailorPhase: TailorPhase;
@@ -153,7 +156,7 @@ function parseOutline(latex: string): OutlineSection[] {
 
 export default function Drawer({
   tab, onTab, onClose, latex, onJumpToLine, jd, onJdChange, onTailor, tailoring, resumeName, onUploadName,
-  analysis, analyzing, onAnalyze, intensity, onIntensity, tailorPhase, onInstruct, instructing,
+  analysis, analyzing, onAnalyze, onExportAnalysis, exportingAnalysis, intensity, onIntensity, tailorPhase, onInstruct, instructing,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState<string | null>(resumeName);
@@ -161,6 +164,9 @@ export default function Drawer({
   const pick = () => fileRef.current?.click();
   const [savedResumes, setSavedResumes] = useState<{ id: string; name: string | null }[]>([]);
   const [savedJds, setSavedJds] = useState<{ id: string; name: string | null; content: string | null }[]>([]);
+  // Which dropdown option is currently selected (so the <select> shows the choice).
+  const [selectedResumeId, setSelectedResumeId] = useState("");
+  const [selectedJdId, setSelectedJdId] = useState("");
 
   // Manual Update state
   const [instructInput, setInstructInput] = useState("");
@@ -202,6 +208,20 @@ export default function Drawer({
 
   useEffect(() => { if (tab === "import") loadSaved(); }, [tab]);
 
+  // Load a saved JD into the editor. Uses the row's content if present; otherwise fetches
+  // the full upload by id (robust even if the list row content was truncated/absent).
+  const loadJd = async (j: { id: string; name: string | null; content: string | null }) => {
+    if (j.content && j.content.trim()) { onJdChange(j.content); toast("Job description loaded.", "success"); return; }
+    try {
+      const r = await fetch(`/api/uploads/${j.id}`);
+      if (r.ok) {
+        const row = (await r.json()) as { content?: string | null };
+        if (row.content && row.content.trim()) { onJdChange(row.content); toast("Job description loaded.", "success"); return; }
+      }
+      toast("That saved JD is empty or expired.", "error");
+    } catch { toast("Couldn't load that JD. Try again.", "error"); }
+  };
+
   const onFilePicked = async (file: File | null) => {
     if (!file) return;
     setUploadingPdf(true);
@@ -223,20 +243,30 @@ export default function Drawer({
     setSaveJdStatus("Saving…");
     try {
       const title = jd.trim().slice(0, 36).replace(/[\r\n]+/g, " ");
+      const currentJd = jd;
       const res = await fetch("/api/uploads", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind: "jd", name: title, content: jd }),
+        body: JSON.stringify({ kind: "jd", name: title, content: currentJd }),
       });
       if (res.ok) {
+        const { id } = (await res.json().catch(() => ({}))) as { id?: string };
         setSaveJdStatus("✓ Saved");
         setTimeout(() => setSaveJdStatus(null), 3000);
-        await loadSaved();
+        // Optimistically show it in the Saved Library immediately (don't wait on reload),
+        // so the option is always selectable right after saving.
+        if (id) {
+          setSavedJds((prev) => [{ id, name: title, content: currentJd }, ...prev.filter((p) => p.id !== id)]);
+        }
+        toast("Job description saved to your library.", "success");
+        loadSaved(); // refresh in the background (dedup by id)
       } else {
         setSaveJdStatus("Failed");
+        toast("Couldn't save the job description. Try again.", "error");
       }
     } catch {
-      setSaveJdStatus("Saved");
+      setSaveJdStatus("Failed");
+      toast("Couldn't save the job description. Try again.", "error");
     } finally {
       setSavingJd(false);
     }
@@ -316,14 +346,26 @@ export default function Drawer({
               <input ref={fileRef} type="file" accept="application/pdf" hidden
                 onChange={(e) => onFilePicked(e.target.files?.[0] ?? null)} />
               {savedResumes.length > 0 && (
-                <div className="saved-list">
-                  <span className="saved-label">Recent Resumes</span>
-                  {savedResumes.map((r) => (
-                    <button key={r.id} type="button" className="saved-item" onClick={() => { setName(r.name); onUploadName(r.name); }}>
-                      <Clock size={12} /> <span>{r.name ?? "resume.pdf"}</span>
-                    </button>
-                  ))}
-                </div>
+                <label className="saved-select-wrap">
+                  <span className="saved-label">Recent resumes</span>
+                  <select
+                    className="saved-select"
+                    value={selectedResumeId}
+                    onChange={(e) => {
+                      const r = savedResumes.find((x) => x.id === e.target.value);
+                      if (r) {
+                        setSelectedResumeId(r.id);
+                        setName(r.name); onUploadName(r.name);
+                        toast(`Loaded resume: ${r.name ?? "resume.pdf"}`, "success");
+                      }
+                    }}
+                  >
+                    <option value="" disabled>Choose a recent resume…</option>
+                    {savedResumes.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name ?? "resume.pdf"}</option>
+                    ))}
+                  </select>
+                </label>
               )}
             </section>
 
@@ -333,29 +375,31 @@ export default function Drawer({
                 <span className="section-tag">{jd.trim() ? `${jd.trim().split(/\s+/).length} words` : "Required"}</span>
               </div>
               <textarea className="jd-input" rows={6} value={jd} placeholder="Paste job description or role requirements here…" onChange={(e) => onJdChange(e.target.value)} />
-              <div className="jd-actions">
-                {saveJdStatus && <span className="save-feedback">{saveJdStatus}</span>}
+              {/* One row: saved-library dropdown (left, flexible) + Save JD (right). */}
+              <div className="jd-row">
+                {savedJds.length > 0 ? (
+                  <select
+                    className="saved-select jd-row-select"
+                    value={selectedJdId}
+                    aria-label={`Saved library (${savedJds.length})`}
+                    onChange={(e) => {
+                      const j = savedJds.find((x) => x.id === e.target.value);
+                      if (j) { setSelectedJdId(j.id); loadJd(j); }
+                    }}
+                  >
+                    <option value="" disabled>Saved library ({savedJds.length})…</option>
+                    {savedJds.map((j) => (
+                      <option key={j.id} value={j.id}>{j.name ?? "Job description"}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="jd-row-hint">{saveJdStatus ?? "Save a JD to reuse it later"}</span>
+                )}
                 <button type="button" className="jd-save" onClick={saveJd} disabled={!jd.trim() || savingJd}>
                   {savingJd && <LoaderCircle size={11} className="spin-animate" />}
                   <span>{savingJd ? "Saving…" : "Save JD"}</span>
                 </button>
               </div>
-              {savedJds.length > 0 && (
-                <div className="saved-list">
-                  <span className="saved-label">Saved Library ({savedJds.length})</span>
-                  {savedJds.map((j) => (
-                    <button
-                      key={j.id}
-                      type="button"
-                      className="saved-item"
-                      onClick={() => j.content && onJdChange(j.content)}
-                      title="Click to load this JD into the editor"
-                    >
-                      <Clock size={12} /> <span>{j.name ?? "Job description"}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </section>
 
             <section className="dr-block">
@@ -554,6 +598,10 @@ export default function Drawer({
                     <button type="button" className="intel-sub-btn" onClick={onAnalyze} disabled={analyzing}>
                       {analyzing && <LoaderCircle size={12} className="spin-animate" />}
                       <span>{analyzing ? "Scoring…" : "Re-score"}</span>
+                    </button>
+                    <button type="button" className="intel-sub-btn" onClick={onExportAnalysis} disabled={exportingAnalysis} title="Download this analysis as a PDF">
+                      {exportingAnalysis ? <LoaderCircle size={12} className="spin-animate" /> : <FileDown size={13} />}
+                      <span>{exportingAnalysis ? "Exporting…" : "Export PDF"}</span>
                     </button>
                   </div>
                 </div>

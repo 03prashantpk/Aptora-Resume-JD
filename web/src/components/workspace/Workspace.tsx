@@ -247,6 +247,26 @@ export default function Workspace() {
     } catch { toast("Export failed. Please try again.", "error"); }
   }, [documentId, exportsLeft, refreshUsage]);
 
+  const [exportingAnalysis, setExportingAnalysis] = useState(false);
+  const onExportAnalysis = useCallback(async () => {
+    if (!analysis || exportingAnalysis) return;
+    setExportingAnalysis(true);
+    try {
+      const res = await fetch("/api/ai/analysis-pdf", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ analysis }),
+      });
+      if (!res.ok) { toast("Couldn't export the analysis. Try again.", "error"); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "aptora-fit-analysis.pdf"; a.click();
+      URL.revokeObjectURL(url);
+      toast("Fit analysis exported.", "success");
+    } catch { toast("Couldn't export the analysis. Try again.", "error"); }
+    finally { setExportingAnalysis(false); }
+  }, [analysis, exportingAnalysis]);
+
   const [instructLoading, setInstructLoading] = useState(false);
 
   const onInstruct = useCallback(async (instruction: string): Promise<boolean> => {
@@ -332,6 +352,7 @@ export default function Workspace() {
                     jd={jd} onJdChange={setJd} onTailor={onTailor} tailoring={streaming} tailorPhase={tailorPhase}
                     resumeName={resumeName} onUploadName={setResumeName}
                     analysis={analysis} analyzing={analyzing} onAnalyze={onAnalyze}
+                    onExportAnalysis={onExportAnalysis} exportingAnalysis={exportingAnalysis}
                     intensity={intensity} onIntensity={setIntensity}
                     onInstruct={onInstruct} instructing={instructLoading}
                   />

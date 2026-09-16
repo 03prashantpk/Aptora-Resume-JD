@@ -39,7 +39,7 @@ export default function FilesView() {
         <div>
           <p className="view-eyebrow">Workspace</p>
           <h1>My files</h1>
-          <p>Generated PDFs and reusable inputs. Everything here is temporary — rows disappear when they expire, and you can regenerate anytime.</p>
+          <p>Reusable inputs and generated PDFs. Job descriptions are kept for 30 days; uploaded resume files and export PDFs are temporary (about an hour to a few hours). You can regenerate anytime.</p>
         </div>
         <a className="view-cta" href="/">Open editor</a>
       </div>
@@ -59,8 +59,8 @@ export default function FilesView() {
             </div>
             <div className="stat-card">
               <span className="sc-label">Retention</span>
-              <span className="sc-value">Temp</span>
-              <span className="sc-sub">auto-deleted on expiry</span>
+              <span className="sc-value">30 days</span>
+              <span className="sc-sub">JDs · files &amp; exports shorter</span>
             </div>
           </div>
 

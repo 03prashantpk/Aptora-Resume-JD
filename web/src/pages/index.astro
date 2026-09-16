@@ -704,13 +704,44 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     .tp-active-icon { color: var(--accent); }
     .dr-note.danger { color: var(--danger); }
 
-    /* Saved uploads pick-lists */
+    /* Saved uploads — clean dropdown selectors */
+    .saved-select-wrap { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+    .saved-select {
+      width: 100%;
+      font: inherit;
+      font-size: 12px;
+      padding: 8px 30px 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      /* chevron */
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+      text-overflow: ellipsis;
+    }
+    .saved-select:hover { border-color: #cbd5e1; }
+    .saved-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+
+    /* Saved uploads pick-lists (legacy list style, kept for any remaining uses) */
     .saved-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
     .saved-label { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
-    .saved-item { display: inline-flex; align-items: center; gap: 6px; text-align: left; font: inherit; font-size: 11.5px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--secondary); cursor: pointer; transition: all 120ms ease; }
+    .saved-item { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; font: inherit; font-size: 11.5px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--secondary); cursor: pointer; transition: all 120ms ease; }
     .saved-item:hover { border-color: var(--accent); color: var(--text); }
-    .saved-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .saved-item svg { flex-shrink: 0; }
+    /* min-width:0 lets the label actually shrink inside the flex row so ellipsis works. */
+    .saved-item span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .jd-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    /* Saved-library dropdown + Save JD button share one row. */
+    .jd-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .jd-row-select { flex: 1; min-width: 0; margin-top: 0; }
+    .jd-row-hint { flex: 1; min-width: 0; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .jd-row .jd-save { flex-shrink: 0; }
     .save-feedback { font-size: 11px; color: var(--success); font-weight: 600; }
     .jd-save {
       font: inherit;
@@ -739,7 +770,7 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 32px;
+      height: 20px;
       padding: 0 12px;
       background: transparent;
       border: none;
@@ -968,18 +999,19 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     }
     .qc-row-icon { color: var(--accent); flex-shrink: 0; }
     .intel-actions-bar { display: flex; flex-direction: column; gap: 8px; }
-    .intel-sub-actions { display: flex; gap: 7px; }
+    .intel-sub-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .intel-sub-btn {
-      flex: 1;
+      flex: 1 1 0;
+      min-width: 0;
       height: 36px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       font: inherit;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
-      padding: 0 12px;
+      padding: 0 8px;
       border: 1px solid var(--border);
       border-radius: 9px;
       background: var(--surface);
@@ -995,6 +1027,9 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       transform: translateY(-1px);
     }
     .intel-sub-btn:active:not(:disabled) { transform: scale(0.98); }
+    .intel-sub-btn svg { flex-shrink: 0; }
+    .intel-sub-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .intel-sub-btn:disabled { opacity: 0.6; cursor: default; }
 
     .dr-block { display: flex; flex-direction: column; gap: 8px; }
     .dr-block h4 { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--secondary); margin: 0; font-weight: 600; }
@@ -1040,6 +1075,12 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       color: var(--text);
       font-weight: 600;
       font-size: 12.5px;
+      /* Long PDF names must not overflow the panel — truncate with an ellipsis. */
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
     }
     
     .jd-input {
@@ -1184,9 +1225,10 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     /* Per-template upvote pill (sits at the right of the item's top row). */
     .ed-template-item-top { position: relative; }
     .tpl-upvote { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--secondary); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 140ms ease; }
-    .tpl-upvote:hover { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,0.05); }
-    .tpl-upvote:focus-visible { outline: 2px solid rgba(37,99,235,0.4); outline-offset: 1px; }
-    .tpl-upvote.voted { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,0.10); cursor: default; }
+    .tpl-upvote:hover { border-color: #e0245e; color: #e0245e; background: rgba(224,36,94,0.06); }
+    .tpl-upvote:focus-visible { outline: 2px solid rgba(224,36,94,0.4); outline-offset: 1px; }
+    /* Liked = filled red heart. */
+    .tpl-upvote.voted { border-color: #e0245e; color: #e0245e; background: rgba(224,36,94,0.10); cursor: default; }
     .tpl-upvote-icon { transition: transform 140ms ease; }
     .tpl-upvote:hover .tpl-upvote-icon { transform: translateY(-1px); }
     .tpl-upvote.voted .tpl-upvote-icon { transform: translateY(-1px); }

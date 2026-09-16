@@ -31,7 +31,11 @@ export const POST: APIRoute = async (ctx) => {
     }
     rlog.done(isPreset ? "200 ok (preset, free)" : "200 ok");
     return json(result, 200);
-  } catch {
+  } catch (e) {
+    // Log the real cause server-side (never returned to the client) so failures are
+    // diagnosable instead of a blind 502.
+    console.error("[AI] ai/instruct FAILED:", e instanceof Error ? `${e.name}: ${e.message}` : String(e));
+    if (e instanceof Error && e.stack) console.error(e.stack.split("\n").slice(1, 4).join("\n"));
     rlog.done("502 unavailable");
     return json({ error: { code: "AI_UNAVAILABLE", message: "Update is unavailable right now." } }, 502);
   }
