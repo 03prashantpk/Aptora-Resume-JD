@@ -5,7 +5,7 @@ import { EditorView, Decoration, type DecorationSet, GutterMarker, gutter } from
 import { StateField, StateEffect, RangeSet } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
 import { stex } from "@codemirror/legacy-modes/mode/stex";
-import { Check, CircleAlert, LoaderCircle, ChevronDown, Check as CheckIcon, ChevronUp, Trash2, Plus } from "lucide-motion";
+import { Check, CircleAlert, LoaderCircle, ChevronDown, Check as CheckIcon, Heart, Trash2, Plus } from "lucide-motion";
 import { EditorSelection } from "@codemirror/state";
 import type { SaveState } from "./MenuBar";
 import { TEMPLATES, templateLabel as getTemplateLabel } from "@/lib/templates";
@@ -228,7 +228,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
   const upvote = useCallback(async (tid: string, e: React.MouseEvent) => {
     e.stopPropagation(); // don't select the template when clicking its upvote
     if (votingId) return;
-    if (voted.has(tid)) { toast("You already upvoted this template", "info"); return; }
+    if (voted.has(tid)) { toast("You already liked this template ❤", "info"); return; }
     const tplName = TEMPLATES.find((t) => t.id === tid)?.name ?? "template";
     setVotingId(tid);
     // Optimistic: bump + mark voted immediately.
@@ -242,22 +242,22 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
       if (r.ok) {
         const body = (await r.json()) as { count?: number; alreadyVoted?: boolean };
         if (typeof body.count === "number") setVoteCounts((prev) => ({ ...prev, [tid]: body.count! }));
-        if (body.alreadyVoted) toast("You already upvoted this template", "info");
-        else toast(`Upvoted ${tplName} — thanks!`, "success");
+        if (body.alreadyVoted) toast("You already liked this template ❤", "info");
+        else toast(`Liked ${tplName} — thanks! ❤`, "success");
       } else {
         // roll back optimistic state on failure
         setVoted((prev) => { const n = new Set(prev); n.delete(tid); return n; });
         setVoteCounts((prev) => ({ ...prev, [tid]: Math.max(0, (prev[tid] ?? 1) - 1) }));
         if (r.status === 401) {
-          toast("Sign in to upvote templates.", "info");
+          toast("Please log in to like templates and save your activity.", "info");
         } else {
-          toast("Couldn't record your upvote. Try again.", "error");
+          toast("Couldn't record your like. Try again.", "error");
         }
       }
     } catch {
       setVoted((prev) => { const n = new Set(prev); n.delete(tid); return n; });
       setVoteCounts((prev) => ({ ...prev, [tid]: Math.max(0, (prev[tid] ?? 1) - 1) }));
-      toast("Couldn't record your upvote. Try again.", "error");
+      toast("Couldn't record your like. Try again.", "error");
     } finally { setVotingId(null); }
   }, [voted, votingId]);
 
@@ -340,13 +340,13 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
                           role="button"
                           tabIndex={0}
                           className={`tpl-upvote ${hasVoted ? "voted" : ""}`}
-                          title={hasVoted ? "You upvoted this" : "Upvote this template"}
-                          aria-label={`Upvote ${t.name}`}
+                          title={hasVoted ? "You liked this" : "Like this template"}
+                          aria-label={`Like ${t.name}`}
                           aria-pressed={hasVoted}
                           onClick={(e) => upvote(t.id, e)}
                           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") upvote(t.id, e as unknown as React.MouseEvent); }}
                         >
-                          <ChevronUp size={12} className="tpl-upvote-icon" />
+                          <Heart size={12} className="tpl-upvote-icon" fill={hasVoted ? "currentColor" : "none"} />
                           <span className="tpl-upvote-count">{count != null ? formatK(count) : "—"}</span>
                         </span>
                       </div>

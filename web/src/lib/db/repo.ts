@@ -16,9 +16,13 @@ export interface UploadRow {
 
 export async function createUpload(ownerId: string, u: { kind: "resume_pdf" | "jd"; name?: string; content?: string; temp_url?: string }): Promise<string> {
   const id = randomUUID();
+  // JD text is tiny and meant to be reused — keep it for 30 days. Resume PDFs stay on the
+  // default short (~60 min) window since they live on the temp-file host anyway.
+  const expiresInterval = u.kind === "jd" ? "30 days" : "60 minutes";
   await query(
-    `INSERT INTO uploads (id, owner_id, kind, name, content, temp_url) VALUES ($1,$2,$3,$4,$5,$6)`,
-    [id, ownerId, u.kind, u.name ?? null, u.content ?? null, u.temp_url ?? null],
+    `INSERT INTO uploads (id, owner_id, kind, name, content, temp_url, expires_at)
+     VALUES ($1,$2,$3,$4,$5,$6, now() + ($7)::interval)`,
+    [id, ownerId, u.kind, u.name ?? null, u.content ?? null, u.temp_url ?? null, expiresInterval],
   );
   return id;
 }

@@ -140,7 +140,9 @@ const CONTENT_SYSTEM = [
 ].join(" ");
 
 async function contentEdit(latex: string, instruction: string): Promise<InstructResult> {
+  console.log("[AI] instruct: contentEdit extracting regions…");
   const regions = extractRegions(latex);
+  console.log(`[AI] instruct: extracted ${regions.length} regions`);
   if (regions.length === 0) {
     // Nothing safely editable as text; leave the document untouched rather than risk a
     // whole-.tex rewrite for a CONTENT instruction.
@@ -263,6 +265,7 @@ async function scopedEdit(latex: string, instruction: string, intent: EditIntent
 // ─── AI-Powered Natural Language Update (entry point) ──────────────────────────
 
 export async function instructLatex(latex: string, instruction: string): Promise<InstructResult> {
+  const log = (...a: unknown[]) => console.log("[AI] instruct:", ...a);
   const norm = instruction.trim().toLowerCase();
 
   // 1. Deterministic layout fast-paths (0 tokens, 0ms, zero chance of syntax error).
@@ -296,6 +299,15 @@ export async function instructLatex(latex: string, instruction: string): Promise
 
   // 2. Classify the instruction and route to the right (safe) handler.
   const intent = classifyIntent(instruction);
-  if (intent === "content") return contentEdit(latex, instruction);
-  return scopedEdit(latex, instruction, intent);
+  log(`intent=${intent}`);
+  try {
+    if (intent === "content") return await contentEdit(latex, instruction);
+    return await scopedEdit(latex, instruction, intent);
+  } catch (e) {
+    // Any failure in the surgical/scoped path (region extraction edge case, provider
+    // hiccup) must NOT hard-fail the edit. Fall back to a single whole-.tex edit; if that
+    // also fails, rethrow so the route reports it.
+    log(`primary path threw (${e instanceof Error ? e.message : e}) -> scoped fallback`);
+    return await scopedEdit(latex, instruction, intent === "content" ? "content" : intent);
+  }
 }
