@@ -50,7 +50,15 @@ const SYSTEM = [
  *  ```json fences, leading/trailing prose, and JSON that got truncated at the token cap
  *  (we balance braces so a cut-off object still parses). Returns null only when there is
  *  genuinely no JSON object at all. */
-function parseLoose(s: string): Record<string, unknown> | null {
+/** Best-effort JSON object extraction from a model response. Handles: markdown
+ *  ```json fences, leading/trailing prose, and JSON that got truncated at the token cap
+ *  (we balance braces so a cut-off object still parses). Returns null only when there is
+ *  genuinely no JSON object at all. Shared by analyze + ingest. */
+export function parseLoose(s: string): Record<string, unknown> | null {
+  return _parseLoose(s);
+}
+
+function _parseLoose(s: string): Record<string, unknown> | null {
   if (!s) return null;
   // Strip code fences if present.
   let t = s.replace(/```(?:json|latex|tex)?/gi, "").trim();

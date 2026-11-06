@@ -66,6 +66,11 @@ interface Props {
   tailorPhase: TailorPhase;
   onInstruct?: (instruction: string) => Promise<boolean>;
   instructing?: boolean;
+  /** Called with the generated LaTeX after a resume PDF is parsed (+ rendered from the
+   *  USER'S data). Workspace auto-replaces the document and compiles. */
+  onIngested?: (r: { latex: string; uploadId?: string | null }) => void;
+  ingesting?: boolean;
+  setIngesting?: (v: boolean) => void;
 }
 
 function TailorProgress({ phase }: { phase: TailorPhase }) {
@@ -157,6 +162,7 @@ function parseOutline(latex: string): OutlineSection[] {
 export default function Drawer({
   tab, onTab, onClose, latex, onJumpToLine, jd, onJdChange, onTailor, tailoring, resumeName, onUploadName,
   analysis, analyzing, onAnalyze, onExportAnalysis, exportingAnalysis, intensity, onIntensity, tailorPhase, onInstruct, instructing,
+  onIngested, ingesting, setIngesting,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState<string | null>(resumeName);
@@ -230,11 +236,37 @@ export default function Drawer({
       const buf = new Uint8Array(await file.arrayBuffer());
       let bin = ""; for (const b of buf) bin += String.fromCharCode(b);
       const fileBase64 = btoa(bin);
-      await fetch("/api/uploads", { method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind: "resume_pdf", name: file.name, fileBase64 }) });
-      await loadSaved();
+
+      // 1. Store the upload row (also powers "Recent resumes").
+      let uploadId: string | undefined;
+      try {
+        const up = await fetch("/api/uploads", { method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ kind: "resume_pdf", name: file.name, fileBase64 }) });
+        if (up.ok) { const d = (await up.json().catch(() => ({}))) as { id?: string }; uploadId = d.id; }
+      } catch { /* row is best-effort; ingestion still proceeds */ }
+
+      // 2. Parse + render the USER'S resume into the current template, then auto-fill.
+      if (!onIngested) return;
+      setIngesting?.(true);
+      const res = await fetch("/api/ai/ingest-resume", { method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ uploadId, fileBase64, name: file.name }) });
+      const data = (await res.json().catch(() => ({}))) as { latex?: string; uploadId?: string|null; error?: { message?: string } };
+      if (res.ok && data.latex) {
+        onIngested({ latex: data.latex, uploadId: data.uploadId ?? uploadId });
+        toast("Resume imported — your details replaced the starter document.", "success");
+        await loadSaved();
+      } else if (res.status === 402) {
+        toast("You've used your free runs — create a free account to keep going.", "error");
+      } else {
+        // Keep the previously loaded doc; surface why.
+        toast(data.error?.message ?? "Couldn't parse that PDF. Fix the file and try again.", "error");
+      }
     } catch { /* non-fatal */ }
-    finally { setUploadingPdf(false); }
+    finally {
+      setUploadingPdf(false);
+      setIngesting?.(false);
+    }
   };
 
   const saveJd = async () => {
@@ -341,7 +373,7 @@ export default function Drawer({
                   <FileUp size={20} className="dz-icon" />
                 )}
                 {name ? <span className="file-name">{name}</span> : <span>Upload PDF</span>}
-                <em>{uploadingPdf ? "Uploading & parsing resume…" : name ? "Uploaded & ready" : "Click or drop file (Max 10 MB)"}</em>
+                <em>{uploadingPdf ? (ingesting ? "Parsing your resume…" : "Uploading…") : name ? "Uploaded & parsed" : "Click or drop file (Max 10 MB)"}</em>
               </button>
               <input ref={fileRef} type="file" accept="application/pdf" hidden
                 onChange={(e) => onFilePicked(e.target.files?.[0] ?? null)} />

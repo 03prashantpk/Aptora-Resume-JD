@@ -1,6 +1,8 @@
 // POST /api/auth/login { email, password }
 import type { APIRoute } from "astro";
 import { findUserByEmail, verifyPassword, setUserSession } from "@/lib/auth";
+import { getOwnerId } from "@/lib/session";
+import { transferOwnership } from "@/lib/db/repo";
 
 export const prerender = false;
 
@@ -21,7 +23,11 @@ export const POST: APIRoute = async (ctx) => {
     return json({ error: { code: "NOT_VERIFIED", message: "Please verify your email first.", email: user.email } }, 403);
   }
 
+  // Carry the anonymous session's work (documents, uploads, usage) to the account.
+  const anonOwner = await getOwnerId(ctx);
   setUserSession(ctx, user.id);
+  try { await transferOwnership(anonOwner, `user:${user.id}`); } catch { /* non-fatal */ }
+
   return json({ ok: true, user: { email: user.email, name: user.name } }, 200);
 };
 
