@@ -4,7 +4,7 @@ import type { APIRoute } from "astro";
 import { pdf } from "@/lib/compiler";
 import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
 import { uploadTemp } from "@/lib/hosting";
-import { createExport } from "@/lib/db/repo";
+import { createExport, getDocumentOwner } from "@/lib/db/repo";
 import { currentUserId } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { sendExportPdf } from "@/lib/email";
@@ -23,9 +23,19 @@ async function loggedInUser(ctx: Parameters<APIRoute>[0]): Promise<{ email: stri
 
 export const GET: APIRoute = async (ctx) => {
   const id = ctx.params.id;
-  if (!id) return new Response("bad request", { status: 400 });
+  if (!id || !/^[0-9a-f]{64}$/.test(id)) return new Response("bad request", { status: 400 });
 
   const ownerId = await getOwnerId(ctx);
+
+  // Owner check: compiled document ids are content-addressed; if we know who compiled
+  // it, only that owner (or an account transferred from their session) may export it.
+  const rowOwner = await getDocumentOwner(id);
+  if (rowOwner && rowOwner !== ownerId) {
+    return new Response(JSON.stringify({ error: { code: "FORBIDDEN", message: "This document isn't in your workspace." } }), {
+      status: 403, headers: { "content-type": "application/json" },
+    });
+  }
+
   const usage = await getUsage(ownerId);
   if (!usage.allowed) {
     return new Response(JSON.stringify({ error: { code: "FREE_LIMIT", message: "You've used your free exports. Create an account for more." } }), {

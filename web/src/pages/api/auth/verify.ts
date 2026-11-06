@@ -2,8 +2,10 @@
 // Checks the OTP; on success marks the user verified, logs them in (session upgrade),
 // sends the welcome email, and adds them to the Resend audience.
 import type { APIRoute } from "astro";
-import { checkOtp, markVerified, findUserByEmail, setUserSession } from "@/lib/auth";
+import { checkOtp, markVerified, findUserByEmail, setUserSession, clearUserSession } from "@/lib/auth";
 import { sendWelcome, addToAudience } from "@/lib/email";
+import { getOwnerId, } from "@/lib/session";
+import { transferOwnership } from "@/lib/db/repo";
 
 export const prerender = false;
 
@@ -29,7 +31,12 @@ export const POST: APIRoute = async (ctx) => {
   const user = await findUserByEmail(email);
   if (!user) return json({ error: { code: "NOT_FOUND", message: "Account not found." } }, 404);
 
+  // Snapshot the anonymous identity BEFORE it is overwritten by the session upgrade,
+  // then carry the anonymous session's work (documents, uploads, usage) to the user.
+  const anonOwner = await getOwnerId(ctx);
+  const newOwner = `user:${user.id}`;
   setUserSession(ctx, user.id);
+  try { await transferOwnership(anonOwner, newOwner); } catch { /* non-fatal */ }
   // fire-and-forget: welcome email + audience add shouldn't block the response
   void sendWelcome(user.email, user.name ?? undefined);
   void addToAudience(user.email, user.name ?? undefined);

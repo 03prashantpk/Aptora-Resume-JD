@@ -73,6 +73,8 @@ export default function Workspace() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [intensity, setIntensity] = useState<Intensity>("balanced");
+  const [ingesting, setIngesting] = useState(false);
+
 
   const revisionRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,8 +90,27 @@ export default function Workspace() {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/default-document");
-        const body = (await res.json()) as { latex?: string };
+        // Restore the owner's most recent working document first (the durable, correct
+        // source). Falls back to the starter template for brand-new sessions.
+        const res = await fetch("/api/documents/current");
+        if (res.ok) {
+          const doc = (await res.json()) as { latex?: string | null; title?: string | null; documentId?: string | null; pageCount?: number | null };
+          if (alive && typeof doc.latex === "string" && doc.latex.trim()) {
+            setLatex(doc.latex);
+            setTemplateId(detectTemplate(doc.latex));
+            if (doc.title) setDocName(doc.title);
+            if (typeof doc.documentId === "string") { setDocumentId(doc.documentId); setPageCount(doc.pageCount ?? 0); }
+            setLoadingDoc(false);
+            return;
+          }
+        }
+        // Anonymous/first-visit local backup (last resort if the DB was unreachable).
+        const draft = typeof window !== "undefined" ? window.localStorage.getItem("aptora_draft") : null;
+        if (draft && draft.trim()) {
+          if (alive) { setLatex(draft); setTemplateId(detectTemplate(draft)); setLoadingDoc(false); return; }
+        }
+        const res2 = await fetch("/api/default-document");
+        const body = (await res2.json()) as { latex?: string };
         if (alive && body.latex) {
           setLatex(body.latex);
           setTemplateId(detectTemplate(body.latex));
@@ -99,6 +120,22 @@ export default function Workspace() {
     })();
     return () => { alive = false; };
   }, []);
+
+  // Autosave the working document (debounced, silent). Latex saves are cheap upserts on
+  // the content-addressed id; the user's work survives refresh/close even before a compile.
+  useEffect(() => {
+    if (loadingDoc || !latex || streaming) return;
+    const t = setTimeout(() => {
+      fetch("/api/documents/current", {
+        method: "PUT", headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          latex, title: docName, documentId: documentId, pageCount,
+        }),
+      }).catch(() => { /* silent */ });
+      try { window.localStorage.setItem("aptora_draft", latex); } catch { /* quota/private mode */ }
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [latex, docName, documentId, pageCount, loadingDoc, streaming]);
 
   const runCompile = useCallback(async (source: string): Promise<boolean> => {
     if (!source.trim()) return false;
@@ -122,6 +159,18 @@ export default function Workspace() {
       return false;
     }
   }, []);
+
+  // Resume ingestion: the server parses the uploaded PDF and returns a real LaTeX
+  // document BUILT FROM THE USER'S DATA (see ai/ingest-resume). We auto-replace the
+  // loaded document and compile (the user's confirmed default behavior).
+  const onIngested = useCallback(async (ok: { latex: string; uploadId?: string | null }) => {
+    const { latex } = ok;
+    if (!latex) return;
+    setLatex(latex);
+    setTemplateId(detectTemplate(latex));
+    setDocumentId(null); // the old preview is not this document; force a clean compile
+    await runCompile(latex);
+  }, [runCompile]);
 
   const onSelectTemplate = useCallback((tid: TemplateId) => {
     setTemplateId(tid);
@@ -268,7 +317,6 @@ export default function Workspace() {
   }, [analysis, exportingAnalysis]);
 
   const [instructLoading, setInstructLoading] = useState(false);
-
   const onInstruct = useCallback(async (instruction: string): Promise<boolean> => {
     if (!instruction.trim() || instructLoading) return false;
     setInstructLoading(true);
@@ -355,6 +403,7 @@ export default function Workspace() {
                     onExportAnalysis={onExportAnalysis} exportingAnalysis={exportingAnalysis}
                     intensity={intensity} onIntensity={setIntensity}
                     onInstruct={onInstruct} instructing={instructLoading}
+                    onIngested={onIngested} ingesting={ingesting} setIngesting={setIngesting}
                   />
                 </Panel>
                 <Separator className="split-handle" />

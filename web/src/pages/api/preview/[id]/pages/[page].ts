@@ -29,8 +29,9 @@ export const GET: APIRoute = async ({ params }) => {
     status: 200,
     headers: {
       "content-type": upstream.headers.get("content-type") ?? "image/webp",
-      // Preview images are per-revision and short-lived; don't let intermediaries cache.
-      "cache-control": "no-store",
+      // document ids are content-addressed (same source -> same id), so a page image
+      // for a given id can never change — cache hard for instant previews on reload.
+      "cache-control": "public, max-age=31536000, immutable",
     },
   });
 };

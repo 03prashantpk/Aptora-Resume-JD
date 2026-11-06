@@ -233,9 +233,9 @@ export function detectTemplate(latex: string): TemplateId {
 }
 
 export function applyTemplateToLatex(latex: string, tid: TemplateId): string {
-  if (tid === "T04" && !/resumeSubheading/i.test(latex)) {
-    return OVERLEAF_BASE_TEX;
-  }
+  // A template switch only RESTYLES the current document (typography/font swap) — it
+  // never replaces the user's content. (The old wholesale replacement with the
+  // Overleaf_base sample was a data-loss bug: user edits vanished on template change.)
   const newBlock = TEMPLATE_FONT_BLOCKS[tid] ?? TEMPLATE_FONT_BLOCKS.T02;
   if (FONT_PATTERN.test(latex)) {
     return latex.replace(FONT_PATTERN, newBlock);

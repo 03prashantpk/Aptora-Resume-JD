@@ -43,9 +43,14 @@ CREATE TABLE IF NOT EXISTS documents (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id);
+-- Working-document restore lists the most recent per owner; created_at is kept on
+-- upsert (repo.ts) so ordering is stable across re-compiles of the same source.
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 -- Reusable uploads (resume PDFs + JD text). Short-lived temp files (~60 min) so users
 -- can pick a previously uploaded resume/JD instead of re-uploading.
+-- NOTE: resume ingestion stores parsed_text + latex ON THE ROW, so the user's parsed
+-- resume survives the temp-file expiry (see attachIngest in repo.ts).
 CREATE TABLE IF NOT EXISTS uploads (
   id          TEXT PRIMARY KEY,
   owner_id    TEXT NOT NULL,
@@ -53,10 +58,15 @@ CREATE TABLE IF NOT EXISTS uploads (
   name        TEXT,                     -- filename or short JD label
   content     TEXT,                     -- JD text (for kind='jd')
   temp_url    TEXT,                     -- tmpfiles URL (for kind='resume_pdf')
+  parsed_text TEXT,                     -- resume text extracted by the engine
+  latex       TEXT,                     -- generated LaTeX from the parsed resume
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at  TIMESTAMPTZ NOT NULL DEFAULT now() + interval '60 minutes'
 );
 CREATE INDEX IF NOT EXISTS idx_uploads_owner ON uploads(owner_id);
+-- Idempotent upgrade for rows created before parsing columns existed.
+ALTER TABLE uploads ADD COLUMN IF NOT EXISTS parsed_text TEXT;
+ALTER TABLE uploads ADD COLUMN IF NOT EXISTS latex TEXT;
 
 -- Export records: each generated PDF we host temporarily. Rows expire and are cleaned up.
 CREATE TABLE IF NOT EXISTS exports (
