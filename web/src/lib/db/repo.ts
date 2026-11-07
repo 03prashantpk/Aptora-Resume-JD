@@ -225,10 +225,49 @@ export async function transferOwnership(oldOwner: string, newOwner: string): Pro
     [oldOwner, newOwner],
   );
   await query(`DELETE FROM usage WHERE owner_id=$1`, [oldOwner]);
+  // Lifetime rollup follows the account too (merge; never drop).
+  await query(
+    `INSERT INTO usage_totals (owner_id, ai_calls, exports_used, byok_ai_calls, updated_at)
+       SELECT $2, ai_calls, exports_used, byok_ai_calls, now() FROM usage_totals WHERE owner_id=$1
+     ON CONFLICT (owner_id) DO UPDATE SET
+       ai_calls      = usage_totals.ai_calls + EXCLUDED.ai_calls,
+       exports_used  = usage_totals.exports_used + EXCLUDED.exports_used,
+       byok_ai_calls = usage_totals.byok_ai_calls + EXCLUDED.byok_ai_calls,
+       updated_at    = now()`,
+    [oldOwner, newOwner],
+  );
+  await query(`DELETE FROM usage_totals WHERE owner_id=$1`, [oldOwner]);
 }
 
 // ---------- Cleanup (expired rows) ----------
+/** Retention for the daily `usage` counter rows. Older rows are rolled up into
+ *  usage_totals (lifetime totals preserved) and then deleted, so the table never grows
+ *  without bound. 35 days covers Activity's 30-day window plus a small buffer. */
+const USAGE_RETENTION_DAYS = 35;
+
+/** Fold daily usage rows older than the retention window into the lifetime rollup, then
+ *  delete them. Safe to call often; a no-op when there's nothing old. */
+export async function pruneUsage(): Promise<void> {
+  // 1) accumulate the to-be-deleted rows into usage_totals (per owner).
+  await query(
+    `INSERT INTO usage_totals (owner_id, ai_calls, exports_used, byok_ai_calls, updated_at)
+       SELECT owner_id,
+              COALESCE(SUM(ai_calls),0), COALESCE(SUM(exports_used),0), COALESCE(SUM(byok_ai_calls),0), now()
+         FROM usage WHERE day < current_date - ($1)::int
+        GROUP BY owner_id
+     ON CONFLICT (owner_id) DO UPDATE SET
+       ai_calls      = usage_totals.ai_calls + EXCLUDED.ai_calls,
+       exports_used  = usage_totals.exports_used + EXCLUDED.exports_used,
+       byok_ai_calls = usage_totals.byok_ai_calls + EXCLUDED.byok_ai_calls,
+       updated_at    = now()`,
+    [USAGE_RETENTION_DAYS],
+  );
+  // 2) drop the now-rolled-up old rows.
+  await query(`DELETE FROM usage WHERE day < current_date - ($1)::int`, [USAGE_RETENTION_DAYS]);
+}
+
 export async function cleanupExpired(): Promise<void> {
   await query(`DELETE FROM uploads WHERE expires_at <= now()`);
   await query(`DELETE FROM exports WHERE expires_at <= now()`);
+  await pruneUsage();
 }

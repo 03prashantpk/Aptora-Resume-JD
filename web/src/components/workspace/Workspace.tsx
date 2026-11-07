@@ -370,6 +370,12 @@ export default function Workspace() {
               const ok = await runCompile(finalLatex);
               setTailorPhase(ok ? "done" : "error");
               refreshUsage();
+              // TAILORING IS DONE HERE. Clear the tailoring spinner/badge immediately so
+              // the UI doesn't look "stuck" while the separate analysis runs below.
+              setStreaming(false);
+              setInstructLoading(false);
+              setAiStage(null);
+              setAiReason("");
             }
           } else if (frame.type === "error") {
             setTailorPhase("error");

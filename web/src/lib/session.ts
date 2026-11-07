@@ -51,16 +51,19 @@ async function readUsage(ownerId: string): Promise<{
   day: { ai_calls: number; exports_used: number; byok_ai_calls: number };
   total: { ai_calls: number; exports_used: number };
 }> {
+  // Lifetime totals = live daily rows + the pruned-rows rollup (usage_totals), so
+  // all-time counts survive old-row cleanup. Day counters come only from today's row.
   const rows = await query<{
     day_ai: number; day_exports: number; day_byok: number;
     total_ai: number; total_exports: number;
   }>(
-    "SELECT COALESCE(SUM(ai_calls) FILTER (WHERE day = current_date),0)::int AS day_ai," +
-    " COALESCE(SUM(exports_used) FILTER (WHERE day = current_date),0)::int AS day_exports," +
-    " COALESCE(SUM(byok_ai_calls) FILTER (WHERE day = current_date),0)::int AS day_byok," +
-    " COALESCE(SUM(ai_calls),0)::int AS total_ai," +
-    " COALESCE(SUM(exports_used),0)::int AS total_exports" +
-    " FROM usage WHERE owner_id=$1",
+    "SELECT COALESCE(SUM(u.ai_calls) FILTER (WHERE u.day = current_date),0)::int AS day_ai," +
+    " COALESCE(SUM(u.exports_used) FILTER (WHERE u.day = current_date),0)::int AS day_exports," +
+    " COALESCE(SUM(u.byok_ai_calls) FILTER (WHERE u.day = current_date),0)::int AS day_byok," +
+    " (COALESCE(SUM(u.ai_calls),0) + COALESCE(MAX(t.ai_calls),0))::int AS total_ai," +
+    " (COALESCE(SUM(u.exports_used),0) + COALESCE(MAX(t.exports_used),0))::int AS total_exports" +
+    " FROM usage u LEFT JOIN usage_totals t ON t.owner_id = u.owner_id" +
+    " WHERE u.owner_id=$1",
     [ownerId],
   );
   const r = rows[0];
