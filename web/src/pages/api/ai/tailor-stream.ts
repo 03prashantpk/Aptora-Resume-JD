@@ -11,10 +11,13 @@
 //   {"type":"stage","stage":"reading|rewriting|patching","detail":...}
 //   {"type":"reason","text":"<reasoning delta>"}      ← drives the bottom-center badge
 //   {"type":"result","latex":...,"changedCount":...}
-//   {"type":"error","code":"AI_UNAVAILABLE|FREE_LIMIT"}
+//   {"type":"error","code":"AI_UNAVAILABLE|BUDGET_EXHAUSTED"}
 import type { APIRoute } from "astro";
 import { surgicalTailor } from "@/lib/ai/surgical";
-import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
+import { AIProviderError } from "@/lib/ai/provider";
+import { getOwnerId, peekBudget, settleSpend } from "@/lib/session";
+import { getRawKey } from "@/lib/keys";
+import { withOwnerKey } from "@/lib/ai/provider";
 import { logRoute } from "@/lib/ai/log";
 
 export const prerender = false;
@@ -36,14 +39,16 @@ export const POST: APIRoute = async (ctx) => {
 
   const rlog = logRoute("ai/tailor", { resume: `${latex.length}c`, jd: `${jd.length}c`, intensity: level });
   const ownerId = await getOwnerId(ctx);
-  const usage = await getUsage(ownerId);
-  if (!usage.allowed) {
-    rlog.done("402 free-limit");
-    return new Response(JSON.stringify({ error: { code: "FREE_LIMIT", message: "You've used your free runs. Create an account for more." } }), {
+  const budget = await peekBudget(ownerId);
+  if (!budget.allowed) {
+    rlog.done("402 budget");
+    return new Response(JSON.stringify({ error: { code: "BUDGET_EXHAUSTED", message: "Daily limit reached. Add credits, use your own free API key, or continue tomorrow." } }), {
       status: 402, headers: { "content-type": "application/json" },
     });
   }
+  const ownerKey = budget.ownKey ? await getRawKey(ownerId) : null;
 
+  return withOwnerKey(ownerKey, async () => {
   if (stream === true) {
     // ── SSE mode: stage + live reasoning + final result ───────────────────────
     const enc = new TextEncoder();
@@ -61,7 +66,7 @@ export const POST: APIRoute = async (ctx) => {
             send({ type: "error", code: "NO_CHANGES", message: "The AI returned no edits for this resume." });
             rlog.done("200 ok (stream, no changes)");
           } else {
-            await bumpUsage(ownerId, "ai_calls");
+            await settleSpend(ownerId, budget.source, "ai_calls");
             send({ type: "result", latex: result.latex, changedCount: result.changed.length });
             rlog.done(`200 ok (stream, ${result.changed.length} regions)`);
           }
@@ -81,21 +86,28 @@ export const POST: APIRoute = async (ctx) => {
 
   try {
     const result = await surgicalTailor(latex, jd, level);
-    // Only bump usage AFTER a successful AI call (fix: old code bumped before the call)
-    await bumpUsage(ownerId, "ai_calls");
+    // Only record the run AFTER a successful AI call (a failed run never costs).
+    await settleSpend(ownerId, budget.source, "ai_calls");
     rlog.done(`200 ok (${result.changed.length} regions changed)`);
     return new Response(
       JSON.stringify({ latex: result.latex, changedCount: result.changed.length }),
       { status: 200, headers: { "content-type": "application/json" } },
     );
-  } catch {
+  } catch (e) {
     rlog.done("502 unavailable");
+    if (e instanceof AIProviderError && e.status === 401) {
+      // Owner's own key was rejected mid-run.
+      return new Response(JSON.stringify({ error: { code: "KEY_REJECTED", message: e.message } }), {
+        status: 401, headers: { "content-type": "application/json" },
+      });
+    }
     // Never leak provider errors or keys.
     return new Response(
       JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "Tailoring is unavailable right now." } }),
       { status: 502, headers: { "content-type": "application/json" } },
     );
   }
+  });
 };
 
 function bad(message: string): Response {

@@ -2,7 +2,7 @@
 // download. (Export entitlement/quota will gate this once the DB slice lands.)
 import type { APIRoute } from "astro";
 import { pdf } from "@/lib/compiler";
-import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
+import { getOwnerId, peekBudget, settleSpend } from "@/lib/session";
 import { uploadTemp } from "@/lib/hosting";
 import { createExport, getDocumentOwner } from "@/lib/db/repo";
 import { currentUserId } from "@/lib/auth";
@@ -36,9 +36,9 @@ export const GET: APIRoute = async (ctx) => {
     });
   }
 
-  const usage = await getUsage(ownerId);
-  if (!usage.allowed) {
-    return new Response(JSON.stringify({ error: { code: "FREE_LIMIT", message: "You've used your free exports. Create an account for more." } }), {
+  const budget = await peekBudget(ownerId);
+  if (!budget.allowed) {
+    return new Response(JSON.stringify({ error: { code: "BUDGET_EXHAUSTED", message: "Daily limit reached. Add credits, use your own free API key, or continue tomorrow." } }), {
       status: 402, headers: { "content-type": "application/json" },
     });
   }
@@ -52,7 +52,7 @@ export const GET: APIRoute = async (ctx) => {
 
   // Buffer the PDF once: stream to the user AND host a temp copy + record it (6h expiry).
   const buf = new Uint8Array(await upstream.arrayBuffer());
-  await bumpUsage(ownerId, "exports_used");
+  await settleSpend(ownerId, budget.source, "exports_used");
   // 60-minute temp link — matches what the export email promises ("valid ~60 minutes").
   const tempUrl = await uploadTemp(buf, "aptora-resume.pdf", 3600);
   await createExport(ownerId, { title: "Resume", temp_url: tempUrl ?? undefined });

@@ -1,0 +1,19 @@
+---
+import Dashboard from "@/layouts/Dashboard.astro";
+import UsagePage from "@/components/pages/UsagePage.tsx";
+import { requireUser } from "@/lib/auth";
+
+export const prerender = false;
+
+// Account-only surface: a guest/unverified session is bounced to the editor with the
+// sign-in modal open. The editor itself stays guest-usable (product rule 20).
+if (!(await requireUser(Astro))) return Astro.redirect("/?auth=login", 302);
+---
+
+<Dashboard
+  title="Usage & limits — Aptora"
+  description="Your daily AI budget, purchased credits, Pro status and your own API key."
+  path="/usage"
+>
+  <UsagePage client:load />
+</Dashboard>

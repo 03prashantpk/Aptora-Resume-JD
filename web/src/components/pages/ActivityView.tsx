@@ -1,7 +1,7 @@
 // Activity page: payment history + a real timeline of what happened — AI runs,
 // uploads, exports and PayU purchases, newest first. Guest histories are
 // cookie-scoped; signed-in histories live with the account.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity, BrainCircuit, FileDown, FileUp, IndianRupee, CreditCard,
   CircleCheck, CircleX, Clock3, Wallet,
@@ -58,6 +58,32 @@ export default function ActivityView() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [checking, setChecking] = useState<string | null>(null);
+  const [tab, setTab] = useState<"all" | "payments" | "others">("all");
+
+  const reloadPayments = useCallback(async () => {
+    try {
+      const r = await fetch("/api/activity");
+      if (r.ok) {
+        const j = (await r.json()) as { items?: Item[]; payments?: Payment[] };
+        if (j.payments) setPayments(j.payments);
+      }
+    } catch { /* keep previous */ }
+  }, []);
+
+  /** Ask our server → PayU verify API what really happened to an un-settled payment. */
+  const reconcile = useCallback(async (txnid: string) => {
+    if (checking) return;
+    setChecking(txnid);
+    try {
+      const r = await fetch(`/api/payments/verify?txnid=${encodeURIComponent(txnid)}`);
+      if (r.ok) {
+        const j = (await r.json()) as { reconciled?: boolean; purchaseStatus?: string };
+        if (j.reconciled) await reloadPayments();
+      }
+    } catch { /* leave the row as-is */ }
+    finally { setChecking(null); }
+  }, [checking, reloadPayments]);
 
   useEffect(() => {
     (async () => {
@@ -77,10 +103,13 @@ export default function ActivityView() {
   }, []);
 
   // Timeline grouped by calendar day (Today / Yesterday / dates), newest within day.
+  // Purchase rows are excluded — the Payments list already shows them; duplicates
+  // ("Credit top-up" twice) read as a bug.
   const groups = useMemo(() => {
     if (!items) return [];
     const map = new Map<string, Item[]>();
     for (const it of items) {
+      if (it.kind === "purchase") continue;
       const k = startOfDay(new Date(it.at)).toString();
       (map.get(k) ?? map.set(k, []).get(k)!).push(it);
     }
@@ -91,6 +120,83 @@ export default function ActivityView() {
 
   const paidPayments = payments.filter((p) => p.status === "success");
   const totalPaid = paidPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+  const paymentsSection = (
+    <section className="act-section" aria-label="Payment history">
+      <div className="act-section-head">
+        <h2><Wallet size={15} /> Payments</h2>
+        {paidPayments.length > 0 && (
+          <span className="act-total">₹{totalPaid} paid so far</span>
+        )}
+      </div>
+      {payments.length === 0 ? (
+        <div className="act-section-body act-empty-slim">
+          <CreditCard size={16} />
+          <p>No payments yet. Purchases made on this account appear here with their status and transaction reference.</p>
+        </div>
+      ) : (
+        <div className="act-section-body pay-list">
+          {payments.map((p) => {
+            const st = paymentStatus(p);
+            return (
+              <div className="pay-row" key={p.id}>
+                <span className={`activity-icon pay-ic ${st.cls}`}><IndianRupee size={15} /></span>
+                <div className="pay-meta">
+                  <strong>{p.planName}</strong>
+                  <span className="muted">{fullDate(p.at)}{p.payuMihpayid ? ` · Ref ${p.payuMihpayid}` : ""}</span>
+                </div>
+                <div className="pay-right">
+                  <span className={`pay-status ${st.cls}`}><st.Icon size={13} /> {st.label}</span>
+                  <span className="pay-amount">₹{Number(p.amount).toFixed(2)}</span>
+                  {(p.status || "").toLowerCase() === "initiated" && (
+                    <button type="button" className="pay-verify-btn" disabled={checking !== null}
+                      onClick={() => reconcile(p.id)}>
+                      {checking === p.id ? "Checking…" : "Check status"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+
+  const timelineSection = (
+    <section className="act-section" aria-label="Recent activity">
+      <div className="act-section-head"><h2><Activity size={15} /> Recent activity</h2></div>
+      {groups.length === 0 ? (
+        <div className="act-section-body act-empty-slim">
+          <Activity size={16} />
+          <p>No activity yet. Tailor a resume, export a PDF, or top up credits — it shows up here.</p>
+        </div>
+      ) : (
+        <div className="act-section-body">
+          {groups.map((g) => (
+            <div className="act-day" key={g.label}>
+              <div className="act-day-label">{g.label}</div>
+              <ul className="activity-list">
+                {g.items.map((it, i) => {
+                  const Icon = ICONS[it.kind] ?? Activity;
+                  return (
+                    <li key={`${it.kind}-${it.at}-${i}`} className="activity-item">
+                      <span className="activity-icon"><Icon size={15} /></span>
+                      <div className="activity-meta">
+                        <strong>{it.title}</strong>
+                        {it.detail && <span className="muted">{it.detail}</span>}
+                      </div>
+                      <time className="activity-time muted">{timeOf(it.at)}</time>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 
   return (
     <div className="view view-wide">
@@ -103,78 +209,27 @@ export default function ActivityView() {
         <a className="view-cta" href="/">Open editor</a>
       </div>
 
+      {/* Tab switch: All | Payments | Others */}
+      <div className="act-tabs" role="tablist" aria-label="Activity sections">
+        {([
+          ["all", "All"],
+          ["payments", "Payments"],
+          ["others", "Others"],
+        ] as const).map(([key, label]) => (
+          <button key={key} type="button" role="tab" aria-selected={tab === key}
+            className={`act-tab${tab === key ? " active" : ""}`}
+            onClick={() => setTab(key)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {!loaded ? (
         <div className="act-skeleton-col"><div className="act-skel" /><div className="act-skel" /><div className="act-skel" /></div>
       ) : (
         <>
-          {/* ── Payment history ─────────────────────────────────────────── */}
-          <section className="act-section" aria-label="Payment history">
-            <div className="act-section-head">
-              <h2><Wallet size={15} /> Payments</h2>
-              {paidPayments.length > 0 && (
-                <span className="act-total">₹{totalPaid} paid so far</span>
-              )}
-            </div>
-            {payments.length === 0 ? (
-              <div className="act-section-body act-empty-slim">
-                <CreditCard size={16} />
-                <p>No payments yet. Purchases made on this account appear here with their status and PayU reference.</p>
-              </div>
-            ) : (
-              <div className="act-section-body pay-list">
-                {payments.map((p) => {
-                  const st = paymentStatus(p);
-                  return (
-                    <div className="pay-row" key={p.id}>
-                      <span className={`activity-icon pay-ic ${st.cls}`}><IndianRupee size={15} /></span>
-                      <div className="pay-meta">
-                        <strong>{p.planName}</strong>
-                        <span className="muted">{fullDate(p.at)}{p.payuMihpayid ? ` · PayU ref ${p.payuMihpayid}` : ""}</span>
-                      </div>
-                      <div className="pay-right">
-                        <span className={`pay-status ${st.cls}`}><st.Icon size={13} /> {st.label}</span>
-                        <span className="pay-amount">₹{Number(p.amount).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* ── Timeline ────────────────────────────────────────────────── */}
-          <section className="act-section" aria-label="Recent activity">
-            <div className="act-section-head"><h2><Activity size={15} /> Recent activity</h2></div>
-            {groups.length === 0 ? (
-              <div className="act-section-body act-empty-slim">
-                <Activity size={16} />
-                <p>No activity yet. Tailor a resume, export a PDF, or top up credits — it shows up here.</p>
-              </div>
-            ) : (
-              <div className="act-section-body">
-                {groups.map((g) => (
-                  <div className="act-day" key={g.label}>
-                    <div className="act-day-label">{g.label}</div>
-                    <ul className="activity-list">
-                      {g.items.map((it, i) => {
-                        const Icon = ICONS[it.kind] ?? Activity;
-                        return (
-                          <li key={`${it.kind}-${it.at}-${i}`} className="activity-item">
-                            <span className="activity-icon"><Icon size={15} /></span>
-                            <div className="activity-meta">
-                              <strong>{it.title}</strong>
-                              {it.detail && <span className="muted">{it.detail}</span>}
-                            </div>
-                            <time className="activity-time muted">{timeOf(it.at)}</time>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          {tab !== "others" && paymentsSection}
+          {tab !== "payments" && timelineSection}
         </>
       )}
     </div>

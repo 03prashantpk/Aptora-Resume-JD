@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Upload, ChevronLeft, Check, Circle, ListTree, FileUp, Clock,
-  User, Code, Layers, GraduationCap, Award, Sparkles, Target,
-  SlidersHorizontal, Minimize2, Type, Zap, Scissors, FileText, Briefcase,
-  Info, LoaderCircle, CircleAlert, FileDown,
+  User, Code, Layers, GraduationCap, Award, Star, Target,
+  SlidersHorizontal, Minimize2, Type, CircleGauge, Scissors, FileText, Briefcase,
+  Info, LoaderCircle, CircleAlert, FileDown, Wand,
 } from "lucide-motion";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
@@ -257,7 +257,7 @@ export default function Drawer({
         toast("Resume imported — your details replaced the starter document.", "success");
         await loadSaved();
       } else if (res.status === 402) {
-        toast("You've used your free runs — create a free account to keep going.", "error");
+        toast("Daily limit reached — add credits or connect your own API key to continue.", "error");
       } else {
         // Keep the previously loaded doc; surface why.
         toast(data.error?.message ?? "Couldn't parse that PDF. Fix the file and try again.", "error");
@@ -346,7 +346,7 @@ export default function Drawer({
                     {s.iconType === "layers" && <Layers size={13} className="outline-icon" />}
                     {s.iconType === "graduation" && <GraduationCap size={13} className="outline-icon" />}
                     {s.iconType === "award" && <Award size={13} className="outline-icon" />}
-                    {s.iconType === "sparkles" && <Sparkles size={13} className="outline-icon" />}
+                    {s.iconType === "sparkles" && <Star size={13} className="outline-icon" />}
                     <span className="outline-title">{s.title}</span>
                   </div>
                   <div className="outline-meta">
@@ -672,7 +672,7 @@ export default function Drawer({
                 onClick={() => handleApplyInstruct()}
                 disabled={!instructInput.trim() || instructing}
               >
-                {instructing ? <LoaderCircle size={14} className="spin-animate" /> : <Sparkles size={14} />}
+                {instructing ? <LoaderCircle size={14} className="spin-animate" /> : <Wand size={14} />}
                 <span>{instructing ? "Applying…" : "Apply Edit"}</span>
               </Button>
               {instructStatus && (
@@ -805,7 +805,7 @@ export default function Drawer({
                   {activeChip === "Strengthen action verbs and highlight quantified metrics in experience bullets" ? (
                     <LoaderCircle size={13} className="spin-animate qc-row-icon" />
                   ) : (
-                    <Zap size={13} className="qc-row-icon" />
+                    <CircleGauge size={13} className="qc-row-icon" />
                   )}
                   <span>Quantify Bullets</span>
                 </button>

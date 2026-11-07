@@ -1,7 +1,9 @@
 // POST /api/ai/instruct — Natural language manual update & layout optimization.
 import type { APIRoute } from "astro";
 import { instructLatex } from "@/lib/ai/instruct";
-import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
+import { AIProviderError, withOwnerKey } from "@/lib/ai/provider";
+import { getRawKey } from "@/lib/keys";
+import { getOwnerId, peekBudget, settleSpend } from "@/lib/session";
 import { logRoute } from "@/lib/ai/log";
 
 export const prerender = false;
@@ -19,18 +21,24 @@ export const POST: APIRoute = async (ctx) => {
   // Log the instruction VERB only (first ~40 chars) — a user command, not resume/PII.
   const rlog = logRoute("ai/instruct", { resume: `${latex.length}c`, cmd: JSON.stringify(instruction.slice(0, 40)) });
   const ownerId = await getOwnerId(ctx);
-  const usage = await getUsage(ownerId);
-  if (!usage.allowed) { rlog.done("402 free-limit"); return json({ error: { code: "FREE_LIMIT", message: "You've used your free runs. Create an account for more." } }, 402); }
+  const budget = await peekBudget(ownerId);
+  if (!budget.allowed) {
+    rlog.done("402 budget");
+    return json({ error: { code: "BUDGET_EXHAUSTED", message: "Daily limit reached. Add credits, use your own free API key, or continue tomorrow." } }, 402);
+  }
+  const ownerKey = budget.ownKey ? await getRawKey(ownerId) : null;
 
+  // Full run (including the SSE stream) executes under the owner's own key when set.
   const isPreset = /fit\s*(to\s*)?(1|one)\s*page|reduce\s*margin|standard\s*margin|font\s*size/i.test(instruction);
   const wantsStream = (body as { stream?: boolean }).stream === true && !isPreset;
 
+  return withOwnerKey(ownerKey, async () => {
   try {
     if (!wantsStream) {
       const result = await instructLatex(latex, instruction);
-      // Only bump usage if an AI call was performed (layout presets are free of charge!)
+      // Only count an AI run if one was performed (layout presets are free of charge!)
       if (!isPreset) {
-        await bumpUsage(ownerId, "ai_calls");
+        await settleSpend(ownerId, budget.source, "ai_calls");
       }
       rlog.done(isPreset ? "200 ok (preset, free)" : "200 ok");
       return json(result, 200);
@@ -53,7 +61,7 @@ export const POST: APIRoute = async (ctx) => {
             onStage: (stage, detail) => send({ type: "stage", stage, detail }),
             onReason: (text) => send({ type: "reason", text }),
           });
-          if (!isPreset) await bumpUsage(ownerId, "ai_calls");
+          if (!isPreset) await settleSpend(ownerId, budget.source, "ai_calls");
           send({ type: "result", ...result });
           rlog.done("200 ok (stream)");
         } catch (se) {
@@ -73,9 +81,14 @@ export const POST: APIRoute = async (ctx) => {
     // diagnosable instead of a blind 502.
     console.error("[AI] ai/instruct FAILED:", e instanceof Error ? `${e.name}: ${e.message}` : String(e));
     if (e instanceof Error && e.stack) console.error(e.stack.split("\n").slice(1, 4).join("\n"));
+    if (e instanceof AIProviderError && e.status === 401) {
+      rlog.done("401 key-rejected");
+      return json({ error: { code: "KEY_REJECTED", message: e.message } }, 401);
+    }
     rlog.done("502 unavailable");
     return json({ error: { code: "AI_UNAVAILABLE", message: "Update is unavailable right now." } }, 502);
   }
+  });
 };
 
 function json(data: unknown, status: number): Response {

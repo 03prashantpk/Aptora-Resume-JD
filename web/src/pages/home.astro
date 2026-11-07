@@ -570,7 +570,7 @@ function quoteSize(shape: string) {
             <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>{TOPUP_CREDITS} extra AI / export credits</li>
             <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Credits never expire</li>
             <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Consumed only when free budget is gone</li>
-            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Secure PayU checkout — UPI, cards, netbanking</li>
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Secure checkout — UPI, cards, netbanking</li>
           </ul>
           <button type="button" data-pay="TOPUP" class="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]">
             Buy {TOPUP_CREDITS} credits — ₹{TOPUP_INR}
@@ -595,7 +595,7 @@ function quoteSize(shape: string) {
           </button>
         </div>
       </div>
-      <p class="reveal mt-6 text-center text-[11.5px] text-[#999]">Secure payments via PayU. One-time charges — we never store card details and never auto-bill.</p>
+      <p class="reveal mt-6 text-center text-[11.5px] text-[#999]">Secure checkout — UPI, cards and netbanking. One-time charges — we never store card details and never auto-bill.</p>
     </div>
   </section>
   <script is:inline>
@@ -605,7 +605,7 @@ function quoteSize(shape: string) {
         if (btn.dataset.busy) return;
         btn.dataset.busy = '1';
         var original = btn.innerHTML;
-        btn.innerHTML = 'Opening PayU…';
+        btn.innerHTML = 'Starting checkout…';
         try {
           var r = await fetch('/api/payments/init', {
             method: 'POST',
@@ -720,7 +720,7 @@ function quoteSize(shape: string) {
             What do credits cost and do they expire?
             <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
           </summary>
-          <p class="mt-3 text-sm leading-6 text-[#70706d]">Top-ups are one-time (no subscription) and never expire. Pro is a single payment valid for a full year. Everything is billed securely through PayU — UPI, cards or netbanking — and we never auto-bill.</p>
+          <p class="mt-3 text-sm leading-6 text-[#70706d]">Top-ups are one-time (no subscription) and never expire. Pro is a single payment valid for a full year. Everything is billed securely — UPI, cards or netbanking — and we never auto-bill.</p>
         </details>
         <details class="group py-5">
           <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
@@ -796,7 +796,7 @@ function quoteSize(shape: string) {
         {
           "@type": "Question",
           "name": "What do credits cost and do they expire?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Top-ups are one-time (no subscription) and never expire. Pro is a single payment valid for a full year. Everything is billed securely through PayU — UPI, cards or netbanking — and we never auto-bill." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Top-ups are one-time (no subscription) and never expire. Pro is a single payment valid for a full year. Everything is billed securely — UPI, cards or netbanking — and we never auto-bill." }
         },
         {
           "@type": "Question",

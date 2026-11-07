@@ -182,14 +182,49 @@ export async function transferOwnership(oldOwner: string, newOwner: string): Pro
        (SELECT 1 FROM exports e2 WHERE e2.id = exports.id AND e2.owner_id=$2)`,
     [oldOwner, newOwner],
   );
+  // Guest PAID state must follow the account too — a guest who bought credits and
+  // then signs in keeps every purchase record, every credit, and any Pro time.
+  // credit_balance is keyed one-row-per-owner: merge balances, never drop them;
+  // Pro entitlement keeps whichever expiration is later.
+  await query(`UPDATE purchases SET owner_id=$2 WHERE owner_id=$1`, [oldOwner, newOwner]);
+  // BYOK: the guest's own API key becomes the account's key (their key, their usage).
   await query(
-    `UPDATE usage SET owner_id=$2 WHERE owner_id=$1
-     ON CONFLICT (owner_id, day) DO UPDATE SET
-       compiles = usage.compiles + EXCLUDED.compiles,
-       ai_calls = usage.ai_calls + EXCLUDED.ai_calls,
-       exports_used = usage.exports_used + EXCLUDED.exports_used`,
+    `UPDATE api_keys SET owner_id=$2 WHERE owner_id=$1
+       AND NOT EXISTS (SELECT 1 FROM api_keys k2 WHERE k2.owner_id=$2)`,
     [oldOwner, newOwner],
   );
+  await query(`DELETE FROM api_keys WHERE owner_id = $1`, [oldOwner]); // key collision → account key wins (never orphan two rows per PK)
+  await query(
+    `UPDATE credit_balance dst
+        SET credits = dst.credits + src.credits,
+            pro_until = GREATEST(dst.pro_until, src.pro_until),
+            updated_at = now()
+       FROM credit_balance src
+      WHERE src.owner_id = $1 AND dst.owner_id = $2`,
+    [oldOwner, newOwner],
+  );
+  await query(
+    `INSERT INTO credit_balance (owner_id, credits, pro_until, updated_at)
+     SELECT $2, src.credits, src.pro_until, now() FROM credit_balance src WHERE src.owner_id = $1
+       AND NOT EXISTS (SELECT 1 FROM credit_balance dst2 WHERE dst2.owner_id = $2)`,
+    [oldOwner, newOwner],
+  );
+  await query(`DELETE FROM credit_balance WHERE owner_id = $1`, [oldOwner]);
+  // Usage rows MERGE per (owner_id, day). NOTE: `UPDATE ... ON CONFLICT` is NOT valid
+  // Postgres (ON CONFLICT is an INSERT-only clause) — doing it that way fails on a
+  // same-day collision. Correct pattern: INSERT the guest's rows into the account with
+  // ON CONFLICT DO UPDATE to sum the counters, then delete the guest's rows.
+  await query(
+    `INSERT INTO usage (owner_id, day, compiles, ai_calls, exports_used, byok_ai_calls)
+       SELECT $2, day, compiles, ai_calls, exports_used, byok_ai_calls FROM usage WHERE owner_id=$1
+     ON CONFLICT (owner_id, day) DO UPDATE SET
+       compiles      = usage.compiles + EXCLUDED.compiles,
+       ai_calls      = usage.ai_calls + EXCLUDED.ai_calls,
+       exports_used  = usage.exports_used + EXCLUDED.exports_used,
+       byok_ai_calls = usage.byok_ai_calls + EXCLUDED.byok_ai_calls`,
+    [oldOwner, newOwner],
+  );
+  await query(`DELETE FROM usage WHERE owner_id=$1`, [oldOwner]);
 }
 
 // ---------- Cleanup (expired rows) ----------
