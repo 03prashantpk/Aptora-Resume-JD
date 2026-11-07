@@ -1,0 +1,19 @@
+{
+  "template_id": "T02",
+  "rasterize": true,
+  "preview_dpi": 110,
+  "preview_format": "webp",
+  "resume": {
+    "name": "Prashant Kumar",
+    "headline": "Software Engineer I - Full-Stack Developer",
+    "contact": {"phone": "+91 9612096180", "email": "prashantmanwan@gmail.com", "linkedin": "linkedin.com/in/03prashantpk", "github": "github.com/03prashantpk"},
+    "summary": "Software Engineer with experience building high-performance, scalable applications for digital platforms.",
+    "experience": [
+      {"title": "Full-Stack Developer", "org": "Mojo Web Technology", "dates": "2024 - Present",
+       "bullets": ["Built & optimized applications using React.js, Next.js, TypeScript, and Node.js.",
+                   "Designed REST and GraphQL APIs with test-driven development (TDD)."]}
+    ],
+    "skills": [{"label": "Languages & Frameworks", "items": "TypeScript, JavaScript (ES6+), React, Next.js, Node.js"}],
+    "education": [{"text": "Bachelor of Technology - Computer Science", "dates": "2020-2024"}]
+  }
+}

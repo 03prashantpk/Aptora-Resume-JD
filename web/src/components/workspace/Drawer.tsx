@@ -509,8 +509,8 @@ export default function Drawer({
 
                 {/* Gauges */}
                 <div className="intel-gauges">
-                  <Gauge value={analysis.alignment} label="Role Fit" />
-                  <Gauge value={analysis.identityMatch} label="Profile" size={84} />
+                  <Gauge value={analysis.alignment} label="Role Fit" tone="accent" />
+                  <Gauge value={analysis.identityMatch} label="Profile" size={84} tone="accent" />
                 </div>
 
                 {/* Preparation Time Prediction */}

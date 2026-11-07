@@ -1,0 +1,12 @@
+```json
+{
+  "summary": "Full Stack Developer with 4 years of experience delivering production web products, specializing in backend architecture, APIs, and cloud infrastructure. Proficient in React.js, Python, PostgreSQL, AWS, Docker, and REST API design. Experienced in automating analytical processes, building real-time systems, and deploying scalable solutions.",
+  "bullets": [
+    "Engineered and deployed full-stack solutions, including microservices, web services, and cloud architectures, leveraging AWS (EC2, Lambda, S3, RDS), Docker, and CI/CD for robust production environments.",
+    "Developed and maintained backend APIs and data models using Python, PostgreSQL, and MongoDB, alongside front-end interfaces with React.js/Next.js, ensuring scalable and reliable product delivery.",
+    "Automated complex analytical processes and built AI-enabled products, integrating cloud message APIs, real-time systems, and push notifications for enhanced user engagement.",
+    "Owned end-to-end technical architecture, including backend, database design, and cloud infrastructure, with a strong focus on production reliability and maintainability.",
+    "Collaborated on feature development, managed client requirements, and contributed to deployment workflows, balancing performance, security, and maintainability."
+  ]
+}
+```

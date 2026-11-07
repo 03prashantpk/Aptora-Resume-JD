@@ -1,10 +1,13 @@
-import { useState, useRef, useEffect } from "react";
-import { Download, Ellipsis, Check, X, ExternalLink, UserPlus, LogIn, Mail, Lock, LogOut, ShieldAlert, Pencil } from "lucide-motion";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Download, Ellipsis, Check, X, ExternalLink, UserPlus, LogIn, Mail, Lock, LogOut, ShieldAlert, Pencil, Sparkles } from "lucide-motion";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
+import PricingModal from "./PricingModal";
 import { toast } from "../ui/toast";
 
 interface AuthUser { email: string; name: string | null }
+/** Live budget snapshot for the menubar (from /api/usage). */
+interface UsageSnap { role: "guest" | "user"; isPro: boolean; credits: number; runsLeft: number }
 
 /** DiceBear 'notionists' avatar, seeded by name/email — matches the landing page. */
 function avatarUrl(seedRaw: string): string {
@@ -441,6 +444,10 @@ interface Props {
   aiChangedLines: number;
   onAcceptAi: () => void;
   onRejectAi: () => void;
+  /** Lifted auth state: lets sibling views (usage panel, free-limit modal) open the
+   *  auth popup WITHOUT leaving the workspace for /signup. */
+  authModal?: null | "login" | "signup";
+  onAuthModalChange?: (v: null | "login" | "signup") => void;
 }
 
 function statusText(s: SaveState, loggedIn: boolean): string {
@@ -450,14 +457,41 @@ function statusText(s: SaveState, loggedIn: boolean): string {
   return s === "updating" ? "Saving…" : s === "saved" ? savedLabel : s === "error" ? "Couldn't update" : "";
 }
 
-export default function MenuBar({ docName, onRename, saveState, exportsLeft, onExport, canExport, aiChangedLines, onAcceptAi, onRejectAi }: Props) {
+export default function MenuBar({ docName, onRename, saveState, exportsLeft, onExport, canExport, aiChangedLines, onAcceptAi, onRejectAi, authModal: authModalProp, onAuthModalChange }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(docName);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [modal, setModal] = useState<null | "version" | "developer" | "calendly" | "shortcuts">(null);
-  const [authModal, setAuthModal] = useState<null | "login" | "signup">(null);
+  const [modal, setModal] = useState<null | "version" | "developer" | "calendly" | "shortcuts" | "pricing">(null);
+  const [authModalLocal, setAuthModalLocal] = useState<null | "login" | "signup">(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [usageSnap, setUsageSnap] = useState<UsageSnap | null>(null);
   const moreRef = useRef<HTMLDivElement>(null);
+  // Controlled when the parent lifts state; self-contained otherwise.
+  const authModal = authModalProp ?? authModalLocal;
+  const setAuthModal = onAuthModalChange ?? setAuthModalLocal;
+
+  // Live budget: plan tag / runs-left / paid credits are NEVER hardcode; they come
+  // from /api/usage on load and refresh every time the ⋯ popover opens.
+  const loadUsage = useCallback(async () => {
+    try {
+      const r = await fetch("/api/usage");
+      if (!r.ok) return;
+      const u = (await r.json()) as {
+        role: "guest" | "user"; isPro?: boolean; credits?: number;
+        freeLimit?: number; aiCalls?: number; exportsUsed?: number;
+      };
+      const used = Math.max(Math.max(0, u.aiCalls ?? 0), Math.max(0, u.exportsUsed ?? 0));
+      setUsageSnap({
+        role: u.role,
+        isPro: !!u.isPro,
+        credits: Math.max(0, u.credits ?? 0),
+        runsLeft: u.isPro ? 100 : Math.max(0, (u.freeLimit ?? 0) - used), // Pro has a big budget of its own
+      });
+    } catch { /* db may be down — keep whatever we last had */ }
+  }, []);
+
+  useEffect(() => { loadUsage(); }, [loadUsage]);
+  useEffect(() => { if (openMenu === "more") loadUsage(); }, [openMenu, loadUsage]);
 
   // Load current auth state so the menu reflects logged-in vs anonymous.
   useEffect(() => {
@@ -563,6 +597,12 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
             <button type="button" className="ai-reject" onClick={onRejectAi}><X size={13} /> Undo</button>
           </div>
         )}
+        {/* Upgrade CTA — always visible in the menubar (never buried in a menu). */}
+        {!usageSnap?.isPro && (
+          <Button variant="ai" onClick={() => setModal("pricing")} title="Get more AI runs & credits">
+            <Sparkles size={14} /> <span>Upgrade</span>
+          </Button>
+        )}
         <Button variant="primary" onClick={onExport} disabled={exportsLeft <= 0 || !canExport}
           title={exportsLeft <= 0 ? "No exports left" : !canExport ? "Compile first" : undefined}>
           <Download size={16} /> <span>Export</span>
@@ -577,8 +617,12 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
           {openMenu === "more" && (
             <div className="mb-dropdown mb-dropdown-right premium-popover" role="menu">
               <div className="popover-badge-row">
-                <span className="popover-plan-tag">Free Plan</span>
-                <span className="popover-credits-tag">{exportsLeft} exports left</span>
+                <span className="popover-plan-tag">{usageSnap?.isPro ? "Pro" : usageSnap?.role === "user" ? "Free plan" : "Guest"}</span>
+                <span className="popover-credits-tag">
+                  {usageSnap
+                    ? `${usageSnap.runsLeft} left today${usageSnap.credits > 0 ? ` · ${usageSnap.credits} credit${usageSnap.credits === 1 ? "" : "s"}` : ""}`
+                    : "Loading…"}
+                </span>
               </div>
               <div className="mb-sep" />
               {user ? (
@@ -630,7 +674,8 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
               )}
               <div className="mb-sep" />
               <div className="popover-extra-links">
-                <a href="/usage" className="popover-sub-link">Check limits</a>
+                <a href="/?view=usage" className="popover-sub-link">Check limits</a>
+                <a href="/?view=activity" className="popover-sub-link">Payment history</a>
                 <a href="/about" className="popover-sub-link">About</a>
                 <a href="/contact" className="popover-sub-link">Contact</a>
               </div>
@@ -643,6 +688,7 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
       {modal === "developer" && <DeveloperModal onClose={() => setModal(null)} />}
       {modal === "calendly" && <CalendlyModal onClose={() => setModal(null)} />}
       {modal === "shortcuts" && <ShortcutsModal onClose={() => setModal(null)} />}
+      {modal === "pricing" && <PricingModal onClose={() => setModal(null)} />}
       {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} onAuthed={(u) => setUser(u)} />}
     </header>
   );

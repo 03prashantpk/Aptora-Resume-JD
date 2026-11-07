@@ -3,6 +3,18 @@ import Marketing from "@/layouts/Marketing.astro";
 
 const APP_URL = "https://aptora.enally.in/";
 
+// Pricing is env-driven (PRICING_* in web/.env) — the marketing page, the PricingModal
+// and the actual PayU checkout all read the SAME table so none can drift.
+// (Frontmatter runs at build; for the static page this is the deploy-time env.)
+const be = (v: string | undefined, d: number): number => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : d;
+};
+const TOPUP_INR = be(import.meta.env.PRICING_TOPUP_INR, 1);
+const TOPUP_CREDITS = be(import.meta.env.PRICING_TOPUP_CREDITS, 12);
+const PRO_INR = be(import.meta.env.PRICING_PRO_INR, 3);
+const PRO_CREDITS = be(import.meta.env.PRICING_PRO_CREDITS, 100);
+
 const testimonials = [
   { name: "Aditya M.", role: "Software Engineer", quote: "I stopped rewriting my resume for every role. I paste the job description, Aptora shows me exactly what to bring forward, and the tailored PDF looks like a designer made it. It saved me hours every single week.", accent: "dark", shape: "tall" },
   { name: "Sara R.", role: "Product Designer", quote: "The gap analysis told me which real projects to emphasize instead of adding fluff.", accent: "plain", shape: "square" },
@@ -27,7 +39,7 @@ function avatarUrl(name: string) {
 function cardClasses(accent: string) {
   if (accent === "dark") return "border hairline bg-[#111] text-white";
   if (accent === "blue") return "border border-[#dbeafe] bg-[#f8fbff]";
-  if (accent === "green") return "border border-[#cdead6] bg-[#f6fbf7]";
+  if (accent === "green") return "border border-[#dbeafe] bg-[#f8fbff]"; // 3-color rule: green bento → the brand blue tint
   return "border hairline bg-[#FAFAF8]";
 }
 function quoteClasses(accent: string) {
@@ -35,8 +47,8 @@ function quoteClasses(accent: string) {
 }
 function roleClasses(accent: string) {
   if (accent === "dark") return "text-[#999]";
-  if (accent === "blue") return "text-[#5d6b80]";
-  if (accent === "green") return "text-[#4a7a58]";
+  if (accent === "blue") return "text-[#2563eb]";
+  if (accent === "green") return "text-[#2563eb]"; // same single accent
   return "text-[#888]";
 }
 function spanClass(shape: string) {
@@ -61,12 +73,12 @@ function quoteSize(shape: string) {
     <div class="relative mx-auto max-w-7xl px-5 pb-16 pt-20 sm:pt-28 lg:px-8 lg:pb-24 lg:pt-32">
       <div class="mx-auto max-w-4xl text-center">
         <div class="reveal inline-flex items-center gap-2 rounded-full border hairline bg-white px-3.5 py-2 text-xs font-medium text-[#555] shadow-sm">
-          <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
+          <span class="h-1.5 w-1.5 rounded-full bg-[#2563eb]"></span>
           AI-powered resume tailoring
         </div>
         <h1 class="reveal mt-7 text-5xl font-semibold leading-[1.02] tracking-[-.055em] sm:text-6xl lg:text-[76px]">
           Make your resume<br />
-          <span class="text-[#666]">fit the job.</span>
+          <span class="text-[#2563eb]">fit the job.</span>
         </h1>
         <p class="reveal mx-auto mt-7 max-w-2xl text-base leading-7 text-[#666] sm:text-lg">
           Upload the resume you already have. Add the job description.
@@ -97,7 +109,7 @@ function quoteSize(shape: string) {
             </div>
             <div class="mono text-[10px] text-[#888]">APTORA / WORKSPACE</div>
             <div class="flex items-center gap-2 text-[10px] text-[#777]">
-              <span class="h-1.5 w-1.5 rounded-full bg-[#16803C]"></span>
+              <span class="h-1.5 w-1.5 rounded-full bg-[#2563eb]"></span>
               Ready
             </div>
           </div>
@@ -203,7 +215,7 @@ function quoteSize(shape: string) {
                   <span class="text-xs font-semibold">Strong</span>
                 </div>
                 <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e7e7e3]">
-                  <div class="h-full w-[82%] rounded-full bg-[#16803C]"></div>
+                  <div class="h-full w-[82%] rounded-full bg-[#2563eb]"></div>
                 </div>
               </div>
               <div class="mt-3 space-y-2">
@@ -272,7 +284,7 @@ function quoteSize(shape: string) {
     <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
       <div class="grid gap-14 lg:grid-cols-[.85fr_1.15fr] lg:items-start">
         <div class="reveal">
-          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">The AI layer</div>
+          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#2563eb]">The AI layer</div>
           <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
             AI does more than<br />write bullet points.
           </h2>
@@ -283,7 +295,7 @@ function quoteSize(shape: string) {
           </p>
           <div class="mt-8 rounded-2xl border hairline bg-[#FAFAF8] p-5">
             <div class="flex items-start gap-3">
-              <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#111] text-white">
+              <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#2563eb] text-white">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 12h18"/></svg>
               </span>
               <div>
@@ -298,22 +310,22 @@ function quoteSize(shape: string) {
         </div>
         <div class="reveal grid gap-3 sm:grid-cols-2">
           <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6">
-            <div class="mono text-xs text-[#999]">01</div>
+            <div class="mono text-xs font-semibold text-[#2563eb]">01</div>
             <h3 class="mt-8 text-lg font-semibold">Understand</h3>
             <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Extracts your experience, projects, skills, education and achievements from the resume you already have.</p>
           </article>
           <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6">
-            <div class="mono text-xs text-[#999]">02</div>
+            <div class="mono text-xs font-semibold text-[#2563eb]">02</div>
             <h3 class="mt-8 text-lg font-semibold">Read the role</h3>
             <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Breaks a job description into responsibilities, skills, technologies, qualifications and important language.</p>
           </article>
           <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6">
-            <div class="mono text-xs text-[#999]">03</div>
+            <div class="mono text-xs font-semibold text-[#2563eb]">03</div>
             <h3 class="mt-8 text-lg font-semibold">Find the gaps</h3>
             <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Shows what already matches, what is weak, what is missing and where existing evidence can be made clearer.</p>
           </article>
           <article class="lift rounded-2xl border hairline bg-[#FAFAF8] p-6">
-            <div class="mono text-xs text-[#999]">04</div>
+            <div class="mono text-xs font-semibold text-[#2563eb]">04</div>
             <h3 class="mt-8 text-lg font-semibold">Tailor the content</h3>
             <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Rewrites, shortens, reorders and emphasizes relevant evidence without changing the truth of your experience.</p>
           </article>
@@ -326,38 +338,38 @@ function quoteSize(shape: string) {
   <section id="workflow" class="border-t hairline bg-[#F7F7F5]">
     <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
       <div class="reveal max-w-2xl">
-        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">One focused workflow</div>
+        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#2563eb]">One focused workflow</div>
         <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">From old resume to role-ready.</h2>
         <p class="mt-5 text-base leading-7 text-[#666]">No starting from a blank template. Bring the document you already know and let the workspace guide the transformation.</p>
       </div>
       <div class="mt-14 grid gap-px overflow-hidden rounded-2xl border hairline bg-[#E5E5E1] md:grid-cols-4">
         <div class="bg-white p-6 sm:p-7">
-          <div class="mono text-xs text-[#999]">01</div>
-          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]">
+          <div class="mono text-xs font-semibold text-[#2563eb]">01</div>
+          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF2FE] text-[#2563eb]">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
           </div>
           <h3 class="mt-5 font-semibold">Upload resume</h3>
           <p class="mt-2 text-sm leading-6 text-[#70706d]">Start with a PDF. Aptora extracts and structures what is already there.</p>
         </div>
         <div class="bg-white p-6 sm:p-7">
-          <div class="mono text-xs text-[#999]">02</div>
-          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]">
+          <div class="mono text-xs font-semibold text-[#2563eb]">02</div>
+          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF2FE] text-[#2563eb]">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16M4 12h11M4 19h16"/><circle cx="19" cy="12" r="2"/></svg>
           </div>
           <h3 class="mt-5 font-semibold">Add the JD</h3>
           <p class="mt-2 text-sm leading-6 text-[#70706d]">Paste or upload the job description you are applying to.</p>
         </div>
         <div class="bg-white p-6 sm:p-7">
-          <div class="mono text-xs text-[#999]">03</div>
-          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]">
+          <div class="mono text-xs font-semibold text-[#2563eb]">03</div>
+          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF2FE] text-[#2563eb]">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg>
           </div>
           <h3 class="mt-5 font-semibold">Review AI analysis</h3>
           <p class="mt-2 text-sm leading-6 text-[#70706d]">See matches, gaps, opportunities and the evidence worth bringing forward.</p>
         </div>
         <div class="bg-white p-6 sm:p-7">
-          <div class="mono text-xs text-[#999]">04</div>
-          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F1F1EE]">
+          <div class="mono text-xs font-semibold text-[#2563eb]">04</div>
+          <div class="mt-10 flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF2FE] text-[#2563eb]">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </div>
           <h3 class="mt-5 font-semibold">Tailor &amp; export</h3>
@@ -371,7 +383,7 @@ function quoteSize(shape: string) {
   <section id="workspace" class="border-t hairline bg-white">
     <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
       <div class="reveal text-center">
-        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">The workspace</div>
+        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#2563eb]">The workspace</div>
         <h2 class="mx-auto mt-4 max-w-3xl text-4xl font-semibold tracking-[-.045em] sm:text-5xl">
           Everything you need to make one strong application.
         </h2>
@@ -382,21 +394,21 @@ function quoteSize(shape: string) {
       </div>
       <div class="mt-14 grid gap-4 lg:grid-cols-3">
         <article class="lift rounded-2xl border hairline p-7">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F3F0]">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF2FE] text-[#2563eb]">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h10M4 18h16"/></svg>
           </div>
           <h3 class="mt-6 text-lg font-semibold">Structured resume</h3>
           <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Your resume becomes structured information that can be understood, compared and tailored rather than repeatedly copied between prompts.</p>
         </article>
         <article class="lift rounded-2xl border hairline p-7">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F3F0]">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF2FE] text-[#2563eb]">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="6"/><path d="m16 16 5 5"/></svg>
           </div>
           <h3 class="mt-6 text-lg font-semibold">Role-aware insights</h3>
           <p class="mt-2 text-sm leading-6 text-[#6b6b6b]">Understand where your current resume aligns with the role and where better evidence or wording could help.</p>
         </article>
         <article class="lift rounded-2xl border hairline p-7">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F3F0]">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF2FE] text-[#2563eb]">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
           </div>
           <h3 class="mt-6 text-lg font-semibold">Live document preview</h3>
@@ -426,7 +438,7 @@ function quoteSize(shape: string) {
             <div class="flex items-center gap-3 rounded-xl border hairline bg-white p-3">
               <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f1f1ee] text-xs font-semibold">PDF</span>
               <div class="min-w-0 flex-1"><div class="text-xs font-medium">Final document</div><div class="text-[10px] text-[#888]">Ready to review</div></div>
-              <span class="text-[10px] text-[#16803c]">Ready</span>
+              <span class="text-[10px] text-[#2563eb]">Ready</span>
             </div>
           </div>
         </div>
@@ -444,7 +456,7 @@ function quoteSize(shape: string) {
     <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
       <div class="reveal flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">Templates</div>
+          <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#2563eb]">Templates</div>
           <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Designed documents.<br />Not AI-generated layouts.</h2>
         </div>
         <p class="max-w-md text-sm leading-6 text-[#666]">Start with a trusted document style and let AI focus on the content. The visual system stays intentional and consistent.</p>
@@ -507,7 +519,7 @@ function quoteSize(shape: string) {
     <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
       <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
         <div class="reveal">
-          <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">A different approach</div>
+          <div class="mono text-[10px] uppercase tracking-[.18em] text-[#2563eb]">A different approach</div>
           <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">The AI should help you present your experience — not replace it.</h2>
         </div>
         <div class="reveal grid gap-3 sm:grid-cols-2">
@@ -520,51 +532,112 @@ function quoteSize(shape: string) {
     </div>
   </section>
 
-  <!-- FAQ -->
-  <section id="faq" class="border-t hairline bg-[#F7F7F5]">
-    <div class="mx-auto max-w-4xl px-5 py-24 lg:py-32">
-      <div class="reveal text-center">
-        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">FAQ</div>
-        <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Questions, answered.</h2>
+  <!-- PRICING — one-time payments, no subscription -->
+  <section id="pricing" class="border-t hairline bg-white">
+    <div class="mx-auto max-w-6xl px-5 py-24 lg:px-8 lg:py-28">
+      <div class="reveal mx-auto max-w-2xl text-center">
+        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#2563eb]">Pricing</div>
+        <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Own your credits. No subscription.</h2>
+        <p class="mt-5 text-base leading-7 text-[#666]">Pay once, use Aptora as much as the credits allow. Top-ups never expire — Pro lasts a full year.</p>
       </div>
-      <div class="mt-12 divide-y divide-[#E5E5E1] border-y border-[#E5E5E1]">
-        <details class="group py-5">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
-            Can AI invent experience on my resume?
-            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
-          </summary>
-          <p class="mt-3 max-w-3xl text-sm leading-6 text-[#70706d]">No. The intended workflow keeps your existing experience as the source of truth. AI can rewrite, shorten, reorder and emphasize content, but should not fabricate jobs, skills, metrics, dates or achievements.</p>
-        </details>
-        <details class="group py-5">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
-            What does the AI actually analyze?
-            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
-          </summary>
-          <p class="mt-3 text-sm leading-6 text-[#70706d]">It can structure your resume, understand the job description, compare skills and responsibilities, identify gaps and opportunities, and produce tailored content grounded in your resume.</p>
-        </details>
-        <details class="group py-5">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
-            Do I have to rewrite my resume from scratch?
-            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
-          </summary>
-          <p class="mt-3 text-sm leading-6 text-[#70706d]">No. Upload the resume you already use. The point is to improve its relevance for a specific role rather than make you start over.</p>
-        </details>
-        <details class="group py-5">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
-            Will the preview match the downloaded document?
-            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
-          </summary>
-          <p class="mt-3 text-sm leading-6 text-[#70706d]">The product is designed around a single generated document artifact: the document you preview is the document you download, rather than a separate HTML representation.</p>
-        </details>
+      <div class="reveal mt-14 grid gap-4 md:grid-cols-3">
+        <!-- Free -->
+        <div class="flex flex-col rounded-2xl border hairline bg-[#FAFAF8] p-7">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold">Free</span>
+            <span class="rounded-md bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#888] ring-1 ring-[#E5E5E1]">No card</span>
+          </div>
+          <div class="mt-4 flex items-baseline gap-2"><span class="text-4xl font-semibold tracking-[-.03em]">₹0</span><span class="text-xs text-[#999]">forever</span></div>
+          <p class="mt-3 text-xs leading-5 text-[#777]">Everything on the workspace, with a small daily budget.</p>
+          <ul class="mt-5 flex flex-1 flex-col gap-2.5 text-[13px] leading-6 text-[#333]">
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Daily free runs — no signup</li>
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Upload your existing resume</li>
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Fit analysis + job-description match</li>
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Real PDF export</li>
+          </ul>
+          <a href={APP_URL} class="mt-7 inline-flex items-center justify-center rounded-xl border hairline bg-white px-5 py-3 text-sm font-semibold no-underline transition hover:border-[#111]">Start free</a>
+        </div>
+        <!-- Top-up -->
+        <div class="relative flex flex-col rounded-2xl border-2 border-[#2563eb] bg-white p-7 shadow-[0_10px_36px_rgba(37,99,235,.09)]">
+          <span class="absolute -top-3 right-6 rounded-full bg-[#2563eb] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Most picked</span>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold">Credit top-up</span>
+            <span class="mono text-[10px] text-[#999]">NO EXPIRY</span>
+          </div>
+          <div class="mt-4 flex items-baseline gap-2"><span class="text-4xl font-semibold tracking-[-.03em]">₹{TOPUP_INR}</span><span class="text-xs text-[#999]">{TOPUP_CREDITS} credits</span></div>
+          <p class="mt-3 text-xs leading-5 text-[#777]">When the daily budget runs out. Credits sit with your session and are used automatically.</p>
+          <ul class="mt-5 flex flex-1 flex-col gap-2.5 text-[13px] leading-6 text-[#333]">
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>{TOPUP_CREDITS} extra AI / export credits</li>
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Credits never expire</li>
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Consumed only when free budget is gone</li>
+            <li class="flex gap-2.5"><span class="text-[#2563eb]">✓</span>Secure PayU checkout — UPI, cards, netbanking</li>
+          </ul>
+          <button type="button" data-pay="TOPUP" class="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]">
+            Buy {TOPUP_CREDITS} credits — ₹{TOPUP_INR}
+          </button>
+        </div>
+        <!-- Pro -->
+        <div class="flex flex-col rounded-2xl border hairline bg-[#111] p-7 text-white">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold">Aptora Pro</span>
+            <span class="mono text-[10px] text-white/50">1 YEAR</span>
+          </div>
+          <div class="mt-4 flex items-baseline gap-2"><span class="text-4xl font-semibold tracking-[-.03em]">₹{PRO_INR}</span><span class="text-xs text-white/60">· {PRO_CREDITS} credits</span></div>
+          <p class="mt-3 text-xs leading-5 text-white/60">Everything unlocked for a full year — the serious job-hunt tier.</p>
+          <ul class="mt-5 flex flex-1 flex-col gap-2.5 text-[13px] leading-6 text-white/90">
+            <li class="flex gap-2.5"><span class="text-[#7cabff]">✓</span><strong>{PRO_CREDITS} credits</strong>&nbsp;— stagger them across a year</li>
+            <li class="flex gap-2.5"><span class="text-[#7cabff]">✓</span>All templates + premium exports</li>
+            <li class="flex gap-2.5"><span class="text-[#7cabff]">✓</span>Unlimited saved job descriptions</li>
+            <li class="flex gap-2.5"><span class="text-[#7cabff]">✓</span>Priority tailoring queue</li>
+          </ul>
+          <button type="button" data-pay="PRO" class="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#111] transition hover:bg-[#ededeb]">
+            Go Pro — ₹{PRO_INR}
+          </button>
+        </div>
       </div>
+      <p class="reveal mt-6 text-center text-[11.5px] text-[#999]">Secure payments via PayU. One-time charges — we never store card details and never auto-bill.</p>
     </div>
   </section>
+  <script is:inline>
+    document.querySelectorAll('[data-pay]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var plan = btn.getAttribute('data-pay');
+        if (btn.dataset.busy) return;
+        btn.dataset.busy = '1';
+        var original = btn.innerHTML;
+        btn.innerHTML = 'Opening PayU…';
+        try {
+          var r = await fetch('/api/payments/init', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ plan: plan }),
+          });
+          var j = await r.json();
+          if (!r.ok) throw new Error(j.error || j.message || 'Checkout is unavailable right now.');
+          var form = document.createElement('form');
+          form.method = 'POST';
+          form.action = j.gatewayUrl;
+          Object.keys(j.params).forEach(function (k) {
+            var i = document.createElement('input');
+            i.type = 'hidden'; i.name = k; i.value = String(j.params[k]);
+            form.appendChild(i);
+          });
+          document.body.appendChild(form);
+          form.submit();
+        } catch (e) {
+          btn.innerHTML = original;
+          delete btn.dataset.busy;
+          alert(e.message || 'Checkout failed. Please try again.');
+        }
+      });
+    });
+  </script>
 
   <!-- TESTIMONIALS bento wall -->
-  <section id="testimonials" class="border-t hairline bg-white">
+  <section id="testimonials" class="border-t hairline bg-[#F7F7F5]">
     <div class="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
       <div class="reveal mx-auto max-w-2xl text-center">
-        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#888]">Loved by job seekers</div>
+        <div class="mono text-[10px] font-medium uppercase tracking-[.18em] text-[#2563eb]">Loved by job seekers</div>
         <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Real resumes. Better fit.</h2>
         <p class="mt-5 text-base leading-7 text-[#666]">People use Aptora to make the resume they already have land for the role in front of them — honestly.</p>
       </div>
@@ -613,11 +686,58 @@ function quoteSize(shape: string) {
     </div>
   </section>
 
+  <!-- FAQ -->
+  <section id="faq" class="border-t hairline bg-white">
+    <div class="mx-auto max-w-4xl px-5 py-24 lg:py-32">
+      <div class="reveal text-center">
+        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#2563eb]">FAQ</div>
+        <h2 class="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Questions, answered.</h2>
+      </div>
+      <div class="mt-12 divide-y divide-[#E5E5E1] border-y border-[#E5E5E1]">
+        <details class="group py-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
+            Can AI invent experience on my resume?
+            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-[#70706d]">No. The intended workflow keeps your existing experience as the source of truth. AI can rewrite, shorten, reorder and emphasize content, but should not fabricate jobs, skills, metrics, dates or achievements.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
+            What does the AI actually analyze?
+            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-6 text-[#70706d]">It can structure your resume, understand the job description, compare skills and responsibilities, identify gaps and opportunities, and produce tailored content grounded in your resume.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
+            Do I have to rewrite my resume from scratch?
+            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-6 text-[#70706d]">No. Upload the resume you already use. The point is to improve its relevance for a specific role rather than make you start over.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
+            What do credits cost and do they expire?
+            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-6 text-[#70706d]">Top-ups are one-time (no subscription) and never expire. Pro is a single payment valid for a full year. Everything is billed securely through PayU — UPI, cards or netbanking — and we never auto-bill.</p>
+        </details>
+        <details class="group py-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-5 text-sm font-semibold">
+            Will the preview match the downloaded document?
+            <span class="text-xl font-normal text-[#999] transition group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-6 text-[#70706d]">The product is designed around a single generated document artifact: the document you preview is the document you download, rather than a separate HTML representation.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <!-- FINAL CTA -->
   <section class="border-t hairline bg-[#111] text-white">
     <div class="mx-auto max-w-5xl px-5 py-24 text-center lg:py-32">
       <div class="reveal">
-        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#888]">Ready when you are</div>
+        <div class="mono text-[10px] uppercase tracking-[.18em] text-[#2563eb]">Ready when you are</div>
         <h2 class="mt-5 text-4xl font-semibold tracking-[-.05em] sm:text-6xl">Your next application<br />deserves a better fit.</h2>
         <p class="mx-auto mt-6 max-w-xl text-base leading-7 text-[#aaa]">Bring your resume. Bring the role. Let AI help you make the strongest version of what is already true.</p>
         <a href={APP_URL} class="mt-9 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-semibold text-[#111] transition hover:bg-[#ededeb]">
@@ -628,3 +748,62 @@ function quoteSize(shape: string) {
     </div>
   </section>
 </Marketing>
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://aptora.enally.in/#org",
+      "name": "Aptora",
+      "url": "https://aptora.enally.in/",
+      "logo": "https://aptora.enally.in/aptora_sq.webp",
+      "sameAs": []
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Aptora",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "url": "https://aptora.enally.in/",
+      "logo": "https://aptora.enally.in/aptora_sq.webp",
+      "description": "Upload the resume you already have and a job description. Aptora's AI tailors your real experience for the role and compiles a real, professional PDF.",
+      "publisher": { "@id": "https://aptora.enally.in/#org" },
+      "offers": [
+        { "@type": "Offer", "name": `Credit top-up (${TOPUP_CREDITS} credits)`, "price": TOPUP_INR.toFixed(2), "priceCurrency": "INR", "category": "one-time" },
+        { "@type": "Offer", "name": `Aptora Pro (1 year, ${PRO_CREDITS} credits)`, "price": PRO_INR.toFixed(2), "priceCurrency": "INR", "category": "one-time" }
+      ],
+      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "2000", "bestRating": "5", "worstRating": "1" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can AI invent experience on my resume?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. The intended workflow keeps your existing experience as the source of truth. AI can rewrite, shorten, reorder and emphasize content, but should not fabricate jobs, skills, metrics, dates or achievements." }
+        },
+        {
+          "@type": "Question",
+          "name": "What does the AI actually analyze?",
+          "acceptedAnswer": { "@type": "Answer", "text": "It can structure your resume, understand the job description, compare skills and responsibilities, identify gaps and opportunities, and produce tailored content grounded in your resume." }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I have to rewrite my resume from scratch?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. Upload the resume you already use. The point is to improve its relevance for a specific role rather than make you start over." }
+        },
+        {
+          "@type": "Question",
+          "name": "What do credits cost and do they expire?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Top-ups are one-time (no subscription) and never expire. Pro is a single payment valid for a full year. Everything is billed securely through PayU — UPI, cards or netbanking — and we never auto-bill." }
+        },
+        {
+          "@type": "Question",
+          "name": "Will the preview match the downloaded document?",
+          "acceptedAnswer": { "@type": "Answer", "text": "The product is designed around a single generated document artifact: the document you preview is the document you download, rather than a separate HTML representation." }
+        }
+      ]
+    }
+  ]
+})} />

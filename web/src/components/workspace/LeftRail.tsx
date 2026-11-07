@@ -1,10 +1,11 @@
 import { ListTree, FileUp, Settings, Files, ChartBar, SlidersHorizontal } from "lucide-motion";
 import { BrainIcon } from "../ui/brain";
+import { SquareActivityIcon } from "../ui/SquareActivityIcon";
 
 // Thin icon rail (~48px). Top 4 = drawer tabs (Outline/Import/AI/Manual Adjust). Divider.
-// Then in-shell views (Files, Usage) that swap the CENTER content.
+// Then in-shell views (Files, Usage, Activity) that swap the CENTER content.
 export type DrawerTab = "outline" | "import" | "intelligence" | "instruct";
-export type View = "editor" | "files" | "usage";
+export type View = "editor" | "files" | "usage" | "activity";
 
 interface Props {
   drawerOpen: boolean;
@@ -40,6 +41,9 @@ export default function LeftRail({ drawerOpen, activeTab, onToggle, view, onView
         </button>
         <button type="button" className={viewCls("usage")} onClick={() => onView(view === "usage" ? "editor" : "usage")} aria-label="Usage" data-label="Usage">
           <ChartBar size={19} />
+        </button>
+        <button type="button" className={viewCls("activity")} onClick={() => onView(view === "activity" ? "editor" : "activity")} aria-label="Activity" data-label="Activity">
+          <SquareActivityIcon size={19} />
         </button>
       </div>
 

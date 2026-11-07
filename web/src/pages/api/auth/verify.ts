@@ -2,9 +2,9 @@
 // Checks the OTP; on success marks the user verified, logs them in (session upgrade),
 // sends the welcome email, and adds them to the Resend audience.
 import type { APIRoute } from "astro";
-import { checkOtp, markVerified, findUserByEmail, setUserSession, clearUserSession } from "@/lib/auth";
+import { checkOtp, markVerified, findUserByEmail, setUserSession } from "@/lib/auth";
 import { sendWelcome, addToAudience } from "@/lib/email";
-import { getOwnerId, } from "@/lib/session";
+import { getOwnerId } from "@/lib/session";
 import { transferOwnership } from "@/lib/db/repo";
 
 export const prerender = false;

@@ -1,0 +1,24 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[margin=0.65in,top=0.45in,bottom=0.45in]{geometry}
+\usepackage{enumitem}\usepackage[hidelinks]{hyperref}\usepackage{xcolor}
+\usepackage{newtxtext,newtxmath}\usepackage{titlesec}\usepackage{tabularx}
+\pagenumbering{gobble}
+\titleformat{\section}{\Large\bfseries\uppercase}{}{0em}{}[\titlerule]
+\setlist[itemize]{noitemsep, topsep=4pt, left=8pt}
+\renewcommand{\baselinestretch}{1.12}
+\begin{document}
+\begin{center}{\Huge \textbf{PRASHANT KUMAR}}\\[5pt]
+{\large\textbf{PRODUCT ENGINEER \& FULL-STACK DEVELOPER}}\\[9pt]
+\normalsize\textbullet\ +91 9612096180 \textbullet\ prashantmanwan@gmail.com\end{center}
+\section*{SUMMARY}
+Product engineer with 2 years of production experience across web products.
+\section*{EXPERIENCE}
+\textbf{Product Engineer --- Enally} \hfill \textit{2020 -- Present}
+\begin{itemize}
+\item Built production web products for R\&D at ACME_2024 using 100\% C++ to save \$2M.
+\item Designed REST APIs and real-time services.
+\end{itemize}
+\section*{TECHNICAL SKILLS}
+\noindent \textbf{Languages:} TypeScript, JavaScript, Python, SQL, PHP, C++ \\
+\textbf{Cloud \& DevOps:} AWS (EC2, Lambda, S3, RDS), Docker, GitHub Actions, CI/CD
+\end{document}

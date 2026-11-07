@@ -268,6 +268,49 @@ def _store_artifact(document_id: str, art: _Artifact) -> None:
     gc.collect()  # release the just-handled PDF bytes / evicted image buffers promptly
 
 
+def _persist_and_serve(
+    key: str, result: CompileResult, pdf: bytes | None,
+    imgs: list[PageImageBytes], rasterize: bool,
+) -> CompileResult:
+    """Shared tail for BOTH compile routes: write the PDF + page images into the
+    content-addressed disk cache, keep a small RAM artifact window, and return the
+    result with the STABLE document_id (the content key). Best-effort writes: if the
+    cache is unavailable we spill so previews/exports still work for this boot."""
+    if pdf is None:
+        return result
+    page_specs = [(i.page, i.fmt, i.data) for i in imgs] if rasterize else []
+    _, pdf_path = _cache_paths(key)
+    disk_pages: dict[int, tuple[str, str]] = {}
+    if pdf_path is not None:
+        try:
+            pdf_path.write_bytes(pdf)
+            _store_cache(key, {
+                "sha256": result.sha256,
+                "page_count": result.page_count,
+                "pages": [pm.model_dump() for pm in result.pages],
+            }, page_specs)
+            # After RAM eviction these lazy refs let pages rehydrate from disk.
+            disk_pages = {p: (str(_CACHE_DIR / f"{key}.p{p}.{fmt}"), fmt) for p, fmt, _ in page_specs}
+        except Exception:
+            pass  # cache write is best-effort; the fresh result is still returned
+    else:
+        # Disk cache unavailable: spill so exports/previews still work this boot.
+        try:
+            _PDF_SPILL.mkdir(parents=True, exist_ok=True)
+            pdf_path = _PDF_SPILL / f"{key}.pdf"
+            pdf_path.write_bytes(pdf)
+        except Exception:
+            pdf_path = None
+    if pdf_path is not None:
+        _store_artifact(key, _Artifact(
+            pdf_path=str(pdf_path),
+            pages={i.page: i for i in imgs},
+            disk_pages=disk_pages,
+        ))
+        result = result.model_copy(update={"document_id": key})
+    return result
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     fav_file = _STATIC_DIR / "favicon.webp"
@@ -443,32 +486,7 @@ def compile_tex(inp: CompileTexInput):
         return JSONResponse(status_code=422, content={
             "error": {"code": result.error_code, "message": result.detail}
         })
-    # Store into the disk cache keyed by the source (deterministic ids), and serve.
-    if pdf is not None:
-        page_specs = [(i.page, i.fmt, i.data) for i in imgs] if inp.rasterize else []
-        meta_p, pdf_path = _cache_paths(key)
-        if pdf_path is not None:
-            try:
-                pdf_path.write_bytes(pdf)
-                _store_cache(key, {
-                    "sha256": result.sha256,
-                    "page_count": result.page_count,
-                    "pages": [pm.model_dump() for pm in result.pages],
-                }, page_specs)
-            except Exception:
-                pass  # cache write is best-effort; the returned result is still fresh
-        else:
-            # Disk cache unavailable: spill so exports/previews still work this boot.
-            _PDF_SPILL.mkdir(parents=True, exist_ok=True)
-            pdf_path = _PDF_SPILL / f"{key}.pdf"
-            try:
-                pdf_path.write_bytes(pdf)
-            except Exception:
-                pdf_path = None
-        if pdf_path is not None:
-            _store_artifact(key, _Artifact(pdf_path=str(pdf_path), pages={i.page: i for i in imgs}))
-            result = result.model_copy(update={"document_id": key})
-    return result
+    return _persist_and_serve(key, result, pdf, imgs, inp.rasterize)
 
 
 def _key_sha(key: str) -> str:

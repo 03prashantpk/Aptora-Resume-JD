@@ -7,7 +7,7 @@
 //   2. AI receives compact JSON (~50 short strings) and rewrites text to match the JD.
 //   3. Patched back into the untouched template with exact offset safety — surrounding
 //      LaTeX (\Huge, \vspace, margins, packages, section formatting) is never touched.
-import { chatWithFallback } from "./nvidia";
+import { chatWithRole, chatWithRoleStream, chatWithFallback, type ChatMessage } from "./nvidia";
 import type { Intensity } from "./tailor";
 import {
   extractRegions, patchLatex,
@@ -22,6 +22,12 @@ export interface SurgicalResult {
   latex: string;
   changed: TextRegion[];
   skipped: string[];
+}
+
+/** Live progress for the UI: stage notices + raw reasoning deltas (the badge). */
+export interface SurgicalHooks {
+  onStage?: (stage: string, detail?: string) => void;
+  onReason?: (delta: string) => void;
 }
 
 // ─── AI Rewriter ─────────────────────────────────────────────────────────────
@@ -46,6 +52,7 @@ async function callSurgicalAI(
   regions: TextRegion[],
   jd: string,
   intensity: Intensity,
+  hooks?: SurgicalHooks,
 ): Promise<AiRegionOutput[]> {
   const INTENSITY_NOTE: Record<Intensity, string> = {
     light: "Minimal edits: adjust wording and emphasis of relevant bullets. Keep almost everything as-is.",
@@ -70,9 +77,11 @@ async function callSurgicalAI(
     "Return the tailored JSON now.",
   ].join("\n");
 
-  const out = await chatWithFallback(
+  const out = await chatWithRoleStream(
     [{ role: "system", content: SURGICAL_SYSTEM }, { role: "user", content: user }],
     { temperature: 0.35, max_tokens: 4096 },
+    "writer",
+    hooks?.onReason,
   );
 
   const jsonMatch = out.match(/\{[\s\S]*\}/);
@@ -91,10 +100,14 @@ export async function surgicalTailor(
   latex: string,
   jd: string,
   intensity: Intensity = "balanced",
+  hooks?: SurgicalHooks,
 ): Promise<SurgicalResult> {
+  hooks?.onStage?.("reading");
   const regions = extractRegions(latex);
   if (regions.length > 0) {
-    const aiOutput = await callSurgicalAI(regions, jd, intensity);
+    hooks?.onStage?.("rewriting", `${regions.length} regions`);
+    const aiOutput = await callSurgicalAI(regions, jd, intensity, hooks);
+    hooks?.onStage?.("patching");
     const patched = patchLatex(latex, regions, aiOutput);
     // If the surgical pass actually changed something, we're done — typography is safe
     // by construction (offset patch of text only).
@@ -105,7 +118,8 @@ export async function surgicalTailor(
   // whole-.tex tailor so JD tailoring still produces changes, but keep typography frozen
   // via the CONTENT-strict integrity check — if the model touched fonts/margins/layout,
   // we discard it and keep the original.
-  const whole = await wholeDocTailor(latex, jd, intensity);
+  hooks?.onStage?.("rewriting", "full document");
+  const whole = await wholeDocTailor(latex, jd, intensity, hooks);
   if (whole && whole !== latex && checkIntegrity(latex, whole, "content").ok) {
     return { latex: whole, changed: [], skipped: [] };
   }
@@ -120,7 +134,12 @@ const WHOLE_TAILOR_SYSTEM = [
   "Output ONLY the complete LaTeX document — no markdown fences, no commentary. Must start with \\documentclass and end with \\end{document}.",
 ].join(" ");
 
-async function wholeDocTailor(latex: string, jd: string, intensity: Intensity): Promise<string> {
+async function wholeDocTailor(
+  latex: string,
+  jd: string,
+  intensity: Intensity,
+  hooks?: SurgicalHooks,
+): Promise<string> {
   const note: Record<Intensity, string> = {
     light: "Make minimal wording tweaks.",
     balanced: "Refine the summary and emphasize relevant bullets/skills for the role.",
@@ -132,9 +151,11 @@ async function wholeDocTailor(latex: string, jd: string, intensity: Intensity): 
     note[intensity],
     "Return the full tailored LaTeX now.",
   ].join("\n");
-  const out = await chatWithFallback(
+  const out = await chatWithRoleStream(
     [{ role: "system", content: WHOLE_TAILOR_SYSTEM }, { role: "user", content: user }],
     { temperature: 0.35, max_tokens: 8192 },
+    "writer",
+    hooks?.onReason,
   );
   return out
     .replace(/^```(?:latex|tex)?\s*/i, "")

@@ -1,0 +1,35 @@
+---
+// Payment success — clean, branded, server-side page PayU's flow lands on after our
+// SURL has already verified + granted the credits (the grant NEVER happens here).
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payment successful — Aptora</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root { --ink: #141414; --blue: #2563eb; --muted: #6b7280; --line: #e5e7eb; }
+    * { margin: 0; box-sizing: border-box; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif; background: #fafafa; color: var(--ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 44px 36px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+    .check { width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 18px; }
+    h1 { font-size: 21px; letter-spacing: -0.02em; margin-bottom: 8px; }
+    p { color: var(--muted); font-size: 14px; line-height: 1.55; margin-bottom: 26px; }
+    a.btn { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; }
+    a.btn:hover { background: #000; }
+    .brand { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <span class="check">✓</span>
+    <div class="brand">Aptora</div>
+    <h1>Payment received — credits added</h1>
+    <p>Your purchase is complete and the credits are already on your workspace account. You can close this page and continue building.</p>
+    <a class="btn" href="/">Open your workspace</a>
+  </main>
+</body>
+</html>

@@ -24,6 +24,7 @@ import EditorPane from "./EditorPane";
 import PreviewPane from "./PreviewPane";
 import FilesView from "../pages/FilesView";
 import UsageView from "../pages/UsageView";
+import ActivityView from "../pages/ActivityView";
 import Toaster, { toast } from "../ui/toast";
 import type { View } from "./LeftRail";
 import type { CompileResult, TemplateId } from "@/lib/types";
@@ -86,16 +87,48 @@ export default function Workspace() {
     fetch("/api/warm").catch(() => {});
   }, []);
 
+  // PayU bounces back here after checkout: surface the result once, then clean the URL.
+  // Also supports workspace deep links: /?view=usage | activity | files
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const payment = p.get("payment");
+    const v = p.get("view");
+    if (v === "usage" || v === "activity" || v === "files") setView(v);
+    if (!payment) return;
+    if (payment === "success") toast("Payment received — credits added. You're all set!", "success");
+    else if (payment === "failed") toast("Payment failed or was cancelled. Nothing was charged.", "error");
+    else toast("We couldn't verify that payment. If you were charged, it will settle within minutes.", "info");
+    p.delete("payment");
+    const qs = p.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+  }, []);
+
   useEffect(() => {
     let alive = true;
     (async () => {
+      // ── Instant paint first: the local snapshot survives refresh/close, costs zero
+      // network, and makes the workspace feel immediate even when the durable restore
+      // is slow (Neon cold or the fallback chain hitting a sleeping Render engine).
+      // The authoritative restore below then reconciles over it silently.
+      let painted = false;
       try {
-        // Restore the owner's most recent working document first (the durable, correct
-        // source). Falls back to the starter template for brand-new sessions.
+        const draft = window.localStorage.getItem("aptora_draft");
+        if (draft && draft.trim()) {
+          setLatex(draft);
+          setTemplateId(detectTemplate(draft));
+          setLoadingDoc(false);
+          painted = true;
+        }
+      } catch { /* quota/private mode */ }
+
+      // ── Durable restore (authoritative): the owner's most recent working document.
+      // When we already painted from the newer local draft, we reconcile METADATA only —
+      // never overwrite the user's newer local content with an older server copy.
+      try {
         const res = await fetch("/api/documents/current");
         if (res.ok) {
           const doc = (await res.json()) as { latex?: string | null; title?: string | null; documentId?: string | null; pageCount?: number | null };
-          if (alive && typeof doc.latex === "string" && doc.latex.trim()) {
+          if (alive && typeof doc.latex === "string" && doc.latex.trim() && !painted) {
             setLatex(doc.latex);
             setTemplateId(detectTemplate(doc.latex));
             if (doc.title) setDocName(doc.title);
@@ -103,12 +136,18 @@ export default function Workspace() {
             setLoadingDoc(false);
             return;
           }
+          if (alive && painted && typeof doc.documentId === "string") {
+            setDocumentId(doc.documentId);
+            setPageCount(doc.pageCount ?? 0);
+            if (doc.title) setDocName(doc.title);
+          }
         }
-        // Anonymous/first-visit local backup (last resort if the DB was unreachable).
-        const draft = typeof window !== "undefined" ? window.localStorage.getItem("aptora_draft") : null;
-        if (draft && draft.trim()) {
-          if (alive) { setLatex(draft); setTemplateId(detectTemplate(draft)); setLoadingDoc(false); return; }
-        }
+      } catch { /* fall through to starter */ }
+
+      if (painted) return;
+      // Anonymous/first-visit fallback: the starter template (kept as-is — the normal
+      // engine warmup route covers it; no bundled copy, no extra Render compute).
+      try {
         const res2 = await fetch("/api/default-document");
         const body = (await res2.json()) as { latex?: string };
         if (alive && body.latex) {
@@ -116,7 +155,7 @@ export default function Workspace() {
           setTemplateId(detectTemplate(body.latex));
         }
       } catch { /* editable empty */ }
-      finally { if (alive) setLoadingDoc(false); }
+      if (alive) setLoadingDoc(false);
     })();
     return () => { alive = false; };
   }, []);
@@ -195,6 +234,23 @@ export default function Workspace() {
     return out;
   }, []);
 
+  // Badge realism: show the model's LATEST full words — collapse whitespace, cut at a
+  // whole word boundary (never a half-typed word like "write new te…", which reads fake).
+  const badgeReason = useCallback((raw: string, max = 96): string => {
+    let t = raw.replace(/\s+/g, " ").trim();
+    if (!t) return "";
+    if (t.length > max) {
+      t = t.slice(-(max + 10));                 // grab a slightly wider window from the end
+      const sp = t.indexOf(" ");
+      if (sp > 0 && sp <= 14) t = t.slice(sp + 1);  // drop the leading partial word
+      if (t.length > max) t = t.slice(0, max).trim();
+    }
+    // Prefer ending on a comma/period if there is one in reach (reads like narration).
+    const punct = Math.max(t.lastIndexOf(". "), t.lastIndexOf(", "));
+    if (punct > max * 0.55) t = t.slice(0, punct + 1).trim();
+    return t;
+  }, []);
+
   const onAnalyze = useCallback(async () => {
     if (!jd.trim() || analyzing) return;
     setAnalyzing(true);
@@ -215,38 +271,62 @@ export default function Workspace() {
     setDrawerTab("intelligence"); setDrawerOpen(true);
     preAiRef.current = latex;
     setStreaming(true); setTailorPhase("connecting"); setAiLines(new Set());
+    // Drive the bottom-center reasoning badge for the tailor flow too.
+    setInstructLoading(true); setAiReason(""); setAiFail(null); setAiStage("reading-resume");
     try {
-      setTailorPhase("thinking");
       const res = await fetch("/api/ai/tailor-stream", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ latex, jd, intensity }),
+        body: JSON.stringify({ latex, jd, intensity, stream: true }),
       });
-      if (res.status === 402) { setShowAccountPrompt(true); setTailorPhase("idle"); setStreaming(false); return; }
-      if (!res.ok) { setTailorPhase("error"); setStreaming(false); return; }
+      if (res.status === 402) { setShowAccountPrompt(true); setTailorPhase("idle"); return; }
+      if (!res.ok || !res.body) { setTailorPhase("error"); setAiFail({ latex, error: `AI_UNAVAILABLE: tailoring failed (HTTP ${res.status})` }); return; }
 
-      const body = (await res.json()) as { latex?: string; changedCount?: number; error?: unknown };
-      if (!body.latex || typeof body.latex !== "string") {
-        // AI returned no changes or an error
-        if (preAiRef.current !== null) setLatex(preAiRef.current);
-        setTailorPhase("error");
-        setStreaming(false);
-        return;
+      // Consume the tailor SSE frame stream (stage / reasoning / result) — the same
+      // protocol as the manual-edit instruct stream, so the badge behaves identically.
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = ""; let lastReasonUi = 0; let gotResult = false;
+      let finalLatex = "";
+      for (;;) {
+        const { value, done } = await reader.read(); if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n\n")) !== -1) {
+          const raw = buf.slice(0, nl).trim(); buf = buf.slice(nl + 2);
+          if (!raw) continue;
+          let frame: { type?: string; stage?: string; detail?: string; text?: string; latex?: string; changedCount?: number; code?: string; message?: string };
+          try { frame = JSON.parse(raw); } catch { continue; }
+          if (frame.type === "stage") {
+            const s = frame.stage ?? "";
+            setAiStage(s === "rewriting" ? "rewriting" : s === "patching" ? "patching" : "reading-resume");
+            setTailorPhase(s === "rewriting" || s === "patching" ? "writing" : "thinking");
+          } else if (frame.type === "reason") {
+            // Keep ONLY the newest sentence fragment for the badge (cheap, readable).
+            const now = Date.now();
+            if (now - lastReasonUi > 400) {
+              lastReasonUi = now;
+              const t = badgeReason(frame.text ?? "");
+              if (t) setAiReason(t);
+            }
+          } else if (frame.type === "result") {
+            gotResult = true;
+            finalLatex = frame.latex ?? "";
+            setTailorPhase("writing");
+            if (finalLatex) {
+              setLatex(finalLatex);
+              setAiLines(changedLines(preAiRef.current ?? "", finalLatex));
+              setTailorPhase("compiling");
+              const ok = await runCompile(finalLatex);
+              setTailorPhase(ok ? "done" : "error");
+              refreshUsage();
+            }
+          } else if (frame.type === "error") {
+            setTailorPhase("error");
+            setAiFail({ latex, error: `${frame.code ?? "AI_UNAVAILABLE"}: ${frame.message ?? "tailoring failed"}` });
+          }
+        }
       }
-
-      const finalLatex = body.latex;
-      setTailorPhase("writing");
-      setLatex(finalLatex);
-      setAiLines(changedLines(preAiRef.current ?? "", finalLatex));
-
-      setTailorPhase("compiling");
-      const compileOk = await runCompile(finalLatex);
-      if (!compileOk) {
-        setTailorPhase("error");
-        setStreaming(false);
-        return;
-      }
-      setTailorPhase("done");
-      refreshUsage();
+      if (!gotResult || !finalLatex) return;
 
       // Auto-analyze the tailored resume against the same JD — no extra button click needed.
       // Run in background after tailor completes so Intelligence tab shows fit score immediately.
@@ -267,6 +347,9 @@ export default function Workspace() {
       setTailorPhase("error");
     } finally {
       setStreaming(false);
+      setInstructLoading(false);
+      setAiStage(null);
+      setAiReason("");
     }
   }, [jd, latex, streaming, intensity, changedLines, runCompile, refreshUsage]);
 
@@ -317,30 +400,105 @@ export default function Workspace() {
   }, [analysis, exportingAnalysis]);
 
   const [instructLoading, setInstructLoading] = useState(false);
+  // Live "Aptora is working…" coverage: stage text, latest reasoning snippet, and the
+  // Fix flow (a repairable failure keeps latex+error so the user can press Fix, which
+  // sends ONLY the failing document + compiler error to the repair model).
+  // Lifted auth-modal state: every "create account" action opens the SAME in-app popup.
+  const [authModal, setAuthModal] = useState<null | "login" | "signup">(null);
+  const openAuth = useCallback((mode: "login" | "signup") => { setAuthModal(mode); }, []);
+  const [aiStage, setAiStage] = useState<string | null>(null);
+  const [aiReason, setAiReason] = useState<string>("");
+  const [aiFail, setAiFail] = useState<{ latex: string; error: string } | null>(null);
+  const onFix = useCallback(async () => {
+    if (!aiFail) return;
+    const { latex: bad, error } = aiFail;
+    setAiFail(null);
+    setInstructLoading(true);
+    setAiStage("fixing");
+    try {
+      const res = await fetch("/api/ai/fix-tex", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ latex: bad, error }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { latex?: string; error?: { message?: string } };
+      if (res.ok && body?.latex) {
+        setLatex(body.latex);
+        await runCompile(body.latex);
+        toast("Fixed — the document compiles now.", "success");
+      } else {
+        setAiFail({ latex: bad, error });
+        toast(body?.error?.message || "Couldn't auto-fix that one. Try hand-editing the highlighted spot.", "error");
+      }
+    } catch {
+      setAiFail({ latex: bad, error });
+      toast("Fix is unavailable right now.", "error");
+    } finally {
+      setInstructLoading(false);
+      setAiStage(null);
+    }
+  }, [aiFail, runCompile]);
+
   const onInstruct = useCallback(async (instruction: string): Promise<boolean> => {
     if (!instruction.trim() || instructLoading) return false;
     setInstructLoading(true);
+    setAiReason("");
+    setAiFail(null);
+    setAiStage("understanding");
     preAiRef.current = latex;
     try {
       const res = await fetch("/api/ai/instruct", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ latex, instruction }),
+        body: JSON.stringify({ latex, instruction, stream: true }),
       });
       if (res.status === 402) { setShowAccountPrompt(true); return false; }
-      if (!res.ok) return false;
-      const body = (await res.json()) as { latex?: string; summary?: string };
-      if (body?.latex && typeof body.latex === "string") {
-        setLatex(body.latex);
-        setAiLines(changedLines(preAiRef.current ?? "", body.latex));
-        await runCompile(body.latex);
-        refreshUsage();
-        return true;
+      if (!res.ok || !res.body) return false;
+
+      // Consume the stage / reasoning / result frame stream.
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = ""; let lastReasonUi = 0; let applied = false;
+      for (;;) {
+        const { value, done } = await reader.read(); if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n\n")) !== -1) {
+          const raw = buf.slice(0, nl).trim(); buf = buf.slice(nl + 2);
+          if (!raw) continue;
+          let frame: { type?: string; stage?: string; detail?: string; text?: string; latex?: string; summary?: string; rejected?: boolean; code?: string; message?: string };
+          try { frame = JSON.parse(raw); } catch { continue; }
+          if (frame.type === "stage") {
+            if (frame.stage === "compile") setAiStage("compiling & validating");
+            else if (frame.stage === "repair") setAiStage("repairing a syntax slip");
+            else if (frame.stage === "reverted") setAiStage("rolled back");
+            else setAiStage("working");
+          } else if (frame.type === "reason") {
+            // Keep ONLY the newest sentence fragment for the badge (cheap, readable).
+            const now = Date.now();
+            if (now - lastReasonUi > 400) {
+              lastReasonUi = now;
+              const t = badgeReason(frame.text ?? "");
+              if (t) setAiReason(t);
+            }
+          } else if (frame.type === "result") {
+            applied = true;
+            if (frame.latex && typeof frame.latex === "string") {
+              setLatex(frame.latex);
+              setAiLines(changedLines(preAiRef.current ?? "", frame.latex));
+              await runCompile(frame.latex);
+              refreshUsage();
+            }
+          } else if (frame.type === "error") {
+            setAiFail({ latex, error: `${frame.code ?? "AI_UNAVAILABLE"}: ${frame.message ?? "update failed"}` });
+          }
+        }
       }
-      return false;
+      return applied;
     } catch {
       return false;
     } finally {
       setInstructLoading(false);
+      setAiStage(null);
+      setAiReason("");
     }
   }, [latex, instructLoading, changedLines, runCompile, refreshUsage]);
 
@@ -354,10 +512,44 @@ export default function Workspace() {
   return (
     <div className="app" data-mobile={isMobile ? "true" : "false"}>
       <Toaster />
+      {(instructLoading || aiFail) && (
+        <div className="ai-status-badge" role="status" aria-live="polite">
+          {instructLoading ? (
+            <span className="ai-status-live">
+              <span className="ai-status-dot" />
+              <span className="ai-status-title">
+                {aiStage === "fixing" ? "Repairing LaTeX"
+                  : aiStage === "reading-resume" ? "Reading your resume"
+                  : aiStage === "rewriting" ? "Aptora is tailoring your resume"
+                  : aiStage === "patching" ? "Applying tailored edits"
+                  : "Aptora is working"}
+              </span>
+              <span className="ai-status-text">
+                {aiReason ||
+                  (aiStage === "compiling & validating" ? "Compiling & validating…"
+                  : aiStage === "repairing a syntax slip" ? "Sending the error back to the model…"
+                  : aiStage === "understanding" ? "Understanding your edit…"
+                  : aiStage === "reading-resume" ? "Aligning with the job description…"
+                  : aiStage === "rewriting" ? "Rewriting title, summary & bullets…"
+                  : aiStage === "patching" ? "Patching text into your template…"
+                  : "Applying changes…")}
+              </span>
+            </span>
+          ) : (
+            <>
+              <span className="ai-status-title">That edit broke the LaTeX</span>
+              <button type="button" className="ai-fix-btn" onClick={onFix}>⚙ Fix</button>
+              <button type="button" className="ai-badge-close" aria-label="Dismiss"
+                onClick={() => { setAiFail(null); toast("Edit discarded — document unchanged.", "info"); }}>✕</button>
+            </>
+          )}
+        </div>
+      )}
       <MenuBar
         docName={docName} onRename={setDocName} saveState={saveState}
         exportsLeft={exportsLeft} onExport={onExport} canExport={!!documentId && saveState !== "error"}
         aiChangedLines={aiLines.size} onAcceptAi={acceptAi} onRejectAi={rejectAi}
+        authModal={authModal} onAuthModalChange={setAuthModal}
       />
       {showAccountPrompt && (
         <div className="modal-scrim" onClick={() => setShowAccountPrompt(false)}>
@@ -365,7 +557,7 @@ export default function Workspace() {
             <h3>You've used your free runs</h3>
             <p>Create a free account to keep tailoring, analyzing, and exporting. Your work stays private to you.</p>
             <div className="modal-actions">
-              <a className="ui-btn primary" href="/signup">Create account</a>
+              <button type="button" className="ui-btn primary" onClick={() => { setShowAccountPrompt(false); setAuthModal("signup"); }}>Create account</button>
               <button type="button" className="ui-btn ghost" onClick={() => setShowAccountPrompt(false)}>Maybe later</button>
             </div>
           </div>
@@ -376,7 +568,7 @@ export default function Workspace() {
 
         {view !== "editor" ? (
           <div className="view-scroll">
-            {view === "files" ? <FilesView /> : <UsageView />}
+            {view === "files" ? <FilesView /> : view === "activity" ? <ActivityView /> : <UsageView onOpenAuth={openAuth} />}
           </div>
         ) : (
         <div className="workspace">
@@ -416,6 +608,7 @@ export default function Workspace() {
                 <EditorPane
                   value={latex} onChange={setLatex} saveState={saveState} pageCount={pageCount}
                   templateId={templateId} onSelectTemplate={onSelectTemplate}
+                  onOpenAuth={openAuth}
                   aiLines={aiLines} streaming={streaming} jumpLine={jumpLine}
                 />
               )}

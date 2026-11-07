@@ -240,13 +240,10 @@ export function patchLatex(
     }
   }
 
-  // Safety sanitizer: ensure no accidental double-escapes like \\& or \\% break tabular/macros
-  latex = latex
-    .replace(/\\\\&/g, "\\&")
-    .replace(/\\\\%/g, "\\%")
-    .replace(/\\\\#/g, "\\#")
-    .replace(/\\\\_/g, "\\_");
-
+  // NOTE: no document-wide "sanitizer" here. The old one blindly rewrote `\\&`->`\&`,
+  // `\\_`->`\_` etc. — that corrupts LEGITIMATE LaTeX (a `\\` row separator followed by
+  // a column separator is a valid tabular construct). Text is escaped precisely per
+  // region instead (escapeLatex above).
   return { latex, changed, skipped };
 }
 
@@ -276,5 +273,16 @@ export function escapeLatex(s: string): string {
     .replace(/(?<!\\)\$/g, "\\$")
     .replace(/(?<!\\)#/g, "\\#")
     .replace(/(?<!\\)\{/g, "\\{")
-    .replace(/(?<!\\)\}/g, "\\}");
+    .replace(/(?<!\\)\}/g, "\\}")
+    // `_` in text mode = "Missing $ inserted" (hard compile crash). Must be escaped.
+    .replace(/(?<!\\)_/g, "\\_")
+    // `^` in text mode = undefined math context; `~` alone is a nbsp but a literal
+    // tilde glyph needs \\textasciitilde. `\\` in AI text is layout surgery, never allowed.
+    .replace(/(?<!\\)\^/g, "\\^{}")
+    .replace(/(?<!\\)~/g, "\\textasciitilde{}")
+    .replace(/(?<!\\)\\\\(?!\\)/g, "\\textbackslash{}")
+    // `|`, `<`, `>` don't crash but render as wrong glyphs in OT1 fonts — normalize.
+    .replace(/(?<![\\$])</g, "\\textless{}")
+    .replace(/(?<![\\$])>/g, "\\textgreater{}")
+    .replace(/(?<![\\$-])\|/g, "\\textbar{}");
 }
