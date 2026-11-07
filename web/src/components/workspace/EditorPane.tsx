@@ -20,7 +20,7 @@ const latexLang = StreamLanguage.define(stex);
 
 // --- AI highlight decorations + pencil gutter: mark 1-based line numbers as AI-changed.
 // The set is applied via a StateEffect. On document changes we REMAP the decorations
-// through the change (so they follow the text) instead of dropping them — the highlight
+// through the change (so they follow the text) instead of dropping them - the highlight
 // only clears when an explicit empty set is pushed (Keep/Undo) or a new set replaces it.
 const setAiLines = StateEffect.define<Set<number>>();
 const aiLineDeco = Decoration.line({ class: "cm-ai-line" });
@@ -155,7 +155,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
         setVoteCounts(s.counts ?? {});
         setVoted(new Set(s.voted ?? []));
       } catch { /* votes are non-critical; menu still works */ }
-      // Logged-in user's saved templates (empty for anonymous — endpoint returns []).
+      // Logged-in user's saved templates (empty for anonymous - endpoint returns []).
       try {
         const r = await fetch("/api/templates/mine");
         if (!r.ok) return;
@@ -250,7 +250,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
         const body = (await r.json()) as { count?: number; alreadyVoted?: boolean };
         if (typeof body.count === "number") setVoteCounts((prev) => ({ ...prev, [tid]: body.count! }));
         if (body.alreadyVoted) toast("You already liked this template ❤", "info");
-        else toast(`Liked ${tplName} — thanks! ❤`, "success");
+        else toast(`Liked ${tplName} - thanks! ❤`, "success");
       } else {
         // roll back optimistic state on failure
         setVoted((prev) => { const n = new Set(prev); n.delete(tid); return n; });
@@ -355,7 +355,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
                           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") upvote(t.id, e as unknown as React.MouseEvent); }}
                         >
                           <Heart size={12} className="tpl-upvote-icon" fill={hasVoted ? "currentColor" : "none"} />
-                          <span className="tpl-upvote-count">{count != null ? formatK(count) : "—"}</span>
+                          <span className="tpl-upvote-count">{count != null ? formatK(count) : "-"}</span>
                         </span>
                       </div>
                       <p className="ed-template-item-desc">{t.description}</p>
@@ -428,7 +428,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
         <span className="sb-sep">UTF-8</span>
         <span className="sb-sep">LaTeX</span>
         <span className="sb-sep">{getTemplateLabel(templateId)}</span>
-        <span className="sb-sep">{pageCount > 0 ? `${pageCount} page${pageCount > 1 ? "s" : ""}` : "—"}</span>
+        <span className="sb-sep">{pageCount > 0 ? `${pageCount} page${pageCount > 1 ? "s" : ""}` : "-"}</span>
       </div>
 
       {nameModalOpen && (
@@ -447,7 +447,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
               type="text"
               value={nameDraft}
               maxLength={80}
-              placeholder="e.g. Data Engineer — 1 page"
+              placeholder="e.g. Data Engineer - 1 page"
               autoFocus
               onChange={(e) => setNameDraft(e.target.value)}
               onKeyDown={(e) => {

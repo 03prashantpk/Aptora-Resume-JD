@@ -254,10 +254,10 @@ export default function Drawer({
       const data = (await res.json().catch(() => ({}))) as { latex?: string; uploadId?: string|null; error?: { message?: string } };
       if (res.ok && data.latex) {
         onIngested({ latex: data.latex, uploadId: data.uploadId ?? uploadId });
-        toast("Resume imported — your details replaced the starter document.", "success");
+        toast("Resume imported - your details replaced the starter document.", "success");
         await loadSaved();
       } else if (res.status === 402) {
-        toast("Daily limit reached — add credits or connect your own API key to continue.", "error");
+        toast("Daily limit reached - add credits or connect your own API key to continue.", "error");
       } else {
         // Keep the previously loaded doc; surface why.
         toast(data.error?.message ?? "Couldn't parse that PDF. Fix the file and try again.", "error");

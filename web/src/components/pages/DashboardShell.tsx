@@ -1,6 +1,6 @@
 // Reusable chrome for the standalone secured pages (/usage, /activity, /files).
-// It reuses the EXACT SAME components as the editor — the top MenuBar (in "dashboard"
-// variant) and the icon rail — so the topbar and sidebar are identical everywhere.
+// It reuses the EXACT SAME components as the editor - the top MenuBar (in "dashboard"
+// variant) and the icon rail - so the topbar and sidebar are identical everywhere.
 // No second bar, no duplicated chrome.
 import { ListTree, FileUp, SlidersHorizontal, Settings, Files, ChartBar } from "lucide-motion";
 import { BrainIcon } from "../ui/brain";
@@ -19,7 +19,7 @@ export default function DashboardShell({ active, children }: { active: DashPage;
       <MenuBar variant="dashboard" pageTitle={TITLES[active]} />
 
       <div className="app-body">
-        {/* Same icon rail as the editor — identical classes and icons. */}
+        {/* Same icon rail as the editor - identical classes and icons. */}
         <nav className="rail" aria-label="Primary">
           <div className="rail-items">
             <a className="rail-item" href="/?tab=outline" aria-label="Document Outline" data-label="Outline"><ListTree size={19} /></a>

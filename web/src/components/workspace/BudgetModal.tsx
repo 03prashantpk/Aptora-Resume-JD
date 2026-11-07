@@ -1,7 +1,7 @@
-// Budget gate modal — shown when a gated action is refused (402) because the daily
+// Budget gate modal - shown when a gated action is refused (402) because the daily
 // budget AND paid credits are exhausted. Fully role-aware (guest / account) and offers
 // the real ways forward: a free account, credits, or the owner's own free API key.
-// Copy discipline: state what happened and what to do next — no scolding, no fluff.
+// Copy discipline: state what happened and what to do next - no scolding, no fluff.
 import { useEffect, useState } from "react";
 import { CreditCard, UserPlus, KeyRound, MoonStar } from "lucide-motion";
 import ByokPanel from "./ByokPanel";
@@ -44,7 +44,7 @@ export default function BudgetModal({
           <>
             <p className="budget-eyebrow">Your API key</p>
             <h3>Run on your own key</h3>
-            <p className="budget-sub">Connect it once — every AI run after that is billed to your NVIDIA account, not your Aptora plan.</p>
+            <p className="budget-sub">Connect it once - every AI run after that is billed to your NVIDIA account, not your Aptora plan.</p>
             <ByokPanel onChanged={(s) => { if (s.has) { onClose(); } }} compact isGuest={guest} onOpenAuth={(m) => { onClose(); onOpenAuth?.(m); }} />
             <button type="button" className="budget-back" onClick={() => setTab("options")}>← Back to options</button>
           </>
@@ -56,8 +56,8 @@ export default function BudgetModal({
               {u === null
                 ? "Your work is saved. The limit resets at midnight."
                 : guest
-                  ? "Your work is saved in this browser. The free budget resets at midnight — or unlock more right now, free."
-                  : "Your work is saved to your account. The free budget resets at midnight — or keep working right now."}
+                  ? "Your work is saved in this browser. The free budget resets at midnight - or unlock more right now, free."
+                  : "Your work is saved to your account. The free budget resets at midnight - or keep working right now."}
             </p>
             <div className="budget-options">
               {guest ? (
@@ -73,7 +73,7 @@ export default function BudgetModal({
                   <span className="budget-option-ic"><CreditCard size={17} /></span>
                   <span className="budget-option-copy">
                     <strong>Get more credits</strong>
-                    <span>One-time top-up or Pro — pay once, no subscription, credits never expire.</span>
+                    <span>One-time top-up or Pro - pay once, no subscription, credits never expire.</span>
                   </span>
                 </button>
               )}
@@ -82,8 +82,8 @@ export default function BudgetModal({
                 <span className="budget-option-copy">
                   <strong>Use your own API key</strong>
                   <span>{guest
-                    ? "Free — sign in, then connect an NVIDIA key and runs bill to you, not your plan."
-                    : "Free — connect an NVIDIA key from build.nvidia.com and keep working immediately."}</span>
+                    ? "Free - sign in, then connect an NVIDIA key and runs bill to you, not your plan."
+                    : "Free - connect an NVIDIA key from build.nvidia.com and keep working immediately."}</span>
                 </span>
               </button>
             </div>

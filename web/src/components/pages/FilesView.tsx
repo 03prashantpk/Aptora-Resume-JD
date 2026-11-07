@@ -77,7 +77,7 @@ export default function FilesView() {
                     return (
                       <tr key={x.id}>
                         <td className="td-title">{x.title ?? "Resume"}</td>
-                        <td>{x.page_count ?? "—"}</td>
+                        <td>{x.page_count ?? "-"}</td>
                         <td className="td-muted">{fmtDate(x.created_at)}</td>
                         <td><span className={`pill${ex.soon ? " warn" : ""}`}>{ex.text}</span></td>
                         <td className="ta-r">

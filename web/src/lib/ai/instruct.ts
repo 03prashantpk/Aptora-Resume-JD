@@ -292,17 +292,30 @@ async function scopedEdit(latex: string, instruction: string, intent: EditIntent
 
 const REPAIR_SYSTEM = [
   "You are a LaTeX syntax repair service. You are given a LaTeX resume document that",
-  "failed to compile, plus the compiler's error message. Fix ONLY the syntax error",
+  "failed to compile, plus the compiler's error message (and, when available, the lines",
+  "that were most recently changed — the error is almost always there).",
+  "",
+  "First, REASON briefly about WHERE the error is and WHAT is wrong — name the offending",
+  "line/construct and the exact cause (e.g. an unescaped & in a URL, a missing closing",
+  "brace, an unterminated environment, a stray math character). Then fix ONLY that error",
   "(wrong/missing escapes like & % _ # $ ^ ~, unbalanced braces or environments, stray",
-  "math characters). Do NOT change wording, content, layout, fonts, margins, packages,",
-  "or anything else. Return ONLY the complete corrected LaTeX document — start with",
-  "\\documentclass, end with \\end{document}, no markdown or prose.",
+  "math characters, undefined commands). Make the SMALLEST change that compiles.",
+  "Do NOT change wording, content, layout, fonts, margins, packages, or anything else.",
+  "",
+  "On the VERY FIRST line, emit a single short comment naming what you fixed, in the",
+  "exact form: %FIX: <plain-English one-liner> (e.g. '%FIX: escaped an & in the LinkedIn",
+  "URL on line 20'). Keep it under 90 characters. Then from the next line return ONLY the",
+  "complete corrected LaTeX document — start with \\documentclass, end with \\end{document},",
+  "no markdown fences and no prose after it.",
 ].join(" ");
 
 export interface RepairOutcome {
   ok: boolean;
   latex?: string;
   error?: string;
+  /** Short human note of what was fixed (from the model's %FIX: line), e.g.
+   *  "escaped an & in the LinkedIn URL". Undefined when the model didn't provide one. */
+  note?: string;
 }
 
 /** Compile-error repair round, callable from BOTH the edit pipeline and the public
@@ -312,13 +325,21 @@ export async function repairLatexDocument(
   candidate: string,
   compileError: string,
   hooks: InstructHooks = {},
+  /** Optional: the lines that changed just before the failure. Sent to the model as a
+   *  focus hint ("the error is almost certainly here") so it locates the fault fast,
+   *  WITHOUT replacing the full document (LaTeX must be returned whole to recompile). */
+  changedLines?: string[],
 ): Promise<RepairOutcome> {
   hooks.onStage?.("repair");
+  const focus = changedLines && changedLines.length
+    ? ["<RECENTLY_CHANGED_LINES>", changedLines.slice(0, 40).join("\n").slice(0, 4000), "</RECENTLY_CHANGED_LINES>", ""]
+    : [];
   const user = [
     "The following LaTeX document failed to compile with this compiler error:",
     "<COMPILER_ERROR>", compileError.slice(0, 3000), "</COMPILER_ERROR>", "",
+    ...focus,
     "<LATEX>", candidate, "</LATEX>", "",
-    "Return the complete corrected LaTeX document now.",
+    "Identify where the error is, then return the complete corrected LaTeX document now.",
   ].join("\n");
   const opts = { temperature: 0, max_tokens: 8192 } as const;
   const out = hooks.onReason
@@ -330,15 +351,24 @@ export async function repairLatexDocument(
         [{ role: "system", content: REPAIR_SYSTEM }, { role: "user", content: user }],
         opts, "repair",
       );
-  const tex = out
+  let cleaned = out
     .replace(/^```(?:latex|tex)?\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
+  // Pull the model's "%FIX: ..." note off the top (if present) and strip it so it never
+  // lands in the compiled document.
+  let note: string | undefined;
+  const m = cleaned.match(/^\s*%\s*FIX:\s*(.+)$/im);
+  if (m) {
+    note = m[1].trim().replace(/\s+/g, " ").slice(0, 120);
+    cleaned = cleaned.replace(/^\s*%\s*FIX:.*$/im, "").trim();
+  }
+  const tex = cleaned;
   if (!(tex.startsWith("\\documentclass") && tex.includes("\\end{document}"))) {
     return { ok: false, error: "repair did not return a complete document" };
   }
   const c = await compileTex({ latex: tex, rasterize: false });
-  if (c.ok) return { ok: true, latex: tex };
+  if (c.ok) return { ok: true, latex: tex, note };
   return { ok: false, error: c.error.message || c.error.code };
 }
 
@@ -362,7 +392,11 @@ async function validateAndRepair(
     return result;
   }
   log(`candidate failed compile (${first.error.code}) -> AI self-repair`);
-  const repaired = await repairLatexDocument(result.latex, first.error.message, hooks);
+  // Focus the repair on the lines this edit introduced (not in the original) — the
+  // break is almost always in the new text.
+  const origSet = new Set(original.split("\n").map((l) => l.trim()));
+  const changed = result.latex.split("\n").filter((l) => l.trim() && !origSet.has(l.trim()));
+  const repaired = await repairLatexDocument(result.latex, first.error.message, hooks, changed);
   if (repaired.ok && repaired.latex && repaired.latex !== result.latex) {
     log("self-repair compiled OK");
     return { ...result, latex: repaired.latex, summary: `${result.summary} (fixed a LaTeX syntax slip automatically.)` };
