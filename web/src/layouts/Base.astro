@@ -7,7 +7,7 @@ interface Props {
   path?: string;
 }
 const {
-  title = "Aptora — AI Resume Tailoring",
+  title = "Aptora - AI Resume Tailoring",
   description = "Aptora tailors the resume you already have to a job description with AI, then compiles a real, professional PDF. Truthful, role-aware, WYSIWYG.",
   path = "",
 } = Astro.props;
@@ -42,7 +42,7 @@ const canonical = `${SITE}${path}`;
   <body>
     <slot />
     <style is:global>
-      /* Design tokens — Aptora (see docs/DESIGN-SYSTEM.md) */
+      /* Design tokens - Aptora (see docs/DESIGN-SYSTEM.md) */
       :root {
         --bg: #fafaf8;
         --surface: #ffffff;
@@ -73,7 +73,7 @@ const canonical = `${SITE}${path}`;
         * { transition: none !important; animation: none !important; }
       }
 
-      /* ── AI progress badge ("Aptora is working…") — bottom ~2%, theme-matched ── */
+      /* ── AI progress badge ("Aptora is working…") - bottom ~2%, theme-matched ── */
       .ai-status-badge {
         position: fixed;
         left: 50%; bottom: calc(2vh + 6px);
@@ -90,6 +90,25 @@ const canonical = `${SITE}${path}`;
         animation: ai-badge-in 160ms ease-out;
       }
       @keyframes ai-badge-in { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+
+      /* While AI is working: a clean light sheen sweeps across the pill (left to right)
+         so it reads as "alive" without a noisy spinning border. GPU-cheap, subtle. */
+      .ai-status-badge.is-working { position: fixed; overflow: hidden; }
+      .ai-status-badge.is-working::after {
+        content: "";
+        position: absolute; inset: 0; pointer-events: none;
+        background: linear-gradient(100deg, transparent 30%, rgba(124,171,255,0.22) 50%, transparent 70%);
+        transform: translateX(-100%);
+        animation: ai-sheen 1.8s ease-in-out infinite;
+      }
+      @keyframes ai-sheen { to { transform: translateX(100%); } }
+      .ai-status-elapsed {
+        flex: none; font-size: 11px; font-variant-numeric: tabular-nums;
+        color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.12);
+        padding: 2px 8px; border-radius: 999px; margin-left: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) { .ai-status-badge.is-working::after { animation: none; } }
+
       .ai-status-live { display: flex; align-items: center; gap: 9px; min-width: 0; }
       .ai-status-dot {
         width: 9px; height: 9px; border-radius: 50%; flex: none;

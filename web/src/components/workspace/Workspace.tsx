@@ -94,7 +94,7 @@ export default function Workspace() {
 
   // Wake/warm the rendering engine the moment the workspace opens, so it's ready by
   // the time the user finishes editing and compiles. Same-origin call; the engine URL
-  // stays server-side. Fire-and-forget — never blocks the UI.
+  // stays server-side. Fire-and-forget - never blocks the UI.
   useEffect(() => {
     fetch("/api/warm").catch(() => {});
   }, []);
@@ -123,7 +123,7 @@ export default function Workspace() {
       window.history.replaceState({}, "", window.location.pathname + (qs0 ? `?${qs0}` : ""));
     }
     if (!payment) return;
-    if (payment === "success") toast("Payment received — credits added. You're all set!", "success");
+    if (payment === "success") toast("Payment received - credits added. You're all set!", "success");
     else if (payment === "failed") toast("Payment failed or was cancelled. Nothing was charged.", "error");
     else toast("We couldn't verify that payment. If you were charged, it will settle within minutes.", "info");
     p.delete("payment");
@@ -150,7 +150,7 @@ export default function Workspace() {
       } catch { /* quota/private mode */ }
 
       // ── Durable restore (authoritative): the owner's most recent working document.
-      // When we already painted from the newer local draft, we reconcile METADATA only —
+      // When we already painted from the newer local draft, we reconcile METADATA only -
       // never overwrite the user's newer local content with an older server copy.
       try {
         const res = await fetch("/api/documents/current");
@@ -173,7 +173,7 @@ export default function Workspace() {
       } catch { /* fall through to starter */ }
 
       if (painted) return;
-      // Anonymous/first-visit fallback: the starter template (kept as-is — the normal
+      // Anonymous/first-visit fallback: the starter template (kept as-is - the normal
       // engine warmup route covers it; no bundled copy, no extra Render compute).
       try {
         const res2 = await fetch("/api/default-document");
@@ -214,12 +214,24 @@ export default function Workspace() {
         body: JSON.stringify({ latex: source, revision_id: String(revision) }),
       });
       if (revision !== revisionRef.current) return false;
-      if (!res.ok) { setSaveState("error"); return false; }
+      if (!res.ok) {
+        setSaveState("error");
+        // Surface the Fix affordance for ANY failed compile (hand-edited or AI), not
+        // just AI edits - capture the compiler error so the red Fix button can repair it.
+        const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+        const msg = body?.error?.message || body?.error?.code || "";
+        // Only offer Fix for real LaTeX errors - not engine-unreachable/5xx (nothing to fix).
+        if (msg && body?.error?.code !== "ENGINE_UNREACHABLE") {
+          setAiFail({ latex: source, error: `${body?.error?.code ?? "COMPILE_FAILED"}: ${msg}` });
+        }
+        return false;
+      }
       const meta = (await res.json()) as CompileResult;
       if (revision !== revisionRef.current) return false;
       setDocumentId(meta.document_id ?? null);
       setPageCount(meta.page_count ?? 0);
       setSaveState("saved");
+      setAiFail(null); // a clean compile clears any pending "Fix" affordance
       return true;
     } catch {
       if (revision === revisionRef.current) setSaveState("error");
@@ -262,7 +274,7 @@ export default function Workspace() {
     return out;
   }, []);
 
-  // Badge realism: show the model's LATEST full words — collapse whitespace, cut at a
+  // Badge realism: show the model's LATEST full words - collapse whitespace, cut at a
   // whole word boundary (never a half-typed word like "write new te…", which reads fake).
   const badgeReason = useCallback((raw: string, max = 96): string => {
     let t = raw.replace(/\s+/g, " ").trim();
@@ -295,7 +307,7 @@ export default function Workspace() {
         setShowAccountPrompt(true); return;
       }
       if (res.ok) { setAnalysis((await res.json()) as Analysis); refreshUsage(); }
-      else { toast("Fit analysis is busy — please try again in a moment.", "error"); }
+      else { toast("Fit analysis is busy - please try again in a moment.", "error"); }
     } catch { toast("Couldn't run fit analysis. Check your connection and retry.", "error"); }
     finally { setAnalyzing(false); }
   }, [jd, latex, analyzing, refreshUsage]);
@@ -320,7 +332,7 @@ export default function Workspace() {
       }
       if (!res.ok || !res.body) { setTailorPhase("error"); setAiFail({ latex, error: `AI_UNAVAILABLE: tailoring failed (HTTP ${res.status})` }); return; }
 
-      // Consume the tailor SSE frame stream (stage / reasoning / result) — the same
+      // Consume the tailor SSE frame stream (stage / reasoning / result) - the same
       // protocol as the manual-edit instruct stream, so the badge behaves identically.
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -367,7 +379,7 @@ export default function Workspace() {
       }
       if (!gotResult || !finalLatex) return;
 
-      // Auto-analyze the tailored resume against the same JD — no extra button click needed.
+      // Auto-analyze the tailored resume against the same JD - no extra button click needed.
       // Run in background after tailor completes so Intelligence tab shows fit score immediately.
       setAnalyzing(true);
       try {
@@ -378,7 +390,7 @@ export default function Workspace() {
         if (analyzeRes.ok) {
           setAnalysis((await analyzeRes.json()) as Analysis);
         }
-      } catch { /* non-fatal — tailor succeeded, analysis is a bonus */ }
+      } catch { /* non-fatal - tailor succeeded, analysis is a bonus */ }
       finally { setAnalyzing(false); }
 
     } catch {
@@ -414,7 +426,7 @@ export default function Workspace() {
       a.href = url; a.download = "aptora-resume.pdf"; a.click();
       URL.revokeObjectURL(url);
       refreshUsage();
-      toast(emailed ? "Exported — we also emailed you the PDF." : "Resume exported.", "success");
+      toast(emailed ? "Exported - we also emailed you the PDF." : "Resume exported.", "success");
     } catch { toast("Export failed. Please try again.", "error"); }
   }, [documentId, exportsLeft, refreshUsage]);
 
@@ -448,34 +460,59 @@ export default function Workspace() {
   const [aiStage, setAiStage] = useState<string | null>(null);
   const [aiReason, setAiReason] = useState<string>("");
   const [aiFail, setAiFail] = useState<{ latex: string; error: string } | null>(null);
+  // Live "working" feedback so a long repair never looks frozen: elapsed seconds +
+  // a cycling line of honest steps. Driven by one interval, cleared when the call ends.
+  const [aiElapsed, setAiElapsed] = useState(0);
+  const fixTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const FIX_STEPS = ["Reading the compiler error", "Locating the broken line", "Rewriting the fix", "Recompiling to verify"];
   const onFix = useCallback(async () => {
     if (!aiFail) return;
     const { latex: bad, error } = aiFail;
     setAiFail(null);
     setInstructLoading(true);
     setAiStage("fixing");
+    setAiElapsed(0);
+    const started = Date.now();
+    if (fixTimerRef.current) clearInterval(fixTimerRef.current);
+    fixTimerRef.current = setInterval(() => {
+      const secs = Math.floor((Date.now() - started) / 1000);
+      setAiElapsed(secs);
+      // Advance the step label roughly every ~3.5s until the last one, where it waits.
+      const i = Math.min(FIX_STEPS.length - 1, Math.floor(secs / 3.5));
+      setAiReason(FIX_STEPS[i]);
+    }, 500);
+    const stopTimer = () => { if (fixTimerRef.current) { clearInterval(fixTimerRef.current); fixTimerRef.current = null; } };
     try {
+      // Pass the recently-changed line TEXT (from the AI-edit highlight set) so the
+      // repair model is pointed straight at the likely culprit, not the whole file.
+      const badLines = bad.split("\n");
+      const changedLines = [...aiLines].sort((a, b) => a - b).map((n) => badLines[n - 1]).filter((l): l is string => typeof l === "string" && l.trim().length > 0);
+      // Safety net: never spin forever. 60s abort → honest "taking longer" message.
       const res = await fetch("/api/ai/fix-tex", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ latex: bad, error }),
+        body: JSON.stringify({ latex: bad, error, changedLines }),
+        signal: AbortSignal.timeout(60_000),
       });
-      const body = (await res.json().catch(() => ({}))) as { latex?: string; error?: { message?: string } };
+      const body = (await res.json().catch(() => ({}))) as { latex?: string; note?: string; error?: { message?: string } };
       if (res.ok && body?.latex) {
         setLatex(body.latex);
         await runCompile(body.latex);
-        toast("Fixed — the document compiles now.", "success");
+        toast(body.note ? `Fixed - ${body.note}` : "Fixed - the document compiles now.", "success");
       } else {
         setAiFail({ latex: bad, error });
         toast(body?.error?.message || "Couldn't auto-fix that one. Try hand-editing the highlighted spot.", "error");
       }
-    } catch {
+    } catch (e) {
       setAiFail({ latex: bad, error });
-      toast("Fix is unavailable right now.", "error");
+      const timedOut = e instanceof DOMException && e.name === "TimeoutError";
+      toast(timedOut ? "That fix is taking too long - try Fix again, or edit the highlighted line." : "Fix is unavailable right now.", "error");
     } finally {
+      stopTimer();
       setInstructLoading(false);
       setAiStage(null);
+      setAiReason("");
     }
-  }, [aiFail, runCompile]);
+  }, [aiFail, runCompile, aiLines]);
 
   const onInstruct = useCallback(async (instruction: string): Promise<boolean> => {
     if (!instruction.trim() || instructLoading) return false;
@@ -557,7 +594,7 @@ export default function Workspace() {
     <div className="app" data-mobile={isMobile ? "true" : "false"}>
       <Toaster />
       {(instructLoading || aiFail) && (
-        <div className="ai-status-badge" role="status" aria-live="polite">
+        <div className={`ai-status-badge${instructLoading ? " is-working" : ""}`} role="status" aria-live="polite">
           {instructLoading ? (
             <span className="ai-status-live">
               <span className="ai-status-dot" />
@@ -578,13 +615,14 @@ export default function Workspace() {
                   : aiStage === "patching" ? "Patching text into your template…"
                   : "Applying changes…")}
               </span>
+              {aiStage === "fixing" && aiElapsed > 0 && <span className="ai-status-elapsed">{aiElapsed}s</span>}
             </span>
           ) : (
             <>
-              <span className="ai-status-title">That edit broke the LaTeX</span>
+              <span className="ai-status-title">This doesn't compile - let AI fix it</span>
               <button type="button" className="ai-fix-btn" onClick={onFix}>⚙ Fix</button>
               <button type="button" className="ai-badge-close" aria-label="Dismiss"
-                onClick={() => { setAiFail(null); toast("Edit discarded — document unchanged.", "info"); }}>✕</button>
+                onClick={() => { setAiFail(null); }}>✕</button>
             </>
           )}
         </div>
@@ -661,10 +699,10 @@ export default function Workspace() {
 }
 
 function stripFences(s: string): string {
-  // Complete fence pair: ```latex ... ``` — extract only the inner content.
+  // Complete fence pair: ```latex ... ``` - extract only the inner content.
   const complete = s.match(/```(?:latex|tex)?\s*([\s\S]*?)```/i);
   if (complete) return complete[1].trim();
-  // Partial stream: only the opening fence has arrived — strip just the header
+  // Partial stream: only the opening fence has arrived - strip just the header
   // so the live editor receives valid LaTeX instead of a fence-prefixed string.
   return s.replace(/^```(?:latex|tex)?\s*/i, "").trim();
 }

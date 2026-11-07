@@ -1,4 +1,4 @@
-// Wire all — animated square activity icon (motion/react), used in the LeftRail.
+// Wire all - animated square activity icon (motion/react), used in the LeftRail.
 "use client";
 
 import type { Variants } from "motion/react";

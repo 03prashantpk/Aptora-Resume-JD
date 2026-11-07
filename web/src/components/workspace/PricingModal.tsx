@@ -1,4 +1,4 @@
-// Pricing modal — one-time purchases (credits / Pro), priced LIVE from
+// Pricing modal - one-time purchases (credits / Pro), priced LIVE from
 // /api/payments/plans so the UI can never drift from checkout. Design rules:
 // black/white + single blue accent, no decorative icons, no payment-gateway
 // branding inside the product (buttons say what you GET, not who processes it).
@@ -109,7 +109,7 @@ export default function PricingModal({ onClose, onOpenAuth }: { onClose: () => v
         <div className="pricing-head">
           <p className="pricing-eyebrow">Pricing</p>
           <h2>{isPro ? "You're on Pro" : "Keep your workspace going"}</h2>
-          <p className="muted">One-time payments. No subscriptions, no auto-billing — credits stay yours.</p>
+          <p className="muted">One-time payments. No subscriptions, no auto-billing - credits stay yours.</p>
           {usage && (
             <div className="pricing-status-row">
               <span className={`pricing-planpill${isPro ? " pro" : ""}`}>{isPro ? "Pro active" : usage.role === "user" ? "Free plan" : "Guest"}</span>
@@ -122,14 +122,14 @@ export default function PricingModal({ onClose, onOpenAuth }: { onClose: () => v
           <div className="pricing-pro-note">
             <div>
               <strong>Your Pro plan is active.</strong>
-              <p>Unlimited daily runs — nothing further to buy. Payment history lives in Activity.</p>
+              <p>Unlimited daily runs - nothing further to buy. Payment history lives in Activity.</p>
             </div>
           </div>
         ) : configured === false ? (
-          // Checkout isn't wired on this deployment — show the free path instead
+          // Checkout isn't wired on this deployment - show the free path instead
           // of a dead button that 503s on click.
           <div className="pricing-unconfigured">
-            <p><strong>Checkout is being set up.</strong> Online payments will be live shortly — in the meantime your work isn't blocked.</p>
+            <p><strong>Checkout is being set up.</strong> Online payments will be live shortly - in the meantime your work isn't blocked.</p>
             <p className="pricing-unconfigured-alt">
               <KeyRound size={14} /> Connect a free API key from{" "}
               <a href="https://build.nvidia.com/settings/api-keys" target="_blank" rel="noreferrer">build.nvidia.com</a>{" "}
@@ -152,7 +152,7 @@ export default function PricingModal({ onClose, onOpenAuth }: { onClose: () => v
                 <button type="button" className={`u2-plan-cta ${p.primary ? "buy" : "buy"}`} disabled={busy !== null} onClick={() => buy(p.code)}>
                   {busy === p.code ? "Starting checkout…" : busy ? "One moment…" : p.code === "TOPUP" ? `Get ${p.tag.toLowerCase()} · ${p.price}` : `Go Pro · ${p.price}`}
                 </button>
-                {isGuest && <p className="pricing-guest-hint">Pays as guest — follows you into your account.</p>}
+                {isGuest && <p className="pricing-guest-hint">Pays as guest - follows you into your account.</p>}
               </article>
             ))}
           </div>
@@ -163,7 +163,7 @@ export default function PricingModal({ onClose, onOpenAuth }: { onClose: () => v
             <LogIn size={15} className="pricing-guest-icon" />
             <div className="pricing-guest-copy">
               <strong>Browsing as a guest?</strong>
-              <p>Purchases attach to this browser and follow you into a free account automatically — along with credits, history and unsaved work.</p>
+              <p>Purchases attach to this browser and follow you into a free account automatically - along with credits, history and unsaved work.</p>
             </div>
             <button type="button" className="ui-btn ghost pricing-guest-cta" onClick={() => { onClose(); onOpenAuth?.("signup"); }}>
               Sign in first
@@ -172,7 +172,7 @@ export default function PricingModal({ onClose, onOpenAuth }: { onClose: () => v
         )}
 
         {error && <p className="pricing-error" role="alert">{error}</p>}
-        <p className="pricing-footer muted">Secure checkout — UPI, cards &amp; netbanking. Card details are never stored; nothing is ever auto-billed.</p>
+        <p className="pricing-footer muted">Secure checkout - UPI, cards &amp; netbanking. Card details are never stored; nothing is ever auto-billed.</p>
       </div>
     </div>
   );

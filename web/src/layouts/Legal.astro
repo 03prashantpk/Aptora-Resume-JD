@@ -4,7 +4,7 @@ import Analytics from "@/components/Analytics.astro";
 interface Props { title: string; description?: string; path?: string; }
 const {
   title,
-  description = "Aptora — the AI document workspace for truthful, role-aware resume tailoring.",
+  description = "Aptora - the AI document workspace for truthful, role-aware resume tailoring.",
   path = "",
 } = Astro.props;
 const SITE = "https://aptora.enally.in";
@@ -14,12 +14,12 @@ const canonical = `${SITE}${path}`;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} — Aptora</title>
+    <title>{title} - Aptora</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Aptora" />
-    <meta property="og:title" content={`${title} — Aptora`} />
+    <meta property="og:title" content={`${title} - Aptora`} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={`${SITE}/aptora_rec.webp`} />

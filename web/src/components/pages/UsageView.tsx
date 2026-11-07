@@ -1,4 +1,4 @@
-// Usage page — clean, light, low-shadow. A compact status strip, a 4-metric row,
+// Usage page - clean, light, low-shadow. A compact status strip, a 4-metric row,
 // three plan cards (Free · Credit top-up · Pro) matching the pricing modal, the BYOK
 // panel, and a short footer. All numbers are live from the DB; prices from the env.
 import { useEffect, useState } from "react";
@@ -73,7 +73,7 @@ export default function UsageView({ onOpenAuth }: { onOpenAuth?: (mode: "login" 
         <div>
           <p className="view-eyebrow">Account</p>
           <h1>Usage &amp; plan</h1>
-          <p>Your live budget and plan — straight from your account.</p>
+          <p>Your live budget and plan - straight from your account.</p>
         </div>
         <a className="view-cta" href="/">Open editor</a>
       </div>
@@ -82,7 +82,7 @@ export default function UsageView({ onOpenAuth }: { onOpenAuth?: (mode: "login" 
         <div className="u3-skel"><span /><span /></div>
       ) : (
         <>
-          {/* Status strip — one calm line, a thin progress bar, a pill. */}
+          {/* Status strip - one calm line, a thin progress bar, a pill. */}
           <section className="u3-status">
             <div className="u3-status-top">
               <div>
@@ -106,7 +106,7 @@ export default function UsageView({ onOpenAuth }: { onOpenAuth?: (mode: "login" 
             <div className="u3-metric accent"><span>Paid credits</span><strong>{credits}</strong></div>
           </section>
 
-          {/* Three plan cards — only when not already on an unlimited source. */}
+          {/* Three plan cards - only when not already on an unlimited source. */}
           {!ownKey && !isPro && (
             <section className="u3-plans" aria-label="Plans">
               {/* Free */}

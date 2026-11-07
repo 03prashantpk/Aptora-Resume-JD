@@ -15,11 +15,12 @@ export const POST: APIRoute = async (ctx) => {
   const { request } = ctx;
   let body: unknown;
   try { body = await request.json(); } catch { return json({ error: { code: "BAD_REQUEST", message: "invalid JSON" } }, 400); }
-  const { latex, error } = (body ?? {}) as { latex?: string; error?: string };
+  const { latex, error, changedLines } = (body ?? {}) as { latex?: string; error?: string; changedLines?: string[] };
 
   if (typeof latex !== "string" || !latex.trim()) return json({ error: { code: "EMPTY_SOURCE", message: "Resume required" } }, 400);
   if (typeof error !== "string" || !error.trim()) return json({ error: { code: "NO_ERROR", message: "Compiler error required" } }, 400);
   if (latex.length > 400_000) return json({ error: { code: "INPUT_TOO_LARGE", message: "input too large" } }, 400);
+  const changed = Array.isArray(changedLines) ? changedLines.filter((l): l is string => typeof l === "string").slice(0, 40) : undefined;
 
   const rlog = logRoute("ai/fix-tex", { resume: `${latex.length}c`, err: JSON.stringify(error.slice(0, 60)) });
   const ownerId = await getOwnerId(ctx);
@@ -32,11 +33,11 @@ export const POST: APIRoute = async (ctx) => {
 
   return withOwnerKey(ownerKey, async () => {
   try {
-    const out = await repairLatexDocument(latex, error);
+    const out = await repairLatexDocument(latex, error, {}, changed);
     await settleSpend(ownerId, budget.source, "ai_calls");
     if (out.ok && out.latex) {
       rlog.done("200 fixed");
-      return json({ latex: out.latex, fixed: true }, 200);
+      return json({ latex: out.latex, fixed: true, note: out.note }, 200);
     }
     // Repair produced a document but it STILL doesn't compile — give the user the real
     // compiler error so they can hand-edit if they want.

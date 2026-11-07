@@ -10,7 +10,7 @@ interface AuthUser { email: string; name: string | null }
 /** Live budget snapshot for the menubar (from /api/usage). */
 interface UsageSnap { role: "guest" | "user"; isPro: boolean; ownKey: boolean; credits: number; runsLeft: number }
 
-/** DiceBear 'notionists' avatar, seeded by name/email — matches the landing page. */
+/** DiceBear 'notionists' avatar, seeded by name/email - matches the landing page. */
 function avatarUrl(seedRaw: string): string {
   const seed = encodeURIComponent(seedRaw.replace(/[\s.]/g, "").toLowerCase() || "aptora");
   return `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=e7ecff,e6f4ea,faf0e6,f1eafd,f3f3f0&radius=50&scale=110`;
@@ -158,7 +158,7 @@ function AuthModal({ mode: initialMode, onClose, onAuthed }: { mode: "login" | "
         });
         const data = await readJson(res);
         if (res.status === 403 && data?.error?.code === "NOT_VERIFIED") {
-          // Account exists but was never verified — send a fresh code and jump to verify.
+          // Account exists but was never verified - send a fresh code and jump to verify.
           setErr("Your email isn't verified yet. Enter the code we email you.");
           await fetch("/api/auth/signup", {
             method: "POST",
@@ -167,7 +167,7 @@ function AuthModal({ mode: initialMode, onClose, onAuthed }: { mode: "login" | "
           }).catch(() => {});
           setMode("signup");
           setStep("verify");
-          toast("Verify your email — we sent a new code.", "info");
+          toast("Verify your email - we sent a new code.", "info");
           return;
         }
         if (!res.ok) {
@@ -207,7 +207,7 @@ function AuthModal({ mode: initialMode, onClose, onAuthed }: { mode: "login" | "
         toast(msg, "error");
         return;
       }
-      toast("Email verified — you're all set.", "success");
+      toast("Email verified - you're all set.", "success");
       onAuthed(data.user as AuthUser);
       onClose();
     } catch {
@@ -306,7 +306,7 @@ function AuthModal({ mode: initialMode, onClose, onAuthed }: { mode: "login" | "
           </p>
         </div>
 
-        {/* Continue with Google — hidden until OAuth is wired (kept for later). */}
+        {/* Continue with Google - hidden until OAuth is wired (kept for later). */}
         {/*
         <div className="auth-social-wrap">
           <button
@@ -438,7 +438,7 @@ export type SaveState = "idle" | "updating" | "saved" | "error";
 interface Props {
   /** "editor" (default) = full editor bar; "dashboard" = the SAME bar on /usage,
    *  /activity, /files (logo + account popover + Upgrade), with a page title instead
-   *  of the editor menus/export. One component, two render branches — no duplicate bar. */
+   *  of the editor menus/export. One component, two render branches - no duplicate bar. */
   variant?: "editor" | "dashboard";
   /** Dashboard title (e.g. "Usage"). Ignored in editor mode. */
   pageTitle?: string;
@@ -497,7 +497,7 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
         credits: Math.max(0, u.credits ?? 0),
         runsLeft: Math.max(0, u.runsLeft ?? ((u.freeLimit ?? 0) - Math.max(Math.max(0, u.aiCalls ?? 0), Math.max(0, u.exportsUsed ?? 0)))),
       });
-    } catch { /* db may be down — keep whatever we last had */ }
+    } catch { /* db may be down - keep whatever we last had */ }
   }, []);
 
   useEffect(() => { loadUsage(); }, [loadUsage]);
@@ -621,7 +621,7 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
             <button type="button" className="ai-reject" onClick={() => onRejectAi?.()}><X size={13} /> Undo</button>
           </div>
         )}
-        {/* Upgrade CTA — always visible in the menubar (never buried in a menu).
+        {/* Upgrade CTA - always visible in the menubar (never buried in a menu).
             Hidden when Pro or when the account runs on its own API key (BYOK). */}
         {!usageSnap?.isPro && !usageSnap?.ownKey && (
           <Button variant="ai" onClick={() => setModal("pricing")} title="Get more AI runs & credits">
@@ -643,7 +643,7 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
           </IconButton>
           {openMenu === "more" && (
             <div className="mb-dropdown mb-dropdown-right premium-popover" role="menu">
-              {/* Identity first — the standard SaaS account surface. */}
+              {/* Identity first - the standard SaaS account surface. */}
               <div className="popover-user-card">
                 {user ? (
                   <>
@@ -666,15 +666,15 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
                 )}
               </div>
 
-              {/* Live budget strip — always from /api/usage, never hardcoded. */}
+              {/* Live budget strip - always from /api/usage, never hardcoded. */}
               <div className="popover-stats">
                 <div className="popover-stat">
-                  <span className="popover-stat-num">{usageSnap ? (usageSnap.ownKey ? "Key" : usageSnap.isPro ? "∞" : usageSnap.runsLeft) : "—"}</span>
+                  <span className="popover-stat-num">{usageSnap ? (usageSnap.ownKey ? "Key" : usageSnap.isPro ? "∞" : usageSnap.runsLeft) : "-"}</span>
                   <span className="popover-stat-label">{usageSnap?.ownKey ? "own key" : usageSnap?.isPro ? "runs / day" : "left today"}</span>
                 </div>
                 <div className="popover-stat-div" />
                 <div className="popover-stat">
-                  <span className="popover-stat-num">{usageSnap ? usageSnap.credits : "—"}</span>
+                  <span className="popover-stat-num">{usageSnap ? usageSnap.credits : "-"}</span>
                   <span className="popover-stat-label">paid credits</span>
                 </div>
                 <div className="popover-stat-div" />
@@ -732,7 +732,7 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
                 </>
               )}
 
-              {/* Footer: a clean 2×2 grid of compact destinations — even columns,
+              {/* Footer: a clean 2×2 grid of compact destinations - even columns,
                   square icon tiles, one label each. No cramped two-line rows. */}
               <div className="popover-grid">
                 <a href="/usage" className="popover-tile" role="menuitem">

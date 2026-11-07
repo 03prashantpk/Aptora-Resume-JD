@@ -1,4 +1,4 @@
-// Activity page: payment history + a real timeline of what happened — AI runs,
+// Activity page: payment history + a real timeline of what happened - AI runs,
 // uploads, exports and PayU purchases, newest first. Guest histories are
 // cookie-scoped; signed-in histories live with the account.
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -103,7 +103,7 @@ export default function ActivityView() {
   }, []);
 
   // Timeline grouped by calendar day (Today / Yesterday / dates), newest within day.
-  // Purchase rows are excluded — the Payments list already shows them; duplicates
+  // Purchase rows are excluded - the Payments list already shows them; duplicates
   // ("Credit top-up" twice) read as a bug.
   const groups = useMemo(() => {
     if (!items) return [];
@@ -169,7 +169,7 @@ export default function ActivityView() {
       {groups.length === 0 ? (
         <div className="act-section-body act-empty-slim">
           <Activity size={16} />
-          <p>No activity yet. Tailor a resume, export a PDF, or top up credits — it shows up here.</p>
+          <p>No activity yet. Tailor a resume, export a PDF, or top up credits - it shows up here.</p>
         </div>
       ) : (
         <div className="act-section-body">
@@ -204,7 +204,7 @@ export default function ActivityView() {
         <div>
           <p className="view-eyebrow">History</p>
           <h1>Activity</h1>
-          <p>Payments and everything that happened in this workspace — newest first.</p>
+          <p>Payments and everything that happened in this workspace - newest first.</p>
         </div>
         <a className="view-cta" href="/">Open editor</a>
       </div>
