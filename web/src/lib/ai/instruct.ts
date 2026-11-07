@@ -2,9 +2,18 @@
 // Handles user instructions (e.g. "reduce margins", "fit to 1 page", "update bullet 2", "make summary punchier")
 // with a hybrid of instant deterministic layout adjustments and targeted AI refinement.
 
-import { chatWithFallback, type ChatMessage } from "./nvidia";
+import { chatWithRole, chatWithRoleStream, chatWithFallback, type ChatMessage } from "./nvidia";
 import { extractRegions, patchLatex, type AiRegionOutput } from "./latexRegions";
 import { checkIntegrity, type EditIntent } from "./integrity";
+import { compileTex } from "../compiler";
+
+/** Live coverage for long-running edits: reasoning deltas + pipeline stage notices. */
+export interface InstructHooks {
+  /** Raw reasoning deltas as the model thinks (drives the "Aptora is working…" badge). */
+  onReason?: (delta: string) => void;
+  /** Stage notices: "intent" | "regions" | "ai" | "compile" | "repair" | "reverted". */
+  onStage?: (stage: string, detail?: string) => void;
+}
 
 export interface InstructResult {
   latex: string;
@@ -139,7 +148,7 @@ const CONTENT_SYSTEM = [
   "Return ONLY the regions you changed. No markdown fences, no explanation.",
 ].join(" ");
 
-async function contentEdit(latex: string, instruction: string): Promise<InstructResult> {
+async function contentEdit(latex: string, instruction: string, hooks: InstructHooks = {}): Promise<InstructResult> {
   console.log("[AI] instruct: contentEdit extracting regions…");
   const regions = extractRegions(latex);
   console.log(`[AI] instruct: extracted ${regions.length} regions`);
@@ -156,10 +165,16 @@ async function contentEdit(latex: string, instruction: string): Promise<Instruct
     "Return the edited JSON now.",
   ].join("\n");
 
-  const out = await chatWithFallback(
-    [{ role: "system", content: CONTENT_SYSTEM }, { role: "user", content: user }],
-    { temperature: 0.2, max_tokens: 4096 },
-  );
+  const opts = { temperature: 0.2, max_tokens: 4096 } as const;
+  const out = hooks.onReason
+    ? await chatWithRoleStream(
+        [{ role: "system", content: CONTENT_SYSTEM }, { role: "user", content: user }],
+        opts, "fixer", hooks.onReason,
+      )
+    : await chatWithRole(
+        [{ role: "system", content: CONTENT_SYSTEM }, { role: "user", content: user }],
+        opts, "fixer",
+      );
 
   let aiRegions: AiRegionOutput[] = [];
   const jsonMatch = out.match(/\{[\s\S]*\}/);
@@ -198,7 +213,7 @@ async function contentEdit(latex: string, instruction: string): Promise<Instruct
   // regions (e.g. the phone/email/contact line, a header, or free-form text). Fall back
   // to a scoped whole-.tex edit, but keep CONTENT-strict integrity so typography still
   // can't change. This guarantees the edit actually happens instead of a silent no-op.
-  return scopedEdit(latex, instruction, "content");
+  return scopedEdit(latex, instruction, "content", hooks);
 }
 
 // ─── STRUCTURAL / FORMAT path: scoped whole-.tex edit ──────────────────────────
@@ -215,7 +230,7 @@ const SCOPED_SYSTEM = [
   "6. The output MUST start with \\documentclass and end with \\end{document}.",
 ].join(" ");
 
-async function scopedEdit(latex: string, instruction: string, intent: EditIntent): Promise<InstructResult> {
+async function scopedEdit(latex: string, instruction: string, intent: EditIntent, hooks: InstructHooks = {}): Promise<InstructResult> {
   const scopeNote = intent === "format"
     ? "This is a FORMATTING request: you MAY change the specific typography/layout the user asked for (font, size, margins, spacing, alignment). Do not change anything else."
     : intent === "structural"
@@ -229,19 +244,24 @@ async function scopedEdit(latex: string, instruction: string, intent: EditIntent
     "Apply the requested edit and return the complete LaTeX now.",
   ].join("\n");
 
-  const rawOut = await chatWithFallback(
-    [{ role: "system", content: SCOPED_SYSTEM }, { role: "user", content: user }],
-    { temperature: 0.2, max_tokens: 8192 },
-  );
+  const opts = { temperature: 0.2, max_tokens: 8192 } as const;
+  const rawOut = hooks.onReason
+    ? await chatWithRoleStream(
+        [{ role: "system", content: SCOPED_SYSTEM }, { role: "user", content: user }],
+        opts, "writer", hooks.onReason,
+      )
+    : await chatWithRole(
+        [{ role: "system", content: SCOPED_SYSTEM }, { role: "user", content: user }],
+        opts, "writer",
+      );
 
   let updatedTex = rawOut
     .replace(/^```(?:latex|tex)?\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
-  updatedTex = updatedTex
-    .replace(/\\\\&/g, "\\&")
-    .replace(/\\\\%/g, "\\%")
-    .replace(/\\\\#/g, "\\#");
+  // No escaping rewrites here: the AI returns a complete document and it is validated by
+  // an actual COMPILE below (repair loop in the route) — rewriting `\\&`->`\&` etc.
+  // corrupted legitimate `\\` row separators in tabular layouts.
 
   // Operation-aware integrity: structural = typography must be unchanged (section counts
   // may shift); format = only require a complete document. On violation, keep the original.
@@ -262,11 +282,111 @@ async function scopedEdit(latex: string, instruction: string, intent: EditIntent
   };
 }
 
+// ─── Compile validation + AI self-repair ─────────────────────────────────────
+// An AI-generated document can contain an unescaped `&` or `_`, an unbalanced
+// brace, etc. that CRASHES the Tectonic compile. Instead of shipping a crash to
+// the user, we: (1) compile the candidate for real; (2) if it fails, send the
+// compiler's actual error + the failing document back to the AI for ONE syntax
+// repair round; (3) if that still fails, ship the ORIGINAL document untouched.
+// A crash never reaches the user.
+
+const REPAIR_SYSTEM = [
+  "You are a LaTeX syntax repair service. You are given a LaTeX resume document that",
+  "failed to compile, plus the compiler's error message. Fix ONLY the syntax error",
+  "(wrong/missing escapes like & % _ # $ ^ ~, unbalanced braces or environments, stray",
+  "math characters). Do NOT change wording, content, layout, fonts, margins, packages,",
+  "or anything else. Return ONLY the complete corrected LaTeX document — start with",
+  "\\documentclass, end with \\end{document}, no markdown or prose.",
+].join(" ");
+
+export interface RepairOutcome {
+  ok: boolean;
+  latex?: string;
+  error?: string;
+}
+
+/** Compile-error repair round, callable from BOTH the edit pipeline and the public
+ *  /api/ai/fix-tex route (the user-facing "Fix" button). Benchmark role: "repair"
+ *  (nemotron-3-ultra primary — visible reasoning — Gemini fallback). */
+export async function repairLatexDocument(
+  candidate: string,
+  compileError: string,
+  hooks: InstructHooks = {},
+): Promise<RepairOutcome> {
+  hooks.onStage?.("repair");
+  const user = [
+    "The following LaTeX document failed to compile with this compiler error:",
+    "<COMPILER_ERROR>", compileError.slice(0, 3000), "</COMPILER_ERROR>", "",
+    "<LATEX>", candidate, "</LATEX>", "",
+    "Return the complete corrected LaTeX document now.",
+  ].join("\n");
+  const opts = { temperature: 0, max_tokens: 8192 } as const;
+  const out = hooks.onReason
+    ? await chatWithRoleStream(
+        [{ role: "system", content: REPAIR_SYSTEM }, { role: "user", content: user }],
+        opts, "repair", hooks.onReason,
+      )
+    : await chatWithRole(
+        [{ role: "system", content: REPAIR_SYSTEM }, { role: "user", content: user }],
+        opts, "repair",
+      );
+  const tex = out
+    .replace(/^```(?:latex|tex)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  if (!(tex.startsWith("\\documentclass") && tex.includes("\\end{document}"))) {
+    return { ok: false, error: "repair did not return a complete document" };
+  }
+  const c = await compileTex({ latex: tex, rasterize: false });
+  if (c.ok) return { ok: true, latex: tex };
+  return { ok: false, error: c.error.message || c.error.code };
+}
+
+/** Compile-validate an InstructResult; self-repair once; revert on persistent failure. */
+async function validateAndRepair(
+  result: InstructResult,
+  original: string,
+  log: (...a: unknown[]) => void,
+  hooks: InstructHooks = {},
+): Promise<InstructResult> {
+  // Layout presets run on the user's ALREADY-COMPILING document and only tweak
+  // numerics; rejections and no-ops have nothing to validate.
+  if (result.rejected || result.latex === original) return result;
+  hooks.onStage?.("compile");
+  const first = await compileTex({ latex: result.latex, rasterize: false });
+  if (first.ok) return result;
+  // Engine unreachable/down is NOT a LaTeX error — the edit is fine; let the normal
+  // compile path surface availability later. Only real compiler failures repair.
+  if (first.error.code !== "COMPILE_FAILED") {
+    log(`skip repair: compile validation unavailable (${first.error.code})`);
+    return result;
+  }
+  log(`candidate failed compile (${first.error.code}) -> AI self-repair`);
+  const repaired = await repairLatexDocument(result.latex, first.error.message, hooks);
+  if (repaired.ok && repaired.latex && repaired.latex !== result.latex) {
+    log("self-repair compiled OK");
+    return { ...result, latex: repaired.latex, summary: `${result.summary} (fixed a LaTeX syntax slip automatically.)` };
+  }
+  log(`self-repair failed (${repaired.error ?? "?"}) -> reverting to original document`);
+  hooks.onStage?.("reverted", repaired.error);
+  return {
+    latex: original,
+    summary: "The edit broke the document's LaTeX, so it was rolled back — nothing changed. Try rephrasing the edit, or press Fix to repair it directly.",
+    intent: result.intent,
+    rejected: true,
+  };
+}
+
 // ─── AI-Powered Natural Language Update (entry point) ──────────────────────────
 
-export async function instructLatex(latex: string, instruction: string): Promise<InstructResult> {
+export async function instructLatex(
+  latex: string,
+  instruction: string,
+  hooks: InstructHooks = {},
+): Promise<InstructResult> {
   const log = (...a: unknown[]) => console.log("[AI] instruct:", ...a);
   const norm = instruction.trim().toLowerCase();
+  hooks.onStage?.("intent", instruction);
 
   // 1. Deterministic layout fast-paths (0 tokens, 0ms, zero chance of syntax error).
   //    These are known FORMAT operations handled without any AI call.
@@ -300,14 +420,18 @@ export async function instructLatex(latex: string, instruction: string): Promise
   // 2. Classify the instruction and route to the right (safe) handler.
   const intent = classifyIntent(instruction);
   log(`intent=${intent}`);
+  hooks.onStage?.("ai", intent);
   try {
-    if (intent === "content") return await contentEdit(latex, instruction);
-    return await scopedEdit(latex, instruction, intent);
+    const r = intent === "content"
+      ? await contentEdit(latex, instruction, hooks)
+      : await scopedEdit(latex, instruction, intent, hooks);
+    return await validateAndRepair(r, latex, log, hooks);
   } catch (e) {
     // Any failure in the surgical/scoped path (region extraction edge case, provider
     // hiccup) must NOT hard-fail the edit. Fall back to a single whole-.tex edit; if that
     // also fails, rethrow so the route reports it.
     log(`primary path threw (${e instanceof Error ? e.message : e}) -> scoped fallback`);
-    return await scopedEdit(latex, instruction, intent === "content" ? "content" : intent);
+    const r = await scopedEdit(latex, instruction, intent === "content" ? "content" : intent, hooks);
+    return await validateAndRepair(r, latex, log, hooks);
   }
 }

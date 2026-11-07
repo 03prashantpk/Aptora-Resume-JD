@@ -1,0 +1,46 @@
+{
+ "A-writer think-off": {
+  "ok": true,
+  "ms": 236133,
+  "ttft": 234834,
+  "ttt": 211197,
+  "think": 4499,
+  "out": 747,
+  "tps": 3.2,
+  "text": "{\"summary\": \"Full-stack developer with 2+ years building production web applications in Python, Node.js, and React. Experienced designing REST APIs and data models across PostgreSQL and MongoDB, deploying containerized services with Docker on AWS, and automating CI/CD with GitHub Actions. Works across the stack, from realtime backend features to React.js and Next.js frontends.\", \"bullets\": [\"Designed and maintained REST APIs, data models, and realtime features in Python and Node.js for products including Humble, Archilo, and Aptora, running on AWS infrastructure.\", \"Developed web applications with Django and Express backed by MongoDB, containerizing services with Docker on AWS and streamlining deployments through GitHub Actions CI/CD.\"]}",
+  "verdict": "JSON ✓ honest ✓"
+ },
+ "B-fixer think-off": {
+  "ok": true,
+  "ms": 145754,
+  "ttft": 137860,
+  "ttt": 117715,
+  "think": 2326,
+  "out": 1218,
+  "tps": 8.4,
+  "text": "\\documentclass[a4paper,11pt]{article}\n\\usepackage[margin=0.65in,top=0.45in,bottom=0.45in]{geometry}\n\\usepackage{enumitem}\\usepackage[hidelinks]{hyperref}\\usepackage{xcolor}\n\\usepackage{newtxtext,newtxmath}\\usepackage{titlesec}\\usepackage{tabularx}\n\\pagenumbering{gobble}\n\\titleformat{\\section}{\\Large\\bfseries\\uppercase}{}{0em}{}[\\titlerule]\n\\setlist[itemize]{noitemsep, topsep=4pt, left=8pt}\n\\renewcommand{\\baselinestretch}{1.12}\n\\begin{document}\n\\begin{center}{\\Huge \\textbf{PRASHANT KUMAR}}\\\\[5pt]\n{\\large\\textbf{PRODUCT ENGINEER \\& FULL-STACK DEVELOPER}}\\\\[9pt]\n\\normalsize\\textbullet\\ +91 9612096180 \\textbullet\\ prashantmanwan@gmail.com\\end{center}\n\\section*{SUMMARY}\nProduct engineer with 2 years of production experience across web products.\n\\section*{EXPERIENCE}\n\\textbf{Product Engineer --- Enally} \\hfill \\textit{2020 -- Present}\n\\begin{itemize}\n\\item Built the R\\&D reporting pipeline using Python and Docker, saving \\$2M of manual work.\n\\item Designed REST APIs and real-time services.\n\\end{itemize}\n\\section*{TECHNICAL SKILLS}\n\\noindent \\textbf{Languages:} TypeScript, JavaScript, Python, SQL, PHP, C++ \\\\\n\\textbf{Cloud \\& DevOps:} AWS (EC2, Lambda, S3, RDS), Docker, GitHub Actions, CI/CD\n\\end{document}",
+  "verdict": "COMPILES ✓"
+ },
+ "C-repair think-on": {
+  "ok": true,
+  "ms": 126847,
+  "ttft": 114425,
+  "ttt": 73740,
+  "think": 6394,
+  "out": 1214,
+  "tps": 9.6,
+  "text": "\\documentclass[a4paper,11pt]{article}\n\\usepackage[margin=0.65in,top=0.45in,bottom=0.45in]{geometry}\n\\usepackage{enumitem}\\usepackage[hidelinks]{hyperref}\\usepackage{xcolor}\n\\usepackage{newtxtext,newtxmath}\\usepackage{titlesec}\\usepackage{tabularx}\n\\pagenumbering{gobble}\n\\titleformat{\\section}{\\Large\\bfseries\\uppercase}{}{0em}{}[\\titlerule]\n\\setlist[itemize]{noitemsep, topsep=4pt, left=8pt}\n\\renewcommand{\\baselinestretch}{1.12}\n\\begin{document}\n\\begin{center}{\\Huge \\textbf{PRASHANT KUMAR}}\\\\[5pt]\n{\\large\\textbf{PRODUCT ENGINEER \\& FULL-STACK DEVELOPER}}\\\\[9pt]\n\\normalsize\\textbullet\\ +91 9612096180 \\textbullet\\ prashantmanwan@gmail.com\\end{center}\n\\section*{SUMMARY}\nProduct engineer with 2 years of production experience across web products.\n\\section*{EXPERIENCE}\n\\textbf{Product Engineer --- Enally} \\hfill \\textit{2020 -- Present}\n\\begin{itemize}\n\\item Built production web products for R\\&D at ACME\\_2024 using 100\\% C++ to save \\$2M.\n\\item Designed REST APIs and real-time services.\n\\end{itemize}\n\\section*{TECHNICAL SKILLS}\n\\noindent \\textbf{Languages:} TypeScript, JavaScript, Python, SQL, PHP, C++ \\\\\n\\textbf{Cloud \\& DevOps:} AWS (EC2, Lambda, S3, RDS), Docker, GitHub Actions, CI/CD\n\\end{document}",
+  "verdict": "COMPILES ✓"
+ },
+ "A-writer think-on": {
+  "ok": true,
+  "ms": 115654,
+  "ttft": 113825,
+  "ttt": 94177,
+  "think": 3263,
+  "out": 681,
+  "tps": 5.9,
+  "text": "{\"summary\": \"Full-stack developer with 2+ years building REST APIs and web applications in Python (Django, Node.js/Express) and React, backed by PostgreSQL, MongoDB, and Redis. Hands-on with AWS, Docker, Git, and CI/CD (GitHub Actions) within Agile teams, spanning backend services, data models, realtime features, and cloud deployment.\", \"bullets\": [\"Designed and delivered REST APIs and data models in Python (Django) and Node.js/Express on PostgreSQL and MongoDB, powering realtime features across Humble, Archilo, and Aptora.\", \"Containerized applications with Docker and deployed on AWS, automating build and release pipelines through GitHub Actions CI/CD in Agile sprints.\"]}",
+  "verdict": "JSON ✓ honest ✓"
+ }
+}

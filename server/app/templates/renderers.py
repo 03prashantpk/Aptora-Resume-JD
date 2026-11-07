@@ -104,12 +104,35 @@ def render_t02(d: ResumeJSON) -> str:
     def experience() -> str:
         blocks = []
         for i, e in enumerate(d.experience):
-            head = f"\\textbf{{{esc(e.title)}}} \\hfill \\textit{{{esc(e.dates)}}}"
+            # Title on its own line; company (org) left, dates right — both ALWAYS
+            # rendered. (The old version rendered only title+dates and silently
+            # dropped the company name — a data-loss bug on every ingest.)
+            if e.org and e.dates and e.dates != e.org:
+                head = f"\\textbf{{{esc(e.title)}}} \\\\\n\\textit{{{esc(e.org)}}} \\hfill \\textit{{{esc(e.dates)}}}"
+            elif e.org:
+                head = f"\\textbf{{{esc(e.title)}}} \\\\\n\\textit{{{esc(e.org)}}}"
+            else:
+                head = f"\\textbf{{{esc(e.title)}}} \\hfill \\textit{{{esc(e.dates)}}}"
             out = ("\\vspace{5pt}\n" if i else "") + head + "\n\\begin{itemize}\n"
             for b in e.bullets:
                 out += f"    \\item {esc(b)}\n"
             blocks.append(out + "\\end{itemize}\n")
+        for g in d.extra_groups:
+            out = f"\\vspace{{5pt}}\n\\textbf{{{esc(g.heading)}}}\n\\begin{{itemize}}\n"
+            for b in g.bullets:
+                out += f"    \\item {esc(b)}\n"
+            blocks.append(out + "\\end{itemize}\n")
         return "".join(blocks)
+
+    # Key Projects — the old renderer had NO projects section at all (6 projects
+    # parsed on every ingest were discarded). Name bold, description under it.
+    def projects() -> str:
+        if not d.projects:
+            return ""
+        out = "\\begin{itemize}\n"
+        for p in d.projects:
+            out += f"  \\item[\\textbullet] \\textbf{{{esc(p.name)}}} \\\\\n  {esc(p.description)}\n  \\vspace{{2pt}}\n"
+        return out + "\\end{itemize}\n"
 
     def skills() -> str:
         return "\\noindent\n" + " \\\\[5pt]\n".join(f"\\textbf{{{esc(s.label)}:}} {esc(s.items)}" for s in d.skills)
@@ -121,10 +144,13 @@ def render_t02(d: ResumeJSON) -> str:
         return out + "\\end{tabularx}\n"
 
     summary = _sec("SUMMARY", esc(d.summary)) if d.summary else ""
-    exp = _sec("EXPERIENCE", experience()) if d.experience else ""
+    exp = _sec("EXPERIENCE", experience()) if (d.experience or d.extra_groups) else ""
+    proj = _sec("KEY PROJECTS", projects()) if d.projects else ""
     sk = _sec("KEY SKILLS", skills()) if d.skills else ""
     edu = _sec("EDUCATION", education()) if d.education else ""
+    cert = _sec("CERTIFICATIONS", esc(d.certifications)) if d.certifications else ""
     soft = _sec("ADDITIONAL INFORMATION", esc(d.soft_skills)) if d.soft_skills else ""
+    footer = (f"\\vspace{{6pt}}\n\\begin{{center}}\n    Portfolio and More Projects: {href(d.portfolio_line, d.portfolio_line)}\n\\end{{center}}\n" if d.portfolio_line else "")
     return f"""\\documentclass[a4paper,11pt]{{article}}
 \\usepackage[margin=0.65in,top=0.45in,bottom=0.45in]{{geometry}}
 \\usepackage{{enumitem}}
@@ -138,8 +164,9 @@ def render_t02(d: ResumeJSON) -> str:
 \\titleformat{{\\section}}
   {{\\Large\\bfseries\\uppercase}}
   {{}}{{0em}}{{}}[\\titlerule]
-\\setlist[itemize]{{noitemsep, topsep=4pt, left=8pt}}
-\\renewcommand{{\\baselinestretch}}{{1.12}}
+\\setlist[itemize]{{noitemsep, topsep=3pt, left=8pt}}
+\\renewcommand{{\\baselinestretch}}{{1.06}}
+\\renewcommand{{\\arraystretch}}{{1.05}}
 \\begin{{document}}
 \\begin{{center}}
     {{\\Huge \\textbf{{{esc(d.name)}}}}}\\\\[5pt]
@@ -147,7 +174,7 @@ def render_t02(d: ResumeJSON) -> str:
     \\normalsize
     {BULLET}{_contact(d)}
 \\end{{center}}
-{summary}{exp}{sk}{edu}{soft}
+{summary}{exp}{proj}{sk}{edu}{cert}{soft}{footer}
 \\end{{document}}
 """
 
@@ -250,11 +277,28 @@ def render_t04(d: ResumeJSON) -> str:
             out += f"  \\resumeSubheading\n    {{{esc(e.text)}}}{{{esc(e.dates)}}}\n    {{Degree / Major}}{{}}\n"
         return out + "  \\resumeSubHeadingListEnd\n"
 
+    def extra() -> str:
+        # Leadership/Achievements-style extra groups (plain itemize; the resumeSubheading
+        # macro takes 4 args and doesn't fit groups without org/dates).
+        if not d.extra_groups:
+            return ""
+        out = ""
+        for g in d.extra_groups:
+            out += f"  \\textbf{{{esc(g.heading)}}}\n    \\begin{{itemize}}[leftmargin=0.15in]\n"
+            for b in g.bullets:
+                out += f"      \\item {esc(b)}\n"
+            out += "    \\end{itemize}\n"
+        return out
+
     summary_sec = f"\\section{{Summary}}\n{esc(d.summary)}\n" if d.summary else ""
-    exp_sec = f"\\section{{Experience}}\n{experience()}" if d.experience else ""
+    exp_sec = f"\\section{{Experience}}\n{experience()}" if (d.experience or d.extra_groups) else ""
     proj_sec = f"\\section{{Projects}}\n{projects()}" if d.projects else ""
     sk_sec = f"\\section{{Technical Skills}}\n \\begin{{itemize}}[leftmargin=0.15in, label={{}}]\n    \\small{{\\item{{\n{skills()}\n    }}}}\n \\end{{itemize}}\n" if d.skills else ""
     edu_sec = f"\\section{{Education}}\n{education()}" if d.education else ""
+    extra_sec = f"\\section{{Additional}}\n{extra()}" if d.extra_groups else ""
+    cert_sec = f"\\section{{Certifications}}\n{esc(d.certifications)}\n" if d.certifications else ""
+    soft_sec = f"\\section{{Interests}}\n{esc(d.soft_skills)}\n" if d.soft_skills else ""
+    footer = (f"\\vspace{{6pt}}\n\\begin{{center}}\n    Portfolio and More Projects: {href(d.portfolio_line, d.portfolio_line)}\n\\end{{center}}\n" if d.portfolio_line else "")
 
     contact_parts = []
     if d.contact.phone:
@@ -331,7 +375,7 @@ def render_t04(d: ResumeJSON) -> str:
     \\textbf{{\\Huge \\scshape {esc(d.name)}}} \\\\ \\vspace{{1pt}}
     \\small {contacts_str}
 \\end{{center}}
-{summary_sec}{exp_sec}{proj_sec}{sk_sec}{edu_sec}
+{summary_sec}{exp_sec}{proj_sec}{sk_sec}{edu_sec}{extra_sec}{cert_sec}{soft_sec}{footer}
 \\end{{document}}
 """
 
@@ -346,6 +390,11 @@ def render_t05(d: ResumeJSON) -> str:
             for b in e.bullets:
                 out += f"    \\item {esc(b)}\n"
             blocks.append(out + "\\end{itemize}\n")
+        for g in d.extra_groups:
+            blocks.append(
+                "\\vspace{5pt}\n\\textbf{" + esc(g.heading) + "}\n\\begin{itemize}\n"
+                + "".join(f"    \\item {esc(b)}\n" for b in g.bullets)
+                + "\\end{itemize}\n")
         return "".join(blocks)
 
     def projects() -> str:
@@ -363,7 +412,7 @@ def render_t05(d: ResumeJSON) -> str:
         return " \\\\\n".join(f"{esc(e.text)} \\hfill {esc(e.dates)}" for e in d.education)
 
     summary = _sec("Summary", esc(d.summary)) if d.summary else ""
-    exp = _sec("Experience", experience()) if d.experience else ""
+    exp = _sec("Experience", experience()) if (d.experience or d.extra_groups) else ""
     proj = _sec("Projects", projects()) if d.projects else ""
     sk = _sec("Skills", skills()) if d.skills else ""
     edu = _sec("Education", education()) if d.education else ""
@@ -408,6 +457,11 @@ def render_t06(d: ResumeJSON) -> str:
             for b in e.bullets:
                 out += f"    \\item {esc(b)}\n"
             out += "\\end{itemize}\n\\vspace{4pt}\n"
+        for g in d.extra_groups:
+            out += f"\\textbf{{{esc(g.heading)}}}\n\\begin{{itemize}}\n"
+            for b in g.bullets:
+                out += f"    \\item {esc(b)}\n"
+            out += "\\end{itemize}\n\\vspace{4pt}\n"
         return out
 
     def projects() -> str:
@@ -429,7 +483,7 @@ def render_t06(d: ResumeJSON) -> str:
         return f"\\section*{{{esc(title)}}}\n{body}\n"
 
     summary = sec("Summary", esc(d.summary)) if d.summary else ""
-    exp = sec("Experience", experience()) if d.experience else ""
+    exp = sec("Experience", experience()) if (d.experience or d.extra_groups) else ""
     proj = sec("Projects", projects()) if d.projects else ""
     sk = sec("Skills", skills()) if d.skills else ""
     edu = sec("Education", education()) if d.education else ""

@@ -22,15 +22,52 @@ export const POST: APIRoute = async (ctx) => {
   const usage = await getUsage(ownerId);
   if (!usage.allowed) { rlog.done("402 free-limit"); return json({ error: { code: "FREE_LIMIT", message: "You've used your free runs. Create an account for more." } }, 402); }
 
+  const isPreset = /fit\s*(to\s*)?(1|one)\s*page|reduce\s*margin|standard\s*margin|font\s*size/i.test(instruction);
+  const wantsStream = (body as { stream?: boolean }).stream === true && !isPreset;
+
   try {
-    const result = await instructLatex(latex, instruction);
-    // Only bump usage if an AI call was performed (layout presets are free of charge!)
-    const isPreset = /fit\s*(to\s*)?(1|one)\s*page|reduce\s*margin|standard\s*margin|font\s*size/i.test(instruction);
-    if (!isPreset) {
-      await bumpUsage(ownerId, "ai_calls");
+    if (!wantsStream) {
+      const result = await instructLatex(latex, instruction);
+      // Only bump usage if an AI call was performed (layout presets are free of charge!)
+      if (!isPreset) {
+        await bumpUsage(ownerId, "ai_calls");
+      }
+      rlog.done(isPreset ? "200 ok (preset, free)" : "200 ok");
+      return json(result, 200);
     }
-    rlog.done(isPreset ? "200 ok (preset, free)" : "200 ok");
-    return json(result, 200);
+
+    // ── SSE mode: stage + live reasoning + final result ─────────────────────
+    // Newline-delimited JSON frames (-streamingly-):
+    //   {"type":"stage","stage":"ai|reason|compile|repair|reverted","detail":...}
+    //   {"type":"reason","text":"<reasoning delta>"}
+    //   {"type":"result", ...InstructResult}
+    //   {"type":"error","code":"AI_UNAVAILABLE"}
+    const enc = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (obj: unknown) => {
+          controller.enqueue(enc.encode(JSON.stringify(obj) + "\n\n"));
+        };
+        try {
+          const result = await instructLatex(latex, instruction, {
+            onStage: (stage, detail) => send({ type: "stage", stage, detail }),
+            onReason: (text) => send({ type: "reason", text }),
+          });
+          if (!isPreset) await bumpUsage(ownerId, "ai_calls");
+          send({ type: "result", ...result });
+          rlog.done("200 ok (stream)");
+        } catch (se) {
+          console.error("[AI] ai/instruct (stream) FAILED:", se instanceof Error ? `${se.name}: ${se.message}` : String(se));
+          send({ type: "error", code: "AI_UNAVAILABLE", message: "Update is unavailable right now." });
+          rlog.done("502 unavailable (stream)");
+        } finally {
+          controller.close();
+        }
+      },
+    });
+    return new Response(stream, {
+      headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-accel-buffering": "no" },
+    });
   } catch (e) {
     // Log the real cause server-side (never returned to the client) so failures are
     // diagnosable instead of a blind 502.

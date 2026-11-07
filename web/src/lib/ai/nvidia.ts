@@ -35,6 +35,12 @@ const NV_LIGHTNING_FAST_MODEL = env("NV_LIGHTNING_FAST_MODEL") ?? "nvidia/nemotr
 const NV_TEXT_FAST_MODEL = env("NV_TEXT_FAST_MODEL") ?? "nvidia/nemotron-3-super-120b-a12b";
 const NV_TEXT_ALT_MODEL = env("NV_TEXT_ALT_MODEL") ?? "google/gemma-4-31b-it";
 const NV_TEXT_FAST_VISION_MODEL = env("NV_TEXT_FAST_VISION_MODEL") ?? "meta/llama-3.2-90b-vision-instruct";
+// Bench-added slots (tests/model-bench-*.cjs, 2026-11-07):
+// ultra: winner for interactive edit/repair roles (2.6s TTFT, 224 TPS, streams reasoning).
+// glimmer: honest but 90s TTFT — chain end only. minimax/glm/gemma: benched, not routed
+// (minimax slow + repair compile FAIL once; glm ignores timeout/stalls platform-side).
+const NV_ULTRA_MODEL = env("NV_ULTRA_MODEL") ?? "nvidia/nemotron-3-ultra-550b-a55b";
+const NV_GLIMMER_MODEL = env("NV_GLIMMER_MODEL") ?? "meta/muse-glimmer-30b";
 
 export const models = {
   /** DEFAULT for all text tasks: Google Gemini 2.5 Flash. */
@@ -46,6 +52,10 @@ export const models = {
   /** Fallback C: Gemma 4 (standard instruction model). */
   textAlt: NV_TEXT_ALT_MODEL,
   vision: NV_TEXT_FAST_VISION_MODEL,
+  /** Role-workhorse: ultra-fast repair/fixer with streamable reasoning. */
+  ultra: NV_ULTRA_MODEL,
+  /** Bench spare: last link in role chains. */
+  glimmer: NV_GLIMMER_MODEL,
 };
 
 /** Ordered model chain for text tasks: Gemini → Lightning → Super → Gemma. De-duplicated. */
@@ -109,6 +119,13 @@ async function chatNvidia(messages: ChatMessage[], opts: ChatOptions = {}): Prom
     (u ? ` tokens(p=${u.prompt_tokens ?? "?"} c=${u.completion_tokens ?? "?"} t=${u.total_tokens ?? "?"})` : ""),
   );
   if (AI_LOG_VERBOSE && out) aiLog(`#${id} answer:\n${out}`);
+  // Bench finding: Lightning/Super can burn the ENTIRE token budget on thinking and
+  // return zero content. Empty output must be a TRANSIENT failure so the model chain
+  // advances instead of silently handing "" to a task.
+  if (!out.trim()) {
+    aiLog(`#${id} nvidia ✗ EMPTY output (thinking burned budget?) in ${Date.now() - t0}ms`);
+    throw new AIProviderError(503, "NVIDIA returned empty output", "nvidia");
+  }
   return out;
 }
 
@@ -223,11 +240,18 @@ export async function chatWithFallback(
   opts: ChatOptions = {},
   chain: string[] = TEXT_MODEL_CHAIN,
 ): Promise<string> {
+  const TOTAL_MS = Number(process.env.STALL_TOTAL_MS ?? 210_000);
   let lastErr: unknown;
   for (let i = 0; i < chain.length; i++) {
     const model = chain[i];
+    let totalTimer: ReturnType<typeof setTimeout> | undefined;
     try {
-      return await chat(messages, { ...opts, model });
+      // Watchdog: a model that never answers must never park the chain (glm-style stalls).
+      const stall = new Promise<never>((_, rej) => {
+        totalTimer = setTimeout(() => rej(new AIProviderError(504, `model stalled: ${model}`, "nvidia")), TOTAL_MS);
+      });
+      const out = await Promise.race([chat(messages, { ...opts, model }), stall]);
+      return out;
     } catch (e) {
       lastErr = e;
       const transient = e instanceof AIProviderError ? isTransientStatus(e.status) : true; // network error -> try next
@@ -237,6 +261,112 @@ export async function chatWithFallback(
         continue;
       }
       throw e; // hard error, or no models left
+    } finally {
+      if (totalTimer) clearTimeout(totalTimer);
+    }
+  }
+  throw lastErr;
+}
+
+// ─── Role routing (bench: tests/model-bench-all.cjs / -new.cjs, 2026-11-07) ────
+//
+// Aptora's AI jobs measured on real workloads (heavy tailor rewrite, scoped symbol
+// edits, compile-error repair — every LaTeX output compile-validated):
+//
+//   writer  Gemini 2.5 Flash   13.1s heavy rewrite, honest, no fabrication, 100 TPS
+//           ultra              32.0s, honest  (fallback)
+//           glimmer            95s, honest    (last resort — 90s TTFT)
+//   fixer   ultra              5.4s total, 2.6s TTFT, 224 TPS, streams reasoning
+//           Gemini             3.1s on same task           (fallback)
+//   repair  ultra              12.3s, reasoning visible    (primary)
+//           Gemini             6.3s but FAILED one repair  (fallback)
+//
+// Rejected by bench: minimax (86-128s + one failed repair), glm (115-236s, stalls),
+// lightning/super as PRIMARY (often 0 output tokens — kept as generic fallbacks),
+// gemma (145-185s), muse-glimmer as primary (90s TTFT).
+
+export type AiRole = "writer" | "fixer" | "repair";
+
+const ROLE_CHAINS: Record<AiRole, string[]> = {
+  writer: [models.text, models.ultra, models.textAlt, models.glimmer],
+  fixer: [models.ultra, models.text, models.textAlt, models.glimmer],
+  repair: [models.ultra, models.text, models.textAlt, models.glimmer],
+};
+
+/** Role-routed chat: picks the bench-winning model chain for the job type. */
+export function chatWithRole(
+  messages: ChatMessage[],
+  opts: ChatOptions = {},
+  role: AiRole = "writer",
+): Promise<string> {
+  return chatWithFallback(messages, opts, ROLE_CHAINS[role]);
+}
+
+/** Role-routed STREAMING chat with live reasoning relay. Aggregates the stream into the
+ *  final text; every reasoning delta is forwarded to `onReason` (drives the "thinking"
+ *  badge). Empty stream output is treated as transient so the chain advances.
+ *
+ *  Anti-stall watchdog (bench: glm stalls forever, gemma 145-185s, muse-glimmer 90s TTFT):
+ *  - INACTIVITY: no chunk of any kind for STALL_INACTIVITY_MS (default 45s) → abort →
+ *    classified 504 → transient → the chain advances to the next model.
+ *  - TOTAL wall clock: STALL_TOTAL_MS (default 210s) per model attempt.
+ *  Never leaves a user parked on a dead model. */
+export async function chatWithRoleStream(
+  messages: ChatMessage[],
+  opts: ChatOptions = {},
+  role: AiRole = "writer",
+  onReason?: (delta: string) => void,
+): Promise<string> {
+  const chain = ROLE_CHAINS[role];
+  const INACTIVITY_MS = Number(process.env.STALL_INACTIVITY_MS ?? 45_000);
+  const TOTAL_MS = Number(process.env.STALL_TOTAL_MS ?? 210_000);
+  let lastErr: unknown;
+  for (let i = 0; i < chain.length; i++) {
+    const model = chain[i];
+    const ac = new AbortController();
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    let totalTimer: ReturnType<typeof setTimeout> | undefined;
+    let aborted = false;
+    const armIdle = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => { aborted = true; ac.abort(); }, INACTIVITY_MS);
+    };
+    const armTotal = () => {
+      totalTimer = setTimeout(() => { aborted = true; ac.abort(); }, TOTAL_MS);
+    };
+    try {
+      armTotal();
+      armIdle();
+      let text = "";
+      for await (const chunk of chatStream(messages, { ...opts, model, signal: ac.signal })) {
+        armIdle(); // any chunk of any kind proves the model is alive
+        if (chunk.reasoning) onReason?.(chunk.reasoning);
+        if (chunk.content) text += chunk.content;
+      }
+      if (!text.trim()) {
+        aiLog(`role[${role}] ${model} ✗ empty stream output`);
+        throw new AIProviderError(503, "empty stream output", "nvidia");
+      }
+      return text;
+    } catch (e) {
+      lastErr = e;
+      if (aborted) {
+        // The watchdog, not the provider, pulled the plug — treat as transient stall.
+        const reason = e instanceof Error && e.name === "AbortError"
+          ? `stalled inactivity/timeout (${Math.round(INACTIVITY_MS / 1000)}s no tokens or ${Math.round(TOTAL_MS / 1000)}s cap)`
+          : "stalled";
+        aiLog(`role[${role}] "${model}" ⏱ watchdog: ${reason}`);
+        lastErr = new AIProviderError(504, `model stalled: ${model}`, "nvidia");
+      }
+      const transient = e instanceof AIProviderError ? isTransientStatus(e.status) : true;
+      if (transient && i < chain.length - 1) {
+        aiLog(`role[${role}]: "${model}" failed transient (${e instanceof AIProviderError ? e.status : "network"}) -> trying "${chain[i + 1]}"`);
+        continue;
+      }
+      throw e;
+    } finally {
+      if (idleTimer) clearTimeout(idleTimer);
+      if (totalTimer) clearTimeout(totalTimer);
     }
   }
   throw lastErr;

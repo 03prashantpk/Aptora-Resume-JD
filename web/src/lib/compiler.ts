@@ -4,12 +4,15 @@ import type { CompileResult, ResumeJSON, TemplateId } from "./types";
 
 // Runtime env (Node SSR) so COMPILER_URL is read when the server RUNS, not baked at build.
 const COMPILER_URL = (process.env.COMPILER_URL ?? import.meta.env.COMPILER_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
-// Failover engine (HV-primary/HF-default deployments): if the primary engine (env
-// COMPILER_URL) is unreachable or 5xx-failing, requests are retried against this.
-// Set COMPILER_FALLBACK_URL (e.g. the Render engine) when COMPILER_URL points at a
-// Hugging Face Space. Artifact fetches always go to the engine that COMPILED the doc
-// (its RAM/disk cache is the only place the artifact exists) — see ENGINE_BY_DOC.
-const COMPILER_FALLBACK_URL = (process.env.COMPILER_FALLBACK_URL ?? import.meta.env.COMPILER_FALLBACK_URL ?? "").replace(/\/$/, "");
+// Failover engine: if the primary engine (COMPILER_URL) is unreachable or 5xx-failing,
+// requests are retried against the fallback. DEFAULT FALLBACK IS THE RENDER ENGINE
+// (https://aptora-engine.onrender.com) — the only full engine deployment today — so when
+// COMPILER_URL is pointed at a Hugging Face Space, Render is automatically the backup.
+// (If COMPILER_URL already IS the Render engine, the default is empty: never retry into
+// ourselves.) Override per environment with COMPILER_FALLBACK_URL="" to force a single
+// engine, or to any other URL.
+const _DEFAULT_FALLBACK = COMPILER_URL === "https://aptora-engine.onrender.com" ? "" : "https://aptora-engine.onrender.com";
+const COMPILER_FALLBACK_URL = (process.env.COMPILER_FALLBACK_URL ?? import.meta.env.COMPILER_FALLBACK_URL ?? _DEFAULT_FALLBACK).replace(/\/$/, "");
 const ENGINES = COMPILER_FALLBACK_URL ? [COMPILER_URL, COMPILER_FALLBACK_URL] : [COMPILER_URL];
 
 // document_id -> engine base that compiled it. Artifacts (page images, PDF) only exist
@@ -105,6 +108,8 @@ export interface CompileTexParams {
   revision_id?: string;
   preview_dpi?: number;
   preview_format?: "webp" | "png";
+  /** Validation compiles (AI self-repair loop) skip rasterization — no page images needed. */
+  rasterize?: boolean;
 }
 
 /** Raw-LaTeX compile + rasterize in one pass (the Overleaf-style path). */

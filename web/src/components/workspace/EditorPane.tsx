@@ -99,6 +99,8 @@ interface Props {
   saveState: SaveState;
   pageCount: number;
   templateId: TemplateId;
+  /** Opens the in-app auth popup (401 flows route here instead of dead-end toasts). */
+  onOpenAuth?: (mode: "login" | "signup") => void;
   onSelectTemplate: (t: TemplateId) => void;
   aiLines: Set<number>; // 1-based lines to highlight as AI-changed
   streaming: boolean;
@@ -120,7 +122,7 @@ function CompileStatus({ state, streaming }: { state: SaveState; streaming: bool
   return <span className="ed-status" />;
 }
 
-export default function EditorPane({ value, onChange, saveState, pageCount, templateId, onSelectTemplate, aiLines, streaming, jumpLine }: Props) {
+export default function EditorPane({ value, onChange, saveState, pageCount, templateId, onSelectTemplate, aiLines, streaming, jumpLine, onOpenAuth }: Props) {
   const [pos, setPos] = useState({ line: 1, col: 1 });
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const templateMenuRef = useRef<HTMLDivElement>(null);
@@ -190,7 +192,12 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
         body: JSON.stringify({ name, latex: value }),
       });
       const d = await r.json().catch(() => ({}));
-      if (r.status === 401) { toast("Sign in to save your own templates.", "info"); setNameModalOpen(false); return; }
+      if (r.status === 401) {
+        toast("Sign in to save your own templates.", "info");
+        setNameModalOpen(false);
+        onOpenAuth?.("login");
+        return;
+      }
       if (!r.ok) { toast(d?.error?.message ?? "Couldn't save the template.", "error"); return; }
       if (d?.template) setMyTemplates((prev) => [d.template, ...prev]);
       toast("Saved to your templates.", "success");
@@ -250,6 +257,7 @@ export default function EditorPane({ value, onChange, saveState, pageCount, temp
         setVoteCounts((prev) => ({ ...prev, [tid]: Math.max(0, (prev[tid] ?? 1) - 1) }));
         if (r.status === 401) {
           toast("Please log in to like templates and save your activity.", "info");
+          onOpenAuth?.("login");
         } else {
           toast("Couldn't record your like. Try again.", "error");
         }

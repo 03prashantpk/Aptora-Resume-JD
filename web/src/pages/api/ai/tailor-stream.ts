@@ -5,7 +5,13 @@
 //   New: Extract editable text regions → AI rewrites only those snippets as JSON →
 //        stitch back into the untouched original template
 //
-// Returns JSON: { latex: string, changedCount: number }
+// Plain mode returns JSON: { latex: string, changedCount: number }
+// SSE mode (body.stream === true) emits newline-delimited JSON frames, same protocol
+// as /api/ai/instruct:
+//   {"type":"stage","stage":"reading|rewriting|patching","detail":...}
+//   {"type":"reason","text":"<reasoning delta>"}      ← drives the bottom-center badge
+//   {"type":"result","latex":...,"changedCount":...}
+//   {"type":"error","code":"AI_UNAVAILABLE|FREE_LIMIT"}
 import type { APIRoute } from "astro";
 import { surgicalTailor } from "@/lib/ai/surgical";
 import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
@@ -20,7 +26,9 @@ export const POST: APIRoute = async (ctx) => {
   const { request } = ctx;
   let body: unknown;
   try { body = await request.json(); } catch { return bad("invalid JSON body"); }
-  const { latex, jd, intensity } = (body ?? {}) as { latex?: string; jd?: string; intensity?: "light" | "balanced" | "aggressive" };
+  const { latex, jd, intensity, stream } = (body ?? {}) as {
+    latex?: string; jd?: string; intensity?: "light" | "balanced" | "aggressive"; stream?: boolean;
+  };
   if (typeof latex !== "string" || !latex.trim()) return bad("LaTeX source is required");
   if (typeof jd !== "string" || !jd.trim()) return bad("Job description is required");
   if (latex.length > MAX_LATEX || jd.length > MAX_JD) return bad("Input is too large");
@@ -33,6 +41,41 @@ export const POST: APIRoute = async (ctx) => {
     rlog.done("402 free-limit");
     return new Response(JSON.stringify({ error: { code: "FREE_LIMIT", message: "You've used your free runs. Create an account for more." } }), {
       status: 402, headers: { "content-type": "application/json" },
+    });
+  }
+
+  if (stream === true) {
+    // ── SSE mode: stage + live reasoning + final result ───────────────────────
+    const enc = new TextEncoder();
+    const tailorStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (obj: unknown) => {
+          try { controller.enqueue(enc.encode(JSON.stringify(obj) + "\n\n")); } catch { /* client gone */ }
+        };
+        try {
+          const result = await surgicalTailor(latex, jd, level, {
+            onStage: (stage, detail) => send({ type: "stage", stage, detail }),
+            onReason: (text) => send({ type: "reason", text }),
+          });
+          if (!result.changed.length && result.latex === latex) {
+            send({ type: "error", code: "NO_CHANGES", message: "The AI returned no edits for this resume." });
+            rlog.done("200 ok (stream, no changes)");
+          } else {
+            await bumpUsage(ownerId, "ai_calls");
+            send({ type: "result", latex: result.latex, changedCount: result.changed.length });
+            rlog.done(`200 ok (stream, ${result.changed.length} regions)`);
+          }
+        } catch (se) {
+          console.error("[AI] ai/tailor (stream) FAILED:", se instanceof Error ? `${se.name}: ${se.message}` : String(se));
+          send({ type: "error", code: "AI_UNAVAILABLE", message: "Tailoring is unavailable right now." });
+          rlog.done("502 unavailable (stream)");
+        } finally {
+          controller.close();
+        }
+      },
+    });
+    return new Response(tailorStream, {
+      headers: { "content-type": "text/event-stream", "cache-control": "no-store", "x-accel-buffering": "no" },
     });
   }
 

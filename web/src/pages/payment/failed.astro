@@ -1,0 +1,35 @@
+---
+// Payment failed/cancelled — clean, branded. No charge happens on failures; the
+// webhook/SURL only grant on PayU-verified success.
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payment failed — Aptora</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root { --ink: #141414; --muted: #6b7280; --line: #e5e7eb; --red: #b91c1c; }
+    * { margin: 0; box-sizing: border-box; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif; background: #fafafa; color: var(--ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 44px 36px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+    .mark { width: 52px; height: 52px; border-radius: 50%; background: rgba(185,28,28,.08); color: var(--red); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 18px; }
+    h1 { font-size: 21px; letter-spacing: -0.02em; margin-bottom: 8px; }
+    p { color: var(--muted); font-size: 14px; line-height: 1.55; margin-bottom: 26px; }
+    a.btn { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; }
+    a.btn:hover { background: #000; }
+    .brand { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <span class="mark">✕</span>
+    <div class="brand">Aptora</div>
+    <h1>Payment didn't go through</h1>
+    <p>The payment was cancelled or declined — nothing was charged. You can retry anytime from the workspace; if money left your account by mistake it settles back automatically.</p>
+    <a class="btn" href="/">Back to workspace</a>
+  </main>
+</body>
+</html>

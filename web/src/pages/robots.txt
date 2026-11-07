@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Let answer engines index the marketing + legal pages fully (AEO).
+User-agent: Google-Extended
+Allow: /home
+Allow: /about
+Allow: /contact
+Disallow: /api/
+
+User-agent: GPTBot
+Allow: /home
+Allow: /about
+Allow: /contact
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+
+Sitemap: https://aptora.enally.in/sitemap.xml

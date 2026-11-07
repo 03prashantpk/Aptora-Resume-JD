@@ -5,9 +5,12 @@ interface Props {
   value: number;      // 0-100
   label?: string;
   size?: number;
+  /** "accent" = the single brand blue (3-color rule). Default keeps the
+   *  semantic traffic-light behaviour for callers that want it. */
+  tone?: "semantic" | "accent";
 }
 
-export default function Gauge({ value, label, size = 96 }: Props) {
+export default function Gauge({ value, label, size = 96, tone = "semantic" }: Props) {
   const [shown, setShown] = useState(0);
   const r = (size - 10) / 2;
   const circ = 2 * Math.PI * r;
@@ -18,7 +21,8 @@ export default function Gauge({ value, label, size = 96 }: Props) {
     return () => cancelAnimationFrame(id);
   }, [pct]);
 
-  const color = pct >= 75 ? "var(--success)" : pct >= 45 ? "var(--warning)" : "var(--danger)";
+  const color = tone === "accent" ? "var(--accent)"
+    : pct >= 75 ? "var(--success)" : pct >= 45 ? "var(--warning)" : "var(--danger)";
 
   return (
     <div className="gauge" style={{ width: size, height: size }}>

@@ -146,6 +146,33 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_contact_created ON contact_messages(created_at);
+
+-- Payments (PayU). One row per gateway transaction, statused through the lifecycle:
+-- initiated -> success | failure | cancelled. udf2 carries the owner id verbatim.
+-- amount is INR rupees as NUMERIC(10,2) to match PayU's "10.00" format.
+CREATE TABLE IF NOT EXISTS purchases (
+  id           TEXT PRIMARY KEY,              -- our txnid (APT...)
+  owner_id     TEXT NOT NULL,
+  plan_code    TEXT NOT NULL,                 -- 'TOPUP' | 'PRO'
+  amount       NUMERIC(10,2) NOT NULL,        -- INR rupees, e.g. 10.00
+  status       TEXT NOT NULL DEFAULT 'initiated',
+  payu_mihpayid TEXT,
+  payu_mode    TEXT,                          -- captured gateway mode / bank
+  email        TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_purchases_owner ON purchases(owner_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_txn ON purchases(id);
+
+-- Paid credit balance + Pro entitlement, one row per owner. Purchased credits are
+-- consumed before the free daily budget; pro_until unlocks premium features.
+CREATE TABLE IF NOT EXISTS credit_balance (
+  owner_id     TEXT PRIMARY KEY,
+  credits      INTEGER NOT NULL DEFAULT 0,
+  pro_until    TIMESTAMPTZ,
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 /** Ensure schema exists. Safe to call repeatedly; runs once. */
