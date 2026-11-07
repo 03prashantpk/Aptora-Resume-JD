@@ -94,8 +94,9 @@ export const GET: APIRoute = async (ctx) => {
     }
 
     // AI activity: usage rows carry daily counters; show days with AI/exports used.
-    const usageRows = await query<{ day: string; ai_calls: number; exports_used: number }>(
-      "SELECT day::text AS day, ai_calls, exports_used FROM usage WHERE owner_id=$1 AND (ai_calls > 0 OR exports_used > 0) ORDER BY day DESC LIMIT 30",
+    // Own-key runs (BYOK) get their own clearly-labeled line — the usage record stays honest.
+    const usageRows = await query<{ day: string; ai_calls: number; byok_ai_calls: number; exports_used: number }>(
+      "SELECT day::text AS day, ai_calls, byok_ai_calls, exports_used FROM usage WHERE owner_id=$1 AND (ai_calls > 0 OR byok_ai_calls > 0 OR exports_used > 0) ORDER BY day DESC LIMIT 30",
       [ownerId],
     );
     for (const ur of usageRows) {
@@ -105,6 +106,14 @@ export const GET: APIRoute = async (ctx) => {
           title: `AI worked — ${ur.ai_calls} run${ur.ai_calls === 1 ? "" : "s"}`,
           detail: `tailor · analyze · edits on ${ur.day}`,
           at: `${ur.day}T23:59:00Z`,
+        });
+      }
+      if (ur.byok_ai_calls > 0) {
+        items.push({
+          kind: "ai",
+          title: `AI on your own key — ${ur.byok_ai_calls} run${ur.byok_ai_calls === 1 ? "" : "s"}`,
+          detail: `billed to your NVIDIA key, not your plan · ${ur.day}`,
+          at: `${ur.day}T23:58:00Z`,
         });
       }
     }

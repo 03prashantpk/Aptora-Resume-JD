@@ -1,24 +1,31 @@
-// Usage page: daily budget gauge + tier + paid credits + Pro entitlement, with
-// one-click purchase CTAs priced LIVE from /api/payments/plans (env-driven server
-// pricing — the page can never show a stale price).
+// Usage page — clean, light, low-shadow. A compact status strip, a 4-metric row,
+// three plan cards (Free · Credit top-up · Pro) matching the pricing modal, the BYOK
+// panel, and a short footer. All numbers are live from the DB; prices from the env.
 import { useEffect, useState } from "react";
-import Gauge from "../ui/Gauge";
-import { CreditCard, Sparkles, User, Zap } from "lucide-motion";
+import ByokPanel from "../workspace/ByokPanel";
+import { Check, Sparkles, KeyRound } from "lucide-motion";
 import { startCheckout, type PlanCode } from "@/lib/payments-client";
+import { planBadge } from "@/lib/utils";
 
 interface Usage {
   role: "guest" | "user";
   tier: "free" | "pro";
-  aiCalls: number;          // today (server clamps ≥ 0)
-  exportsUsed: number;      // today
+  aiCalls: number;
+  byokAiCalls: number;
+  exportsUsed: number;
   freeLimit: number;
   allowed: boolean;
+  source: string;
+  runsLeft: number | null;
+  exportsLeft: number | null;
   credits: number;
   isPro: boolean;
   proUntil: string | null;
+  hasOwnKey: boolean;
 }
 
 interface PlanPrices {
+  configured?: boolean;
   TOPUP: { inr: number; credits: number };
   PRO: { inr: number; credits: number };
 }
@@ -33,106 +40,129 @@ export default function UsageView({ onOpenAuth }: { onOpenAuth?: (mode: "login" 
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<PlanCode | null>(null);
 
+  const reload = () => fetch("/api/usage").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) setU(j as Usage); }).catch(() => undefined);
   useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch("/api/usage");
-        if (r.ok) setU((await r.json()) as Usage);
-      } catch { /* db may be down */ }
-      finally { setLoading(false); }
-    })();
-    fetch("/api/payments/plans")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (j && j.TOPUP && j.PRO) setPrices(j); })
-      .catch(() => undefined);
+    (async () => { await reload(); setLoading(false); })();
+    fetch("/api/payments/plans").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.TOPUP && j.PRO) setPrices(j); }).catch(() => undefined);
   }, []);
 
   const used = u ? Math.max(u.aiCalls, u.exportsUsed) : 0;
-  const pct = u ? Math.min(100, Math.round((used / Math.max(1, u.freeLimit)) * 100)) : 0;
-  const left = u ? Math.max(0, u.freeLimit - used) : 0; // never negative in UI
+  const unlimited = !!u && (u.hasOwnKey || u.isPro);
+  const left = u?.runsLeft ?? (u ? Math.max(0, u.freeLimit - used) : 0);
+  const pct = unlimited ? 100 : u ? Math.max(0, Math.min(100, Math.round((left / Math.max(1, u.freeLimit)) * 100))) : 0;
   const isPro = !!u?.isPro;
+  const ownKey = !!u?.hasOwnKey;
   const credits = u?.credits ?? 0;
+  const totalAiToday = (u?.aiCalls ?? 0) + (u?.byokAiCalls ?? 0);
   const proDate = u?.proUntil ? new Date(u.proUntil).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : null;
-
-  const buy = async (plan: PlanCode) => {
-    if (u?.role === "guest") { onOpenAuth?.("signup"); return; }
-    setBuying(plan);
-    try { await startCheckout(plan); }
-    catch { /* toast surfaced by the client layer */ }
-    finally { setBuying(null); }
-  };
 
   const topup = prices?.TOPUP ?? { inr: 1, credits: 12 };
   const pro = prices?.PRO ?? { inr: 3, credits: 100 };
+  const configured = prices ? prices.configured !== false : true;
+
+  const buy = async (plan: PlanCode) => {
+    setBuying(plan);
+    try { await startCheckout(plan); } catch { /* client toast */ } finally { setBuying(null); }
+  };
+
+  const badge = planBadge(u);
 
   return (
-    <div className="view view-wide">
+    <div className="view view-wide usage3">
       <div className="view-head">
         <div>
           <p className="view-eyebrow">Account</p>
-          <h1>Usage</h1>
-          <p>
-            {u?.role === "guest"
-              ? "You're a guest — the free budget is tied to this browser and resets when cookies are cleared."
-              : isPro
-                ? "You're on Pro — an active paid plan with the biggest budget."
-                : "Signed in — your budget follows your account and purchased credits never expire."}
-          </p>
+          <h1>Usage &amp; plan</h1>
+          <p>Your live budget and plan — straight from your account.</p>
         </div>
         <a className="view-cta" href="/">Open editor</a>
       </div>
 
-      {loading ? <p className="view-muted">Loading…</p> : (
-        <div className="usage-grid-wide">
-          {/* Daily budget — the headline metric */}
-          <div className="usage-hero-card">
-            <Gauge value={pct} label={isPro ? "Pro · no limit" : "Free used"} tone="accent" />
-            <div className="usage-hero-nums">
-              <p className="usage-big">{isPro ? "Unlimited" : left}</p>
-              <p className="muted">{isPro ? "runs while Pro is active" : `run${left === 1 ? "" : "s"} remaining today`}</p>
+      {loading ? (
+        <div className="u3-skel"><span /><span /></div>
+      ) : (
+        <>
+          {/* Status strip — one calm line, a thin progress bar, a pill. */}
+          <section className="u3-status">
+            <div className="u3-status-top">
+              <div>
+                <span className="u3-left">{unlimited ? "Unlimited" : left}</span>
+                <span className="u3-left-sub">{ownKey ? "runs on your key" : isPro ? "runs while Pro is active" : `run${left === 1 ? "" : "s"} left today`}</span>
+              </div>
+              <span className={`u3-pill tone-${badge.tone}`}>
+                {badge.tone === "pro" ? <><Sparkles size={12} /> Pro{proDate ? ` · until ${proDate}` : ""}</> : badge.tone === "byok" ? <><KeyRound size={12} /> BYOK</> : badge.label}
+              </span>
             </div>
-            <div className="usage-hero-side">
-              {isPro ? (
-                <span className="usage-pill is-pro">Pro active{proDate ? ` until ${proDate}` : ""}</span>
-              ) : (
-                <>
-                  <span className="usage-pill">{u?.role === "user" ? "Account · Free tier" : "Guest · Free tier"}</span>
-                  <span className="usage-pill dim">{credits} paid credit{credits === 1 ? "" : "s"} on hand</span>
-                </>
-              )}
-            </div>
-          </div>
+            {!unlimited && (
+              <div className="u3-track"><span className="u3-track-fill" style={{ width: `${100 - pct}%` }} /></div>
+            )}
+          </section>
 
           {/* Metrics */}
-          <div className="usage-metrics-grid">
-            <div className="stat-card"><span className="muted">AI runs today</span><strong>{u?.aiCalls ?? 0}</strong><span className="stat-foot muted">all models · tailor, edits, analysis</span></div>
-            <div className="stat-card"><span className="muted">Exports today</span><strong>{u?.exportsUsed ?? 0}</strong><span className="stat-foot muted">compiled PDFs downloaded</span></div>
-            <div className="stat-card"><span className="muted">Free limit / day</span><strong>{u?.freeLimit ?? 0}</strong><span className="stat-foot muted">resets at midnight</span></div>
-            <div className="stat-card highlight"><span className="muted">Paid credits</span><strong>{credits}</strong><span className="stat-foot muted">never expire — used after the free budget</span></div>
-          </div>
+          <section className="u3-metrics">
+            <div className="u3-metric"><span>AI runs today</span><strong>{totalAiToday}</strong></div>
+            <div className="u3-metric"><span>Exports today</span><strong>{u?.exportsUsed ?? 0}</strong></div>
+            <div className="u3-metric"><span>Free / day</span><strong>{unlimited ? "∞" : u?.freeLimit ?? 0}</strong></div>
+            <div className="u3-metric accent"><span>Paid credits</span><strong>{credits}</strong></div>
+          </section>
 
-          {/* Purchase actions — env-priced live */}
-          {!isPro && (
-            <div className="usage-buy-row">
-              <button type="button" className="ui-btn ai" disabled={buying !== null} onClick={() => buy("TOPUP")}>
-                <Zap size={14} /> {buying === "TOPUP" ? "Opening PayU…" : `Top up ${topup.credits} credits — ${fmt(topup.inr)}`}
-              </button>
-              {u?.role === "user" || u === null ? null : (
-                <span className="muted usage-buy-note">Sign in first so the credits attach to your account.</span>
-              )}
-              <button type="button" className="ui-btn primary" disabled={buying !== null} onClick={() => buy("PRO")}>
-                <Sparkles size={14} /> {buying === "PRO" ? "Opening PayU…" : `Go Pro — ${pro.credits} credits / year, ${fmt(pro.inr)}`}
-              </button>
-            </div>
+          {/* Three plan cards — only when not already on an unlimited source. */}
+          {!ownKey && !isPro && (
+            <section className="u3-plans" aria-label="Plans">
+              {/* Free */}
+              <article className="u3-card is-current">
+                <p className="u3-k">Free</p>
+                <p className="u3-price">₹0<span>forever</span></p>
+                <ul className="u3-feats">
+                  <li><Check size={13} /> {u?.freeLimit ?? 3} runs / day</li>
+                  <li><Check size={13} /> Every template</li>
+                  <li><Check size={13} /> Real PDF export</li>
+                </ul>
+                <button type="button" className="u3-cta current" disabled><Check size={14} /> Current</button>
+              </article>
+
+              {/* Credit top-up */}
+              <article className="u3-card">
+                <p className="u3-k">Top-up</p>
+                <p className="u3-price">{fmt(topup.inr)}<span>{topup.credits} credits</span></p>
+                <ul className="u3-feats">
+                  <li><Check size={13} /> {topup.credits} runs &amp; exports</li>
+                  <li><Check size={13} /> Never expire</li>
+                  <li><Check size={13} /> Used after free</li>
+                </ul>
+                <button type="button" className="u3-cta" disabled={!configured || buying !== null} onClick={() => buy("TOPUP")}>
+                  {buying === "TOPUP" ? "Starting…" : configured ? `Get ${topup.credits} · ${fmt(topup.inr)}` : "Soon"}
+                </button>
+              </article>
+
+              {/* Pro */}
+              <article className="u3-card featured">
+                <span className="u3-ribbon">BEST VALUE</span>
+                <p className="u3-k pro"><Sparkles size={11} /> Pro</p>
+                <p className="u3-price">{fmt(pro.inr)}<span>/ year</span></p>
+                <ul className="u3-feats">
+                  <li><Check size={13} /> {pro.credits} credits / year</li>
+                  <li><Check size={13} /> No daily limit</li>
+                  <li><Check size={13} /> All premium exports</li>
+                </ul>
+                <button type="button" className="u3-cta buy" disabled={!configured || buying !== null} onClick={() => buy("PRO")}>
+                  {buying === "PRO" ? "Starting…" : configured ? `Go Pro · ${fmt(pro.inr)}` : "Soon"}
+                </button>
+              </article>
+            </section>
           )}
 
-          {left <= 0 && credits <= 0 && !isPro && u?.role === "guest" && (
-            <button type="button" className="ui-btn secondary usage-cta" onClick={() => onOpenAuth?.("signup")}>
-              <User size={14} /> Create a free account for a bigger daily budget
-            </button>
+          {/* BYOK */}
+          <section className="u3-byok" id="api-key">
+            <ByokPanel onChanged={() => void reload()} isGuest={u?.role === "guest"} onOpenAuth={onOpenAuth} />
+          </section>
+
+          {u?.role === "guest" && !isPro && (
+            <p className="u3-guest">Paying as a guest attaches to this browser and follows you in. <button type="button" className="u3-link" onClick={() => onOpenAuth?.("signup")}>Create a free account</button> for more.</p>
           )}
-          <p className="usage-hint muted"><CreditCard size={12} /> Secure payments via PayU (UPI, cards, netbanking) · one-time charges only · payment history lives in Activity.</p>
-        </div>
+
+          <p className="u3-foot">One-time payments · credits never expire · secure UPI, cards &amp; net-banking · history in <a href="/activity">Activity</a>.</p>
+        </>
       )}
     </div>
   );

@@ -14,7 +14,9 @@ import type { APIRoute } from "astro";
 import { extractText, renderTex } from "@/lib/compiler";
 import { parseResumeText } from "@/lib/ai/ingest";
 import type { TemplateId } from "@/lib/types";
-import { getOwnerId, getUsage, bumpUsage } from "@/lib/session";
+import { getOwnerId, peekBudget, settleSpend } from "@/lib/session";
+import { getRawKey } from "@/lib/keys";
+import { withOwnerKey } from "@/lib/ai/provider";
 import { createUpload, attachIngest } from "@/lib/db/repo";
 import { logRoute } from "@/lib/ai/log";
 
@@ -34,11 +36,13 @@ export const POST: APIRoute = async (ctx) => {
   if (fileBase64.length > MAX_B64_BYTES) return tooLarge();
 
   const ownerId = await getOwnerId(ctx);
-  const usage = await getUsage(ownerId);
-  if (!usage.allowed) {
-    return json(402, { error: { code: "FREE_LIMIT", message: "You've used your free runs. Create an account for more." } });
+  const budget = await peekBudget(ownerId);
+  if (!budget.allowed) {
+    return json(402, { error: { code: "BUDGET_EXHAUSTED", message: "Daily limit reached. Add credits, use your own free API key, or continue tomorrow." } });
   }
+  const ownerKey = budget.ownKey ? await getRawKey(ownerId) : null;
 
+  return withOwnerKey(ownerKey, async () => {
   const tpl: TemplateId = ["T01", "T02", "T03", "T04", "T05", "T06"].includes(templateId ?? "")
     ? (templateId as TemplateId) : "T02";
   const rlog = logRoute("ai/ingest-resume", { b64: `${fileBase64.length}c`, template: tpl });
@@ -90,7 +94,7 @@ export const POST: APIRoute = async (ctx) => {
     await attachIngest(ownerId, id, { parsed_text: text, latex: rt.latex });
   } catch { /* rows are best-effort; ingestion result still delivered */ }
 
-  await bumpUsage(ownerId, "ai_calls");
+  await settleSpend(ownerId, budget.source, "ai_calls");
   rlog.done(`200 ok (${text.length}c text -> ${rt.latex.length}c tex)`);
   return json(200, {
     uploadId: uploadId ?? null,
@@ -98,6 +102,7 @@ export const POST: APIRoute = async (ctx) => {
     latex: rt.latex,
     templateId: tpl,
     chars: text.length,
+  });
   });
 };
 

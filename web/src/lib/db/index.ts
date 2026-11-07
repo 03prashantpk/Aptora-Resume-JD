@@ -159,11 +159,13 @@ CREATE TABLE IF NOT EXISTS purchases (
   payu_mihpayid TEXT,
   payu_mode    TEXT,                          -- captured gateway mode / bank
   email        TEXT,
+  refund_amt   NUMERIC(10,2),                 -- set when PayU reports a refund
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_purchases_owner ON purchases(owner_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_txn ON purchases(id);
+ALTER TABLE purchases ADD COLUMN IF NOT EXISTS refund_amt NUMERIC(10,2);
 
 -- Paid credit balance + Pro entitlement, one row per owner. Purchased credits are
 -- consumed before the free daily budget; pro_until unlocks premium features.
@@ -173,6 +175,21 @@ CREATE TABLE IF NOT EXISTS credit_balance (
   pro_until    TIMESTAMPTZ,
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Bring-your-own-key (BYOK): a user's own NVIDIA NIM key, encrypted at rest.
+-- Key material NEVER leaves the server in plaintext and is never returned by any API.
+CREATE TABLE IF NOT EXISTS api_keys (
+  owner_id     TEXT PRIMARY KEY,              -- one key per owner (guest or account)
+  provider     TEXT NOT NULL DEFAULT 'nvidia',
+  key_enc      TEXT NOT NULL,                 -- AES-256-GCM ciphertext (iv:tag:data)
+  key_hint     TEXT NOT NULL DEFAULT '',      -- last 4 chars, display only
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_used_at TIMESTAMPTZ
+);
+
+-- Usage runs performed on the OWNER'S OWN key don't consume the plan budget; they're
+-- recorded separately so Activity can show honest, clean usage records.
+ALTER TABLE usage ADD COLUMN IF NOT EXISTS byok_ai_calls INTEGER NOT NULL DEFAULT 0;
 `;
 
 /** Ensure schema exists. Safe to call repeatedly; runs once. */

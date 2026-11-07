@@ -22,9 +22,8 @@ import LeftRail, { type DrawerTab } from "./LeftRail";
 import Drawer, { type Intensity, type TailorPhase } from "./Drawer";
 import EditorPane from "./EditorPane";
 import PreviewPane from "./PreviewPane";
-import FilesView from "../pages/FilesView";
-import UsageView from "../pages/UsageView";
-import ActivityView from "../pages/ActivityView";
+import BudgetModal from "./BudgetModal";
+import PricingModal from "./PricingModal";
 import Toaster, { toast } from "../ui/toast";
 import type { View } from "./LeftRail";
 import type { CompileResult, TemplateId } from "@/lib/types";
@@ -46,16 +45,29 @@ export default function Workspace() {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [usage, setUsage] = useState<{ freeLimit: number; used: number; allowed: boolean }>({ freeLimit: 3, used: 0, allowed: true });
-  const exportsLeft = usage.allowed ? Math.max(0, usage.freeLimit - usage.used) : 0;
+  // Budget snapshot mirrors /api/usage: runsLeft/exportsLeft null = unlimited (own key,
+  // Pro); source tells whether the NEXT gated action bills free/credit/own-key/pro.
+  const [usage, setUsage] = useState<{ freeLimit: number; used: number; allowed: boolean; exportsLeft: number }>({ freeLimit: 3, used: 0, allowed: true, exportsLeft: 3 });
+  const exportsLeft = usage.exportsLeft;
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
 
   const refreshUsage = useCallback(async () => {
     try {
       const r = await fetch("/api/usage");
       if (r.ok) {
-        const u = (await r.json()) as { freeLimit: number; aiCalls: number; exportsUsed: number; allowed: boolean };
-        setUsage({ freeLimit: u.freeLimit, used: Math.max(u.aiCalls, u.exportsUsed), allowed: u.allowed });
+        const u = (await r.json()) as {
+          freeLimit?: number; aiCalls?: number; exportsUsed?: number; allowed?: boolean;
+          runsLeft?: number | null; exportsLeft?: number | null; source?: string;
+        };
+        // New schema first; fall back to the legacy shape when fields are absent.
+        const unlimited = u.runsLeft === null && u.exportsLeft === null;
+        setUsage({
+          freeLimit: u.freeLimit ?? 3,
+          used: Math.max(u.aiCalls ?? 0, u.exportsUsed ?? 0),
+          allowed: u.allowed ?? true,
+          exportsLeft: unlimited ? 9_999 : (u.exportsLeft ?? u.runsLeft ?? (u.allowed ? Math.max(0, (u.freeLimit ?? 3) - Math.max(u.aiCalls ?? 0, u.exportsUsed ?? 0)) : 0)),
+        });
       }
     } catch { /* db may be down; stay permissive */ }
   }, []);
@@ -93,7 +105,23 @@ export default function Workspace() {
     const p = new URLSearchParams(window.location.search);
     const payment = p.get("payment");
     const v = p.get("view");
-    if (v === "usage" || v === "activity" || v === "files") setView(v);
+    const auth = p.get("auth");
+    const tab = p.get("tab");
+    // Legacy deep links (/?view=usage) now redirect to the real standalone page, so
+    // these screens render in exactly ONE place (no duplicate embedded copy).
+    if (v === "usage" || v === "activity" || v === "files") { window.location.replace(`/${v}`); return; }
+    if (tab === "outline" || tab === "import" || tab === "intelligence" || tab === "instruct") {
+      setView("editor"); setDrawerTab(tab); setDrawerOpen(true);
+      p.delete("tab");
+      const qs1 = p.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs1 ? `?${qs1}` : ""));
+    }
+    if (auth === "login" || auth === "signup") {
+      setAuthModal(auth);
+      p.delete("auth");
+      const qs0 = p.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs0 ? `?${qs0}` : ""));
+    }
     if (!payment) return;
     if (payment === "success") toast("Payment received — credits added. You're all set!", "success");
     else if (payment === "failed") toast("Payment failed or was cancelled. Nothing was charged.", "error");
@@ -259,7 +287,13 @@ export default function Workspace() {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ latex, jd }),
       });
-      if (res.status === 402) { setShowAccountPrompt(true); return; }
+      if (res.status === 402 || res.status === 401) {
+        if (res.status === 401) {
+          const j = (await res.clone().json().catch(() => null)) as { error?: { message?: string } } | null;
+          toast(j?.error?.message ?? "Your API key was rejected. Manage it in the next panel.", "error");
+        }
+        setShowAccountPrompt(true); return;
+      }
       if (res.ok) { setAnalysis((await res.json()) as Analysis); refreshUsage(); }
       else { toast("Fit analysis is busy — please try again in a moment.", "error"); }
     } catch { toast("Couldn't run fit analysis. Check your connection and retry.", "error"); }
@@ -279,6 +313,11 @@ export default function Workspace() {
         body: JSON.stringify({ latex, jd, intensity, stream: true }),
       });
       if (res.status === 402) { setShowAccountPrompt(true); setTailorPhase("idle"); return; }
+      if (res.status === 401) {
+        const j = (await res.clone().json().catch(() => null)) as { error?: { message?: string } } | null;
+        toast(j?.error?.message ?? "Your API key was rejected.", "error");
+        setTailorPhase("idle"); return;
+      }
       if (!res.ok || !res.body) { setTailorPhase("error"); setAiFail({ latex, error: `AI_UNAVAILABLE: tailoring failed (HTTP ${res.status})` }); return; }
 
       // Consume the tailor SSE frame stream (stage / reasoning / result) — the same
@@ -451,6 +490,11 @@ export default function Workspace() {
         body: JSON.stringify({ latex, instruction, stream: true }),
       });
       if (res.status === 402) { setShowAccountPrompt(true); return false; }
+      if (res.status === 401) {
+        const j = (await res.clone().json().catch(() => null)) as { error?: { message?: string } } | null;
+        toast(j?.error?.message ?? "Your API key was rejected.", "error");
+        return false;
+      }
       if (!res.ok || !res.body) return false;
 
       // Consume the stage / reasoning / result frame stream.
@@ -552,25 +596,16 @@ export default function Workspace() {
         authModal={authModal} onAuthModalChange={setAuthModal}
       />
       {showAccountPrompt && (
-        <div className="modal-scrim" onClick={() => setShowAccountPrompt(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>You've used your free runs</h3>
-            <p>Create a free account to keep tailoring, analyzing, and exporting. Your work stays private to you.</p>
-            <div className="modal-actions">
-              <button type="button" className="ui-btn primary" onClick={() => { setShowAccountPrompt(false); setAuthModal("signup"); }}>Create account</button>
-              <button type="button" className="ui-btn ghost" onClick={() => setShowAccountPrompt(false)}>Maybe later</button>
-            </div>
-          </div>
-        </div>
+        <BudgetModal
+          onClose={() => setShowAccountPrompt(false)}
+          onOpenAuth={(m) => setAuthModal(m)}
+          onOpenPricing={() => setPricingOpen(true)}
+        />
       )}
+      {pricingOpen && <PricingModal onClose={() => { setPricingOpen(false); void refreshUsage(); }} />}
       <div className="app-body">
-        <LeftRail drawerOpen={drawerOpen} activeTab={drawerTab} onToggle={toggleDrawer} view={view} onView={setView} />
+        <LeftRail drawerOpen={drawerOpen} activeTab={drawerTab} onToggle={toggleDrawer} view={view} onOpenAuth={openAuth} />
 
-        {view !== "editor" ? (
-          <div className="view-scroll">
-            {view === "files" ? <FilesView /> : view === "activity" ? <ActivityView /> : <UsageView onOpenAuth={openAuth} />}
-          </div>
-        ) : (
         <div className="workspace">
           {/* Desktop: three columns resize horizontally. Mobile: the same panels
               stack column-wise (vertically) and resize with horizontal handles.
@@ -620,7 +655,6 @@ export default function Workspace() {
             </Panel>
           </Group>
         </div>
-        )}
       </div>
     </div>
   );

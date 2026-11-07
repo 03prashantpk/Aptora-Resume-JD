@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Download, Ellipsis, Check, X, ExternalLink, UserPlus, LogIn, Mail, Lock, LogOut, ShieldAlert, Pencil, Sparkles } from "lucide-motion";
+import { Download, Ellipsis, Check, X, ExternalLink, UserPlus, LogIn, Mail, Lock, LogOut, ShieldAlert, Pencil, Gauge, Receipt, KeyRound } from "lucide-motion";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
 import PricingModal from "./PricingModal";
 import { toast } from "../ui/toast";
+import { planBadge } from "@/lib/utils";
 
 interface AuthUser { email: string; name: string | null }
 /** Live budget snapshot for the menubar (from /api/usage). */
-interface UsageSnap { role: "guest" | "user"; isPro: boolean; credits: number; runsLeft: number }
+interface UsageSnap { role: "guest" | "user"; isPro: boolean; ownKey: boolean; credits: number; runsLeft: number }
 
 /** DiceBear 'notionists' avatar, seeded by name/email — matches the landing page. */
 function avatarUrl(seedRaw: string): string {
@@ -435,15 +436,21 @@ function AuthModal({ mode: initialMode, onClose, onAuthed }: { mode: "login" | "
 export type SaveState = "idle" | "updating" | "saved" | "error";
 
 interface Props {
-  docName: string;
-  onRename: (name: string) => void;
-  saveState: SaveState;
-  exportsLeft: number;
-  onExport: () => void;
-  canExport: boolean;
-  aiChangedLines: number;
-  onAcceptAi: () => void;
-  onRejectAi: () => void;
+  /** "editor" (default) = full editor bar; "dashboard" = the SAME bar on /usage,
+   *  /activity, /files (logo + account popover + Upgrade), with a page title instead
+   *  of the editor menus/export. One component, two render branches — no duplicate bar. */
+  variant?: "editor" | "dashboard";
+  /** Dashboard title (e.g. "Usage"). Ignored in editor mode. */
+  pageTitle?: string;
+  docName?: string;
+  onRename?: (name: string) => void;
+  saveState?: SaveState;
+  exportsLeft?: number;
+  onExport?: () => void;
+  canExport?: boolean;
+  aiChangedLines?: number;
+  onAcceptAi?: () => void;
+  onRejectAi?: () => void;
   /** Lifted auth state: lets sibling views (usage panel, free-limit modal) open the
    *  auth popup WITHOUT leaving the workspace for /signup. */
   authModal?: null | "login" | "signup";
@@ -457,7 +464,8 @@ function statusText(s: SaveState, loggedIn: boolean): string {
   return s === "updating" ? "Saving…" : s === "saved" ? savedLabel : s === "error" ? "Couldn't update" : "";
 }
 
-export default function MenuBar({ docName, onRename, saveState, exportsLeft, onExport, canExport, aiChangedLines, onAcceptAi, onRejectAi, authModal: authModalProp, onAuthModalChange }: Props) {
+export default function MenuBar({ variant = "editor", pageTitle, docName = "Untitled Resume", onRename, saveState = "idle", exportsLeft = 0, onExport, canExport, aiChangedLines = 0, onAcceptAi, onRejectAi, authModal: authModalProp, onAuthModalChange }: Props) {
+  const isDashboard = variant === "dashboard";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(docName);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -478,14 +486,16 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
       if (!r.ok) return;
       const u = (await r.json()) as {
         role: "guest" | "user"; isPro?: boolean; credits?: number;
+        hasOwnKey?: boolean; runsLeft?: number | null;
         freeLimit?: number; aiCalls?: number; exportsUsed?: number;
       };
-      const used = Math.max(Math.max(0, u.aiCalls ?? 0), Math.max(0, u.exportsUsed ?? 0));
+      const unlimited = u.runsLeft === null || u.isPro || u.hasOwnKey; // own key / Pro → no cap
       setUsageSnap({
         role: u.role,
         isPro: !!u.isPro,
+        ownKey: !!u.hasOwnKey,
         credits: Math.max(0, u.credits ?? 0),
-        runsLeft: u.isPro ? 100 : Math.max(0, (u.freeLimit ?? 0) - used), // Pro has a big budget of its own
+        runsLeft: Math.max(0, u.runsLeft ?? ((u.freeLimit ?? 0) - Math.max(Math.max(0, u.aiCalls ?? 0), Math.max(0, u.exportsUsed ?? 0)))),
       });
     } catch { /* db may be down — keep whatever we last had */ }
   }, []);
@@ -510,7 +520,7 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
     toast("Signed out.", "info");
   };
 
-  const commit = () => { setEditing(false); const v = draft.trim(); if (v && v !== docName) onRename(v); else setDraft(docName); };
+  const commit = () => { setEditing(false); const v = draft.trim(); if (v && v !== docName) onRename?.(v); else setDraft(docName); };
 
   // Close menus on outside click
   useEffect(() => {
@@ -526,12 +536,18 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
   return (
     <header className="menubar" onMouseLeave={() => { if (openMenu !== "more") setOpenMenu(null); }}>
       <div className="mb-left">
-        <img src="/aptora_sq.webp" alt="Aptora" className="mb-logo" />
+        <a href="/" aria-label="Open editor" style={{ display: "inline-flex" }}>
+          <img src="/aptora_sq.webp" alt="Aptora" className="mb-logo" />
+        </a>
+        {isDashboard ? (
+          <a href="/" className="mb-menu" style={{ textDecoration: "none" }}>Editor</a>
+        ) : (
+        <>
         <div className="mb-menu-wrap">
           <button type="button" className={`mb-menu${openMenu === "File" ? " open" : ""}`} onClick={() => setOpenMenu(openMenu === "File" ? null : "File")}>File</button>
           {openMenu === "File" && (
             <div className="mb-dropdown" role="menu">
-              <button role="menuitem" onClick={() => { onExport(); setOpenMenu(null); }} disabled={!canExport}>Export PDF</button>
+              <button role="menuitem" onClick={() => { onExport?.(); setOpenMenu(null); }} disabled={!canExport}>Export PDF</button>
               <a role="menuitem" href="/" onClick={() => setOpenMenu(null)}>New resume</a>
               <div className="mb-sep" />
               <button role="menuitem" disabled>Save <span className="mb-hint">auto</span></button>
@@ -573,9 +589,15 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       <div className="mb-center">
+        {isDashboard ? (
+          <span className="mb-title" style={{ cursor: "default", fontWeight: 600 }}>{pageTitle ?? "Account"}</span>
+        ) : (
+        <>
         {editing ? (
           <input className="mb-title-input" value={draft} autoFocus
             onChange={(e) => setDraft(e.target.value)} onBlur={commit}
@@ -587,26 +609,31 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
           </button>
         )}
         <span className={`mb-save ${saveState}`}>{statusText(saveState, !!user)}</span>
+        </>
+        )}
       </div>
 
       <div className="mb-right">
-        {aiChangedLines > 0 && (
+        {!isDashboard && aiChangedLines > 0 && (
           <div className="ai-review-bar">
             <span className="ai-review-label">Aptora changed {aiChangedLines} line{aiChangedLines > 1 ? "s" : ""}</span>
-            <button type="button" className="ai-accept" onClick={onAcceptAi}><Check size={13} /> Keep</button>
-            <button type="button" className="ai-reject" onClick={onRejectAi}><X size={13} /> Undo</button>
+            <button type="button" className="ai-accept" onClick={() => onAcceptAi?.()}><Check size={13} /> Keep</button>
+            <button type="button" className="ai-reject" onClick={() => onRejectAi?.()}><X size={13} /> Undo</button>
           </div>
         )}
-        {/* Upgrade CTA — always visible in the menubar (never buried in a menu). */}
-        {!usageSnap?.isPro && (
+        {/* Upgrade CTA — always visible in the menubar (never buried in a menu).
+            Hidden when Pro or when the account runs on its own API key (BYOK). */}
+        {!usageSnap?.isPro && !usageSnap?.ownKey && (
           <Button variant="ai" onClick={() => setModal("pricing")} title="Get more AI runs & credits">
-            <Sparkles size={14} /> <span>Upgrade</span>
+            <span>Upgrade</span>
           </Button>
         )}
-        <Button variant="primary" onClick={onExport} disabled={exportsLeft <= 0 || !canExport}
-          title={exportsLeft <= 0 ? "No exports left" : !canExport ? "Compile first" : undefined}>
-          <Download size={16} /> <span>Export</span>
-        </Button>
+        {!isDashboard && (
+          <Button variant="primary" onClick={() => onExport?.()} disabled={exportsLeft <= 0 || !canExport}
+            title={exportsLeft <= 0 ? "No exports left" : !canExport ? "Compile first" : undefined}>
+            <Download size={16} /> <span>Export</span>
+          </Button>
+        )}
         <div className="mb-menu-wrap" ref={moreRef}>
           <IconButton
             label="More"
@@ -616,68 +643,118 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
           </IconButton>
           {openMenu === "more" && (
             <div className="mb-dropdown mb-dropdown-right premium-popover" role="menu">
-              <div className="popover-badge-row">
-                <span className="popover-plan-tag">{usageSnap?.isPro ? "Pro" : usageSnap?.role === "user" ? "Free plan" : "Guest"}</span>
-                <span className="popover-credits-tag">
-                  {usageSnap
-                    ? `${usageSnap.runsLeft} left today${usageSnap.credits > 0 ? ` · ${usageSnap.credits} credit${usageSnap.credits === 1 ? "" : "s"}` : ""}`
-                    : "Loading…"}
-                </span>
-              </div>
-              <div className="mb-sep" />
-              {user ? (
-                <>
-                  <div className="popover-user">
-                    <img className="popover-user-avatar" src={avatarUrl(user.name || user.email)} alt="" width={34} height={34} />
+              {/* Identity first — the standard SaaS account surface. */}
+              <div className="popover-user-card">
+                {user ? (
+                  <>
+                    <img className="popover-user-avatar" src={avatarUrl(user.name || user.email)} alt="" width={38} height={38} />
                     <div className="popover-user-meta">
                       <strong className="popover-user-name">{user.name || user.email.split("@")[0]}</strong>
                       <span className="popover-user-email">{user.email}</span>
                     </div>
-                  </div>
+                    {(() => { const b = planBadge(usageSnap); return <span className={`popover-plan-chip tone-${b.tone}`}>{b.label}</span>; })()}
+                  </>
+                ) : (
+                  <>
+                    <span className="popover-user-avatar popover-guest-avatar"><UserPlus size={17} /></span>
+                    <div className="popover-user-meta">
+                      <strong className="popover-user-name">Guest session</strong>
+                      <span className="popover-user-email">Saved to this browser only</span>
+                    </div>
+                    {(() => { const b = planBadge(usageSnap); return <span className={`popover-plan-chip tone-${b.tone}`}>{b.label}</span>; })()}
+                  </>
+                )}
+              </div>
+
+              {/* Live budget strip — always from /api/usage, never hardcoded. */}
+              <div className="popover-stats">
+                <div className="popover-stat">
+                  <span className="popover-stat-num">{usageSnap ? (usageSnap.ownKey ? "Key" : usageSnap.isPro ? "∞" : usageSnap.runsLeft) : "—"}</span>
+                  <span className="popover-stat-label">{usageSnap?.ownKey ? "own key" : usageSnap?.isPro ? "runs / day" : "left today"}</span>
+                </div>
+                <div className="popover-stat-div" />
+                <div className="popover-stat">
+                  <span className="popover-stat-num">{usageSnap ? usageSnap.credits : "—"}</span>
+                  <span className="popover-stat-label">paid credits</span>
+                </div>
+                <div className="popover-stat-div" />
+                <div className="popover-stat">
+                  <span className="popover-stat-num">{usageSnap?.role === "user" ? "Your" : "Browser"}</span>
+                  <span className="popover-stat-label">{usageSnap?.role === "user" ? "account" : "session"}</span>
+                </div>
+              </div>
+
+              {usageSnap && !usageSnap.isPro && !usageSnap.ownKey && (
+                <button className="popover-upgrade-row" role="menuitem"
+                  onClick={() => { setOpenMenu(null); setModal("pricing"); }}>
+                  <span className="popover-upgrade-copy">
+                    <strong>Upgrade</strong>
+                    <span>More AI runs &amp; credits</span>
+                  </span>
+                  <span className="popover-upgrade-arrow">→</span>
+                </button>
+              )}
+
+              {user ? (
+                <>
                   <button className="popover-action-btn" role="menuitem" onClick={logout}>
                     <span className="pab-label">
                       <LogOut size={16} className="pab-icon" />
                       <span>Sign out</span>
                     </span>
                   </button>
+                  <div className="mb-sep" />
                 </>
               ) : (
                 <>
                   <button
                     className="popover-action-btn primary-action"
                     role="menuitem"
-                    onClick={() => {
-                      setOpenMenu(null);
-                      setAuthModal("signup");
-                    }}
+                    onClick={() => { setOpenMenu(null); setAuthModal("signup"); }}
                   >
                     <span className="pab-label">
                       <UserPlus size={16} className="pab-icon" />
-                      <strong>Create account</strong>
+                      <strong>Create free account</strong>
                     </span>
-                    <span className="popover-hint-badge">New</span>
+                    <span className="popover-hint-badge">Free</span>
                   </button>
                   <button
                     className="popover-action-btn"
                     role="menuitem"
-                    onClick={() => {
-                      setOpenMenu(null);
-                      setAuthModal("login");
-                    }}
+                    onClick={() => { setOpenMenu(null); setAuthModal("login"); }}
                   >
                     <span className="pab-label">
                       <LogIn size={16} className="pab-icon" />
                       <span>Log in</span>
                     </span>
                   </button>
+                  <div className="mb-sep" />
                 </>
               )}
-              <div className="mb-sep" />
-              <div className="popover-extra-links">
-                <a href="/?view=usage" className="popover-sub-link">Check limits</a>
-                <a href="/?view=activity" className="popover-sub-link">Payment history</a>
-                <a href="/about" className="popover-sub-link">About</a>
-                <a href="/contact" className="popover-sub-link">Contact</a>
+
+              {/* Footer: a clean 2×2 grid of compact destinations — even columns,
+                  square icon tiles, one label each. No cramped two-line rows. */}
+              <div className="popover-grid">
+                <a href="/usage" className="popover-tile" role="menuitem">
+                  <span className="pt-icon"><Gauge size={16} /></span>
+                  <span className="pt-label">Usage &amp; limits</span>
+                </a>
+                <a href="/activity" className="popover-tile" role="menuitem">
+                  <span className="pt-icon"><Receipt size={16} /></span>
+                  <span className="pt-label">Payments</span>
+                </a>
+                <a href="/usage#api-key" className="popover-tile" role="menuitem">
+                  <span className="pt-icon"><KeyRound size={16} /></span>
+                  <span className="pt-label">Your API key</span>
+                </a>
+                <a href="/contact" className="popover-tile" role="menuitem">
+                  <span className="pt-icon"><Mail size={16} /></span>
+                  <span className="pt-label">Contact</span>
+                </a>
+              </div>
+              <div className="popover-foot-row">
+                <span className="pfr-brand"><img src="/aptora_sq.webp" alt="" width={15} height={15} /> Aptora</span>
+                <span className="pfr-ver">v{APP_VERSION}</span>
               </div>
             </div>
           )}
@@ -688,7 +765,7 @@ export default function MenuBar({ docName, onRename, saveState, exportsLeft, onE
       {modal === "developer" && <DeveloperModal onClose={() => setModal(null)} />}
       {modal === "calendly" && <CalendlyModal onClose={() => setModal(null)} />}
       {modal === "shortcuts" && <ShortcutsModal onClose={() => setModal(null)} />}
-      {modal === "pricing" && <PricingModal onClose={() => setModal(null)} />}
+      {modal === "pricing" && <PricingModal onClose={() => setModal(null)} onOpenAuth={(m) => setAuthModal(m)} />}
       {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} onAuthed={(u) => setUser(u)} />}
     </header>
   );

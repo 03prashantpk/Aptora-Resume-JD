@@ -1,6 +1,10 @@
 ---
 // Payment success — clean, branded, server-side page PayU's flow lands on after our
 // SURL has already verified + granted the credits (the grant NEVER happens here).
+// Guest-aware: the session cookie tells us whether to show the "keep this on an
+// account" note (guest purchases migrate automatically on sign-in).
+const sid = Astro.cookies.get("aptora_sid")?.value ?? "";
+const isGuest = !sid.startsWith("user:");
 ---
 <!doctype html>
 <html lang="en">
@@ -14,12 +18,17 @@
     :root { --ink: #141414; --blue: #2563eb; --muted: #6b7280; --line: #e5e7eb; }
     * { margin: 0; box-sizing: border-box; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif; background: #fafafa; color: var(--ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-    .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 44px 36px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 44px 36px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
     .check { width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 18px; }
     h1 { font-size: 21px; letter-spacing: -0.02em; margin-bottom: 8px; }
     p { color: var(--muted); font-size: 14px; line-height: 1.55; margin-bottom: 26px; }
-    a.btn { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; }
-    a.btn:hover { background: #000; }
+    .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    a.btn { display: inline-flex; align-items: center; gap: 8px; background: var(--blue); color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; box-shadow: 0 1px 3px rgba(37,99,235,.35); }
+    a.btn:hover { background: #1d4ed8; }
+    a.btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+    a.btn.ghost:hover { border-color: #cbd5e1; }
+    .guest-note { margin: 0 0 22px; font-size: 12.5px; line-height: 1.6; color: var(--muted); background: #f8fbff; border: 1px solid rgba(37,99,235,.2); border-radius: 12px; padding: 12px 14px; text-align: left; }
+    .guest-note a { color: var(--blue); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
     .brand { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; font-weight: 700; }
   </style>
 </head>
@@ -28,8 +37,18 @@
     <span class="check">✓</span>
     <div class="brand">Aptora</div>
     <h1>Payment received — credits added</h1>
-    <p>Your purchase is complete and the credits are already on your workspace account. You can close this page and continue building.</p>
-    <a class="btn" href="/">Open your workspace</a>
+    <p>Your purchase is complete and the credits are already on your workspace account. Payment history now shows this transaction under Activity.</p>
+    {isGuest && (
+      <p class="guest-note">
+        You paid as a guest — the credits live with this browser session.
+        <a href="/signup">Create a free account</a> and sign in: your credits,
+        payment history and unsaved work move to the account automatically.
+      </p>
+    )}
+    <div class="row">
+      <a class="btn" href="/">Open your workspace</a>
+      <a class="btn ghost" href="/?view=activity">View payment history</a>
+    </div>
   </main>
 </body>
 </html>

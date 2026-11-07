@@ -1,0 +1,24 @@
+---
+// Shared layout for the standalone secured dashboard pages (/usage, /activity, /files).
+// Reuses Base for the <head>, design tokens and analytics; adds the dashboard CSS.
+// Ownership is enforced server-side in the APIs these pages call (owner_id scoping on
+// the HttpOnly session cookie), so there is no client-trusted identity here.
+import Base from "@/layouts/Base.astro";
+import "@/styles/dashboard.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  path?: string;
+}
+const { title, description, path } = Astro.props;
+---
+
+<Base title={title} description={description} path={path}>
+  <slot />
+  <style is:global>
+    /* Same viewport model as the editor: the rail is fixed, the content column
+       (.view-scroll) scrolls — so the chrome stays put and the UI is consistent. */
+    html, body { height: 100%; overflow: hidden; }
+  </style>
+</Base>

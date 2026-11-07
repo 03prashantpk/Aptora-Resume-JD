@@ -30,6 +30,26 @@ export interface ChatOptions {
   /** Enable reasoning/thinking traces where the provider supports it. */
   enableThinking?: boolean;
   signal?: AbortSignal;
+  /** BYOK: the CURRENT OWNER'S own key (set via withOwnerKey, read by the NVIDIA
+   *  provider). Never mapped, logged, or exposed — used only as the Bearer token. */
+  ownerKey?: string;
+}
+
+// ── BYOK request context ─────────────────────────────────────────────────────
+// Routes wrap their AI work in withOwnerKey(userKey, fn); the NVIDIA provider reads
+// the key from here so task code / signatures stay untouched. AsyncLocalStorage keeps
+// the key scoped to one request's async chain — nothing leaks between requests.
+import { AsyncLocalStorage } from "node:async_hooks";
+interface OwnerKeyCtx { key: string | null }
+const ownerKeyStore = new AsyncLocalStorage<OwnerKeyCtx>();
+
+/** Run `fn` with the owner's own API key active for every AI call inside it. */
+export function withOwnerKey<T>(key: string | null, fn: () => Promise<T>): Promise<T> {
+  return ownerKeyStore.run({ key }, fn);
+}
+
+export function currentOwnerKey(): string | null {
+  return ownerKeyStore.getStore()?.key ?? null;
 }
 
 export interface StreamChunk {

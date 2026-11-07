@@ -4,6 +4,7 @@ import type { APIContext } from "astro";
 import { randomUUID } from "node:crypto";
 import { query } from "./db";
 import { PLANS } from "./payu";
+import { getStatus } from "./keys";
 
 const COOKIE = "aptora_sid";
 const env = (k: string): string | undefined => process.env[k] ?? (import.meta.env as Record<string, string>)[k];
@@ -33,25 +34,30 @@ export function limitFor(ownerId: string): number {
 }
 
 export interface UsageState {
-  aiCalls: number;          // TODAY (the displayed "AI runs today")
+  aiCalls: number;          // TODAY (the displayed "AI runs today"), free/pro budget only
   exportsUsed: number;      // TODAY (the displayed "exports today")
+  byokAiCalls: number;      // TODAY — AI runs on the owner's OWN key (budget-exempt)
   totalAiCalls: number;     // all-time (history/aggregates)
   totalExports: number;     // all-time
   freeLimit: number;        // per-day free budget
+  /** Signed "used today" that drives the gate: max(ai_calls, exports_used) from the DB
+   *  WITHOUT a floor, so an operator's negative grant stays authoritative. May be < 0. */
+  usedSigned: number;
   /** true when the owner still has free AI/export budget. */
   allowed: boolean;
 }
 
 async function readUsage(ownerId: string): Promise<{
-  day: { ai_calls: number; exports_used: number };
+  day: { ai_calls: number; exports_used: number; byok_ai_calls: number };
   total: { ai_calls: number; exports_used: number };
 }> {
   const rows = await query<{
-    day_ai: number; day_exports: number;
+    day_ai: number; day_exports: number; day_byok: number;
     total_ai: number; total_exports: number;
   }>(
     "SELECT COALESCE(SUM(ai_calls) FILTER (WHERE day = current_date),0)::int AS day_ai," +
     " COALESCE(SUM(exports_used) FILTER (WHERE day = current_date),0)::int AS day_exports," +
+    " COALESCE(SUM(byok_ai_calls) FILTER (WHERE day = current_date),0)::int AS day_byok," +
     " COALESCE(SUM(ai_calls),0)::int AS total_ai," +
     " COALESCE(SUM(exports_used),0)::int AS total_exports" +
     " FROM usage WHERE owner_id=$1",
@@ -59,28 +65,47 @@ async function readUsage(ownerId: string): Promise<{
   );
   const r = rows[0];
   return {
-    day: { ai_calls: r?.day_ai ?? 0, exports_used: r?.day_exports ?? 0 },
+    day: { ai_calls: r?.day_ai ?? 0, exports_used: r?.day_exports ?? 0, byok_ai_calls: r?.day_byok ?? 0 },
     total: { ai_calls: r?.total_ai ?? 0, exports_used: r?.total_exports ?? 0 },
   };
 }
 
-/** NOTE: legacy rows could hold bad counter values from older bugs, so every counter is
- *  clamped ≥ 0 here — a negative like "-44 AI runs" must never reach the UI again. */
+/** Counter semantics (single source of truth — the DB row wins):
+ *  - The gate uses the RAW signed counters, so a manual override works as intended:
+ *    setting usage.ai_calls = -50 grants ~50 extra runs today (the row is the truth;
+ *    the app never silently discards what an operator wrote to it).
+ *  - The DISPLAYED counters are floored at 0 only so the UI never shows "-50 AI runs";
+ *    the real signed value still drives the budget math (`used`, `allowed`).
+ *  `aiCalls` counts PLAN-budget runs only (own-key runs are counted separately in
+ *  byokAiCalls) so the daily gate can never be poisoned by a user's own-key usage. */
 export async function getUsage(ownerId: string): Promise<UsageState> {
   const u = await readUsage(ownerId);
-  const aiCalls = Math.max(0, u.day.ai_calls);
-  const exportsUsed = Math.max(0, u.day.exports_used);
+  // RAW signed daily counters drive the gate (an operator's negative override = bonus budget).
+  const rawAi = u.day.ai_calls;
+  const rawExports = u.day.exports_used;
+  // DISPLAY counters never go below 0 (a negative grant reads as "0 used today").
+  const aiCalls = Math.max(0, rawAi);
+  const exportsUsed = Math.max(0, rawExports);
+  const byokAiCalls = Math.max(0, u.day.byok_ai_calls);
   const totalAiCalls = Math.max(0, u.total.ai_calls);
   const totalExports = Math.max(0, u.total.exports_used);
-  const used = Math.max(aiCalls, exportsUsed); // shared daily budget across kinds
   const freeLimit = limitFor(ownerId);
-  return { aiCalls, exportsUsed, totalAiCalls, totalExports, freeLimit, allowed: used < freeLimit };
+  // Gate on the signed value: used can be negative (a grant), so allowed stays true
+  // until genuine usage climbs back over the free limit.
+  const usedSigned = Math.max(rawAi, rawExports);
+  return { aiCalls, exportsUsed, byokAiCalls, totalAiCalls, totalExports, freeLimit, usedSigned, allowed: usedSigned < freeLimit };
 }
 
-/** Atomically bump a usage counter for today. kind = 'ai_calls' | 'exports_used' | 'compiles'. */
-export async function bumpUsage(ownerId: string, kind: "ai_calls" | "exports_used" | "compiles"): Promise<void> {
+/** Atomically bump a usage counter for today. kind = 'ai_calls' | 'exports_used' | 'compiles'.
+ *  byok=true records the run under byok_ai_calls instead — runs on the owner's OWN key
+ *  don't consume the plan budget but ARE part of the honest usage record. */
+export async function bumpUsage(
+  ownerId: string,
+  kind: "ai_calls" | "exports_used" | "compiles",
+  { byok = false }: { byok?: boolean } = {},
+): Promise<void> {
   // Whitelisted column name (never interpolate user input).
-  const col = kind === "ai_calls" ? "ai_calls" : kind === "exports_used" ? "exports_used" : "compiles";
+  const col = byok && kind === "ai_calls" ? "byok_ai_calls" : kind === "ai_calls" ? "ai_calls" : kind === "exports_used" ? "exports_used" : "compiles";
   await query(
     `INSERT INTO usage (owner_id, day, ${col}) VALUES ($1, current_date, 1)
      ON CONFLICT (owner_id, day) DO UPDATE SET ${col} = usage.${col} + 1`,
@@ -150,31 +175,52 @@ export async function grantPlan(ownerId: string, plan: "TOPUP" | "PRO"): Promise
 }
 
 /**
- * Combined budget check for gated actions (AI runs, exports, analysis).
- * Order of consumption at call time: active Pro → unlimited within limits.
- * Then purchased credits → consume one. Then the free tier budget → bump usage.
- * Returns the decision plus the source so the UI can show where budget went.
+ * BUDGET PEEK — the single source of truth for every gated action (AI tailor/analyze/
+ * instruct/repair/ingest and PDF export). Decides WITHOUT consuming anything:
+ *   own-key → runs bill the owner's own NVIDIA key (no plan consumption)
+ *   pro → active Pro window (generous, effectively unlimited daily budget)
+ *   free → daily free budget still available
+ *   credit → consume one purchased credit AT SETTLE TIME (after the action succeeds)
+ *   blocked → nothing left; the route answers 402 and the UI offers options.
+ * The two-step peek/settle means a FAILED AI call never eats a paid credit.
  */
-export interface SpendResult extends UsageState {
-  source: "free" | "credit" | "pro";
+export type BudgetSource = "own-key" | "pro" | "free" | "credit" | "blocked";
+
+export interface Budget {
+  usage: UsageState;
+  credits: CreditState;
+  ownKey: boolean;          // BYOK active for this owner
+  source: BudgetSource;
+  allowed: boolean;
 }
 
-export async function spendFor(ownerId: string): Promise<SpendResult> {
-  const credit = await getCreditState(ownerId);
-  if (credit.isPro) {
-    const u = await getUsage(ownerId);
-    return { ...u, allowed: true, source: "pro" };
-  }
-  const u = await getUsage(ownerId);
-  if (u.allowed) return { ...u, source: "free" };
-  if (credit.credits > 0) {
+export async function peekBudget(ownerId: string): Promise<Budget> {
+  const [usage, credits, keyStatus] = await Promise.all([
+    getUsage(ownerId),
+    getCreditState(ownerId),
+    getStatus(ownerId),
+  ]);
+  if (keyStatus.has) return { usage, credits, ownKey: true, source: "own-key", allowed: true };
+  if (credits.isPro) return { usage, credits, ownKey: false, source: "pro", allowed: true };
+  if (usage.allowed) return { usage, credits, ownKey: false, source: "free", allowed: true };
+  if (credits.credits > 0) return { usage, credits, ownKey: false, source: "credit", allowed: true };
+  return { usage, credits, ownKey: false, source: "blocked", allowed: false };
+}
+
+/** Record a completed action. kind='ai_calls' for AI runs, 'exports_used' for exports.
+ *  Counter semantics: paid credits are consumed AFTER success (see peekBudget). */
+export async function settleSpend(
+  ownerId: string,
+  source: BudgetSource,
+  kind: "ai_calls" | "exports_used",
+): Promise<void> {
+  await bumpUsage(ownerId, kind, { byok: source === "own-key" && kind === "ai_calls" });
+  if (source === "credit") {
     const ok = await consumeCredit(ownerId);
-    if (ok) return { ...u, allowed: true, source: "credit" };
+    if (!ok) {
+      // Raced empty mid-action — still done, never fail the user's finished work.
+      console.warn("[budget] credit empty at settle; consumed 0 (race)");
+    }
   }
-  return { ...u, allowed: false, source: "free" };
 }
 
-/** Gate for paid-ish actions (AI tailor/analyze, export). Returns whether allowed + state. */
-export async function checkAndCountable(ownerId: string): Promise<UsageState> {
-  return getUsage(ownerId);
-}

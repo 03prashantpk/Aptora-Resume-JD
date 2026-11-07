@@ -117,7 +117,10 @@ export function buildPayuParams(o: {
   surl: string; furl: string;
 }): Record<string, string> {
   const { key, salt } = creds();
-  const amount = o.plan.amountRupees.toFixed(2);
+  // Amount is formatted to ONE decimal ("1.0", "299.0") — the same proven format
+  // the live enally.tech integration uses; the SAME string goes into the hash and
+  // the posted form (PayU validates the hash against the posted amount verbatim).
+  const amount = o.plan.amountRupees.toFixed(1);
   const productinfo = `Aptora ${o.plan.name}`;
   const firstname = o.firstname || "Aptora User";
   const email = o.email || "billing@example.com";
@@ -141,8 +144,7 @@ export function buildPayuParams(o: {
   };
 }
 
-export interface PayuCallback {
-  status?: string;        // "success" | "failure" | ("cancelled" in webhooks)
+export interface PayuCallback {  status?: string;        // "success" | "failure" | ("cancelled" in webhooks)
   txnid?: string;
   amount?: string;
   mihpayid?: string;
@@ -177,4 +179,55 @@ export function verifyPayuCallback(cb: PayuCallback): boolean {
   let diff = 0;
   for (let i = 0; i < want.length; i++) diff |= got.charCodeAt(i) ^ want.charCodeAt(i);
   return diff === 0;
+}
+
+// ── Verify API (postservice.php?form=2) ──────────────────────────────────────
+// Server-side status check for transactions whose browser redirect was dropped
+// (user closed the tab, network died, webhook missed) leaving the row stuck at
+// 'initiated'. Hash: sha512(key|command|var1|salt), command = verify_payment.
+// Mirrors the proven live PHP integration (enally.tech backend/payment/PayU.php).
+
+const PAYU_VERIFY_BASE = (): string =>
+  (PAYU_MODE() === "live"
+    ? "https://info.payu.in/merchant/postservice.php?form=2"
+    : "https://test.payu.in/merchant/postservice.php?form=2")
+
+export interface PayuVerifyDetails {
+  txnid?: string;
+  status?: string;      // "success" | "failure" | "pending" | "Not Found"
+  amount?: string;      // string rupees, e.g. "1.00"
+  mihpayid?: string;
+  mode?: string;
+  bank_ref_num?: string;
+  error_MES?: string;
+}
+
+/** Ask PayU for the real status of OUR txnid. Returns null if unreachable/unknown. */
+export async function verifyPaymentStatus(txnid: string): Promise<PayuVerifyDetails | null> {
+  const { key, salt } = creds();
+  if (!key || !salt || !txnid || !/^[A-Za-z0-9\-]{6,64}$/.test(txnid)) return null;
+  const hash = sha512([key, "verify_payment", txnid, salt].join("|"));
+  const body = new URLSearchParams({ key, command: "verify_payment", var1: txnid, hash });
+  let res: Response;
+  try {
+    res = await fetch(PAYU_VERIFY_BASE(), {
+      method: "POST",
+      body,
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  let data: { status?: number; transaction_details?: Record<string, PayuVerifyDetails> };
+  try {
+    data = (await res.json()) as typeof data;
+  } catch {
+    return null;
+  }
+  if (!data || Number(data.status) !== 1) return null;
+  const details = data.transaction_details?.[txnid];
+  if (!details || !details.status || details.status === "Not Found") return null;
+  return details;
 }

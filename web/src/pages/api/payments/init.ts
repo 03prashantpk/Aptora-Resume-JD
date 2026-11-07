@@ -12,7 +12,7 @@ export const prerender = false;
 
 export const POST: APIRoute = async (ctx) => {
   if (!payuConfigured()) {
-    return new Response(JSON.stringify({ error: "Payments are not configured yet. Please try again soon." }), {
+    return new Response(JSON.stringify({ error: "Checkout isn't set up for this site yet. You can keep working with a free API key connected under Usage → Your API key." }), {
       status: 503,
       headers: { "content-type": "application/json" },
     });

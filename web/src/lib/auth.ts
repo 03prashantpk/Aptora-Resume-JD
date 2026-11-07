@@ -117,6 +117,20 @@ export function currentUserId(ctx: APIContext): string | null {
   return sid.startsWith("user:") ? sid.slice(5) : null;
 }
 
+/** Server-side guard for account-only surfaces (dashboard pages + account APIs).
+ *  Returns the verified user, or null when the session is anonymous, the user row is
+ *  gone, or the account was never verified. The cookie prefix alone is NOT trusted —
+ *  we confirm the row exists and is verified against the DB. */
+export async function requireUser(ctx: APIContext): Promise<UserRow | null> {
+  const uid = currentUserId(ctx);
+  if (!uid) return null;
+  const rows = await query<UserRow>(
+    "SELECT id, email, name, password_hash, verified FROM users WHERE id=$1 AND verified=true",
+    [uid],
+  );
+  return rows[0] ?? null;
+}
+
 /** Drop back to a fresh anonymous session on logout. */
 export function clearUserSession(ctx: APIContext): void {
   ctx.cookies.set(COOKIE, randomUUID(), {

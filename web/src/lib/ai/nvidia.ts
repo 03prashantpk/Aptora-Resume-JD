@@ -14,7 +14,7 @@
 // is untrusted DATA; full prompts/PII are never logged.
 import {
   env, aiLog, AI_LOG_VERBOSE, nextAiId, promptChars,
-  AIProviderError, isTransientStatus,
+  AIProviderError, isTransientStatus, currentOwnerKey,
   type ChatMessage, type ChatOptions, type StreamChunk,
 } from "./provider";
 import { chatGemini, chatGeminiStream } from "./gemini_ai";
@@ -67,8 +67,17 @@ function providerFor(model: string): "gemini" | "nvidia" {
 }
 
 function assertKey(): string {
+  // BYOK first: when the current request runs on the OWNER'S OWN NVIDIA key, use it.
+  // Server keys are only the fallback. The user's key never lands in logs.
+  const ownerKey = currentOwnerKey();
+  if (ownerKey) return ownerKey;
   if (!NV_API_KEY) throw new AIProviderError(401, "NV_API_KEY not set (server env)", "nvidia");
   return NV_API_KEY;
+}
+
+/** True when THIS request should run on the owner's own key. */
+export function byokActive(): boolean {
+  return !!currentOwnerKey();
 }
 
 function buildPayload(messages: ChatMessage[], opts: ChatOptions, stream: boolean) {
@@ -106,6 +115,9 @@ async function chatNvidia(messages: ChatMessage[], opts: ChatOptions = {}): Prom
   });
   if (!res.ok) {
     aiLog(`#${id} nvidia ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
+    if ((res.status === 401 || res.status === 403) && currentOwnerKey()) {
+      throw new AIProviderError(401, "Your API key was rejected by NVIDIA — check or replace it in Usage → Your API key.", "nvidia");
+    }
     throw new AIProviderError(res.status, `NVIDIA chat failed: ${res.status}`, "nvidia");
   }
   const data = (await res.json()) as {
@@ -147,6 +159,9 @@ async function* chatNvidiaStream(
   });
   if (!res.ok || !res.body) {
     aiLog(`#${id} nvidia-stream ✗ HTTP ${res.status} in ${Date.now() - t0}ms`);
+    if ((res.status === 401 || res.status === 403) && currentOwnerKey()) {
+      throw new AIProviderError(401, "Your API key was rejected by NVIDIA — check or replace it in Usage → Your API key.", "nvidia");
+    }
     throw new AIProviderError(res.status, `NVIDIA stream failed: ${res.status}`, "nvidia");
   }
 
@@ -240,6 +255,9 @@ export async function chatWithFallback(
   opts: ChatOptions = {},
   chain: string[] = TEXT_MODEL_CHAIN,
 ): Promise<string> {
+  // BYOK: the owner's key is an NVIDIA NIM key — Gemini calls would bill US. Run
+  // their request purely on NVIDIA models.
+  if (currentOwnerKey()) chain = chain.filter((m) => providerFor(m) === "nvidia");
   const TOTAL_MS = Number(process.env.STALL_TOTAL_MS ?? 210_000);
   let lastErr: unknown;
   for (let i = 0; i < chain.length; i++) {
@@ -317,7 +335,9 @@ export async function chatWithRoleStream(
   role: AiRole = "writer",
   onReason?: (delta: string) => void,
 ): Promise<string> {
-  const chain = ROLE_CHAINS[role];
+  const chain = ROLE_CHAINS[role].filter(
+    (m) => !currentOwnerKey() || providerFor(m) === "nvidia", // BYOK → NVIDIA models only
+  );
   const INACTIVITY_MS = Number(process.env.STALL_INACTIVITY_MS ?? 45_000);
   const TOTAL_MS = Number(process.env.STALL_TOTAL_MS ?? 210_000);
   let lastErr: unknown;
