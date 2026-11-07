@@ -190,6 +190,18 @@ CREATE TABLE IF NOT EXISTS api_keys (
 -- Usage runs performed on the OWNER'S OWN key don't consume the plan budget; they're
 -- recorded separately so Activity can show honest, clean usage records.
 ALTER TABLE usage ADD COLUMN IF NOT EXISTS byok_ai_calls INTEGER NOT NULL DEFAULT 0;
+
+-- Lifetime usage rollup. The usage table is a DAILY counter (one row per owner+day),
+-- so rows accumulate forever. We prune rows older than a retention window, but their
+-- counts are first folded into this rollup so all-time totals are never lost. Live
+-- (recent) daily rows + this rollup together give the true lifetime total.
+CREATE TABLE IF NOT EXISTS usage_totals (
+  owner_id      TEXT PRIMARY KEY,
+  ai_calls      BIGINT NOT NULL DEFAULT 0,
+  exports_used  BIGINT NOT NULL DEFAULT 0,
+  byok_ai_calls BIGINT NOT NULL DEFAULT 0,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 /** Ensure schema exists. Safe to call repeatedly; runs once. */
