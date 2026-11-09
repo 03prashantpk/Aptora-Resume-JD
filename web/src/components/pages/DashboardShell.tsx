@@ -2,17 +2,26 @@
 // It reuses the EXACT SAME components as the editor - the top MenuBar (in "dashboard"
 // variant) and the icon rail - so the topbar and sidebar are identical everywhere.
 // No second bar, no duplicated chrome.
-import { ListTree, FileUp, SlidersHorizontal, Settings, Files, ChartBar } from "lucide-motion";
+import { useEffect, useState } from "react";
+import { ListTree, FileUp, SlidersHorizontal, Settings, Files, ChartBar, ShieldCheck } from "lucide-motion";
 import { BrainIcon } from "../ui/brain";
 import { SquareActivityIcon } from "../ui/SquareActivityIcon";
 import MenuBar from "../workspace/MenuBar";
 
-export type DashPage = "usage" | "activity" | "files";
+export type DashPage = "usage" | "activity" | "files" | "admin";
 
-const TITLES: Record<DashPage, string> = { usage: "Usage", activity: "Activity", files: "My files" };
+const TITLES: Record<DashPage, string> = { usage: "Usage", activity: "Activity", files: "My files", admin: "Admin" };
 
 export default function DashboardShell({ active, children }: { active: DashPage; children: React.ReactNode }) {
   const viewCls = (p: DashPage) => `rail-item${active === p ? " active" : ""}`;
+
+  // Admin rail entry is gated on the server-provided isAdmin flag (never a client guess).
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/auth/me").then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.user?.isAdmin) setIsAdmin(true); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
   return (
     <div className="app">
       {/* Same top bar as the editor (logo · Editor link · page title · Upgrade · ⋯ account). */}
@@ -34,6 +43,9 @@ export default function DashboardShell({ active, children }: { active: DashPage;
             <a className={viewCls("activity")} href="/activity" aria-label="Activity" data-label="Activity" aria-current={active === "activity" ? "page" : undefined}><SquareActivityIcon size={19} /></a>
           </div>
           <div className="rail-foot">
+            {isAdmin && (
+              <a className={viewCls("admin")} href="/admin" aria-label="Admin" data-label="Admin" aria-current={active === "admin" ? "page" : undefined}><ShieldCheck size={19} /></a>
+            )}
             <button type="button" className="rail-item" aria-label="Settings" data-label="Settings" disabled><Settings size={19} /></button>
           </div>
         </nav>

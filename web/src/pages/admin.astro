@@ -1,0 +1,18 @@
+---
+import Dashboard from "@/layouts/Dashboard.astro";
+import AdminPage from "@/components/pages/AdminPage.tsx";
+import { requireAdmin } from "@/lib/auth";
+
+export const prerender = false;
+
+// Admin-only surface. A guest or verified non-admin is bounced to the editor.
+if (!(await requireAdmin(Astro))) return Astro.redirect("/", 302);
+---
+
+<Dashboard
+  title="Admin — Aptora"
+  description="Users, contact messages and support tickets."
+  path="/admin"
+>
+  <AdminPage client:load />
+</Dashboard>
