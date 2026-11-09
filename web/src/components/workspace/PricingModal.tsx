@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { CircleCheck, LogIn, KeyRound, Sparkles } from "lucide-motion";
 import { startCheckout, type PlanCode } from "@/lib/payments-client";
+import WinBar from "../ui/WinBar";
 
 interface PlansPayload {
   configured: boolean;
@@ -104,7 +105,7 @@ export default function PricingModal({ onClose, onOpenAuth }: { onClose: () => v
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal pricing-modal pricing2" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
+        <WinBar onClose={onClose} title="Plans & pricing" light />
 
         <div className="pricing-head">
           <p className="pricing-eyebrow">Pricing</p>

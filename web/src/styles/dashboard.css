@@ -455,6 +455,20 @@
 .adm-empty { text-align: center; padding: 56px 24px; color: var(--muted); border: 1px dashed var(--border); border-radius: 12px; background: var(--surface); }
 .adm-empty strong { display: block; font-size: 14px; color: var(--secondary); margin-bottom: 4px; }
 .adm-skel { height: 120px; border-radius: 12px; background: linear-gradient(90deg,#f0f0ee 25%,#f8f8f6 50%,#f0f0ee 75%); background-size: 200% 100%; animation: act-shimmer 1.2s infinite; }
+/* Contact/Tickets as tables with a View action + read-only detail popup. */
+.adm-preview { color: var(--muted); max-width: 420px; }
+.adm-actions-col { width: 1%; white-space: nowrap; text-align: right; }
+.adm-view-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: background 140ms ease, border-color 140ms ease; }
+.adm-view-btn:hover { background: var(--subtle); border-color: var(--muted); }
+.adm-detail-modal { width: 540px; max-width: 94vw; max-height: 86vh; overflow: hidden; display: flex; flex-direction: column; text-align: left; }
+.adm-detail-body { overflow-y: auto; padding-top: 2px; }
+.adm-detail-row { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.adm-detail-row:last-child { border-bottom: none; }
+.adm-detail-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; color: var(--muted); padding-top: 2px; }
+.adm-detail-value { font-size: 13.5px; color: var(--text); word-break: break-word; }
+.adm-detail-value.mono { font-family: var(--mono); font-size: 12.5px; color: var(--secondary); }
+.adm-detail-value a { color: var(--accent); }
+.adm-detail-long { white-space: pre-wrap; line-height: 1.6; color: var(--secondary); }
 
 /* BillPond-style plan cards used by the pricing modal (opened from dashboard Upgrade). */
 .u2-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }

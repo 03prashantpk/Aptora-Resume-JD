@@ -3,8 +3,9 @@
 // requireAdmin server-side). Reuses dashboard tokens + the shared planBadge helper. No
 // destructive actions; empty tables show a calm empty state (project rule 33).
 import { useEffect, useState } from "react";
-import { Users, Mail, Ticket } from "lucide-motion";
+import { Users, Mail, Ticket, Eye } from "lucide-motion";
 import { planBadge } from "@/lib/utils";
+import WinBar from "../ui/WinBar";
 
 const TABS = [
   { key: "users", label: "Users", Icon: Users },
@@ -33,6 +34,39 @@ interface TicketRow { id: string; owner_id: string; email: string | null; subjec
 function fmtDate(s: string): string {
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function truncate(s: string | null, n = 70): string {
+  if (!s) return "—";
+  const t = s.replace(/\s+/g, " ").trim();
+  return t.length > n ? `${t.slice(0, n)}…` : t;
+}
+
+/** One labelled row inside the detail popup. */
+function DetailRow({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
+  return (
+    <div className="adm-detail-row">
+      <span className="adm-detail-label">{label}</span>
+      <div className={`adm-detail-value${mono ? " mono" : ""}`}>{value || "—"}</div>
+    </div>
+  );
+}
+
+/** Shared read-only detail popup (mac-style WinBar header). Scrim click + the red dot close. */
+function DetailModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="modal-scrim" onClick={onClose}>
+      <div className="modal adm-detail-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
+        <WinBar onClose={onClose} title={title} light />
+        <div className="adm-detail-body">{children}</div>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminView() {
@@ -145,41 +179,88 @@ function UsersTab() {
   );
 }
 
+function ViewButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="adm-view-btn" onClick={onClick} aria-label="View details">
+      <Eye size={14} /> View
+    </button>
+  );
+}
+
 function ContactTab() {
   const { rows, loading } = useTabData<ContactRow>("/api/admin/contact", (j) => (j as { messages?: ContactRow[] }).messages ?? []);
+  const [open, setOpen] = useState<ContactRow | null>(null);
   if (loading) return <div className="adm-skel" />;
   if (rows.length === 0) return <div className="adm-empty"><strong>No messages</strong>No contact submissions yet.</div>;
   return (
-    <div className="adm-cards">
-      {rows.map((m) => (
-        <article className="adm-card" key={m.id}>
-          <div className="adm-card-head">
-            <span className="adm-card-who">{m.name ?? "—"}<span>{m.email}</span></span>
-            <span className="adm-card-time">{fmtDate(m.created_at)}</span>
-          </div>
-          <p className="adm-card-body">{m.message}</p>
-        </article>
-      ))}
-    </div>
+    <>
+      <div className="adm-toolbar"><span className="adm-count">{rows.length} message{rows.length === 1 ? "" : "s"}</span></div>
+      <div className="adm-table-wrap">
+        <table className="adm-table">
+          <thead>
+            <tr><th>From</th><th>Email</th><th>Message</th><th>Received</th><th className="adm-actions-col" /></tr>
+          </thead>
+          <tbody>
+            {rows.map((m) => (
+              <tr key={m.id}>
+                <td className="adm-email">{m.name ?? "—"}</td>
+                <td>{m.email}</td>
+                <td className="adm-preview">{truncate(m.message)}</td>
+                <td className="adm-card-time">{fmtDate(m.created_at)}</td>
+                <td className="adm-actions-col"><ViewButton onClick={() => setOpen(m)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {open && (
+        <DetailModal title="Contact message" onClose={() => setOpen(null)}>
+          <DetailRow label="From" value={open.name ?? "—"} />
+          <DetailRow label="Email" value={<a href={`mailto:${open.email}`}>{open.email}</a>} />
+          <DetailRow label="Received" value={fmtDate(open.created_at)} />
+          <DetailRow label="Message" value={<div className="adm-detail-long">{open.message}</div>} />
+        </DetailModal>
+      )}
+    </>
   );
 }
 
 function TicketsTab() {
   const { rows, loading } = useTabData<TicketRow>("/api/admin/tickets", (j) => (j as { tickets?: TicketRow[] }).tickets ?? []);
+  const [open, setOpen] = useState<TicketRow | null>(null);
   if (loading) return <div className="adm-skel" />;
   if (rows.length === 0) return <div className="adm-empty"><strong>No tickets yet.</strong>Support tickets will show up here.</div>;
   return (
-    <div className="adm-cards">
-      {rows.map((t) => (
-        <article className="adm-card" key={t.id}>
-          <div className="adm-card-head">
-            <span className="adm-card-who">{t.email ?? t.owner_id}<span>{t.status}</span></span>
-            <span className="adm-card-time">{fmtDate(t.created_at)}</span>
-          </div>
-          {t.subject && <p className="adm-card-sub">{t.subject}</p>}
-          {t.body && <p className="adm-card-body">{t.body}</p>}
-        </article>
-      ))}
-    </div>
+    <>
+      <div className="adm-toolbar"><span className="adm-count">{rows.length} ticket{rows.length === 1 ? "" : "s"}</span></div>
+      <div className="adm-table-wrap">
+        <table className="adm-table">
+          <thead>
+            <tr><th>Subject</th><th>From</th><th>Status</th><th>Opened</th><th className="adm-actions-col" /></tr>
+          </thead>
+          <tbody>
+            {rows.map((t) => (
+              <tr key={t.id}>
+                <td className="adm-email">{truncate(t.subject, 50)}</td>
+                <td>{t.email ?? t.owner_id}</td>
+                <td><span className={`adm-chip ${t.status === "open" ? "yes" : "no"}`}>{t.status}</span></td>
+                <td className="adm-card-time">{fmtDate(t.created_at)}</td>
+                <td className="adm-actions-col"><ViewButton onClick={() => setOpen(t)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {open && (
+        <DetailModal title="Support ticket" onClose={() => setOpen(null)}>
+          <DetailRow label="Subject" value={open.subject ?? "—"} />
+          <DetailRow label="From" value={open.email ?? "—"} />
+          <DetailRow label="Owner" value={open.owner_id} mono />
+          <DetailRow label="Status" value={<span className={`adm-chip ${open.status === "open" ? "yes" : "no"}`}>{open.status}</span>} />
+          <DetailRow label="Opened" value={fmtDate(open.created_at)} />
+          <DetailRow label="Details" value={<div className="adm-detail-long">{open.body ?? "—"}</div>} />
+        </DetailModal>
+      )}
+    </>
   );
 }

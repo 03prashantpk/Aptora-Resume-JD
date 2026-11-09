@@ -391,6 +391,28 @@ import Workspace from "@/components/workspace/Workspace.tsx";
     @keyframes about-pop { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @media (prefers-reduced-motion: reduce) { .about-scrim, .about-modal { animation: none; } }
 
+    /* macOS-style popup title bar — traffic-light dots (red closes; amber/green decor)
+       with an optional centered title. Shared across every popup for consistent chrome. */
+    .winbar { position: relative; display: flex; align-items: center; gap: 8px; height: 38px; margin: -34px -28px 18px; padding: 0 14px; border-bottom: 1px solid rgba(255,255,255,0.08); border-radius: 18px 18px 0 0; -webkit-user-select: none; user-select: none; }
+    .winbar-dots { display: inline-flex; align-items: center; gap: 8px; }
+    .winbar-dot { width: 12px; height: 12px; border-radius: 50%; border: none; padding: 0; cursor: default; position: relative; display: inline-flex; align-items: center; justify-content: center; }
+    .winbar-dot.close { background: #ff5f57; cursor: pointer; }
+    .winbar-dot.min { background: #febc2e; }
+    .winbar-dot.max { background: #28c840; }
+    .winbar-dot.close::before, .winbar-dot.close::after { content: ""; position: absolute; width: 6px; height: 1.4px; background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 120ms ease; border-radius: 1px; }
+    .winbar-dot.close::before { transform: rotate(45deg); }
+    .winbar-dot.close::after { transform: rotate(-45deg); }
+    .winbar:hover .winbar-dot.close::before, .winbar:hover .winbar-dot.close::after { opacity: 1; }
+    .winbar-dot.close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .winbar-title { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; color: #c9c9d2; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Calendly light card has no padding of its own, so the bar sits flush at the top. */
+    .cal-modal .winbar.light { margin: 0; height: 40px; padding: 0 16px; border-bottom: 1px solid var(--border); border-radius: 18px 18px 0 0; background: var(--surface); }
+    .cal-modal .winbar.light .winbar-title { color: var(--secondary); }
+    .auth-modal-card .winbar { margin: -32px -30px 18px; padding: 0 14px; border-bottom: 1px solid var(--border); border-radius: 18px 18px 0 0; }
+    .auth-modal-card .winbar-title { color: var(--secondary); }
+    .about-modal:has(.winbar) .about-close, .auth-modal-card:has(.winbar) .about-close { display: none; }
+    @media (prefers-reduced-motion: reduce) { .winbar-dot.close::before, .winbar-dot.close::after { transition: none; } }
+
     /* Calendly modal — on-brand light card wrapping the scheduler iframe */
     .cal-modal { position: relative; width: 900px; max-width: 94vw; height: 82vh; max-height: 760px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 30px 80px rgba(0,0,0,0.35); display: flex; flex-direction: column; overflow: hidden; animation: about-pop 220ms cubic-bezier(.2,.7,.3,1); }
     .cal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--border); background: var(--surface); }
@@ -1159,6 +1181,11 @@ import Workspace from "@/components/workspace/Workspace.tsx";
       transition: color 140ms ease, border-color 140ms ease;
     }
     .modal-close:hover { color: var(--text); border-color: var(--muted); }
+    /* Light-popup window bar (BudgetModal / PricingModal). Pulls flush to the card edges. */
+    .modal .winbar.light { margin: -28px -28px 16px; padding: 0 14px; height: 40px; border-bottom: 1px solid var(--border); border-radius: 16px 16px 0 0; }
+    .modal.pricing-modal .winbar.light { margin: -32px -36px 16px; }
+    .modal .winbar.light .winbar-title { color: var(--secondary); }
+    .modal:has(.winbar) .modal-close { display: none; }
 
     /* Ads are handled by Google AdSense Auto Ads (loaded site-wide in the <head>).
        No manual ad slot / fixed box — Google places and sizes ads on its own. */
