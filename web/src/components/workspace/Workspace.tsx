@@ -417,9 +417,12 @@ export default function Workspace() {
     setAiLines(new Set()); setTailorPhase("idle"); preAiRef.current = null;
   }, [runCompile]);
 
+  const [exporting, setExporting] = useState(false);
   const onExport = useCallback(async () => {
-    if (!documentId) return;
+    if (!documentId || exporting) return;
     if (exportsLeft <= 0) { setShowAccountPrompt(true); return; }
+    setExporting(true);
+    toast("Exporting…", "info");
     // HEAD-ish check via fetch so a 402 shows the prompt instead of a broken download.
     try {
       const res = await fetch(`/api/export/${documentId}`);
@@ -434,7 +437,8 @@ export default function Workspace() {
       refreshUsage();
       toast(emailed ? "Exported - we also emailed you the PDF." : "Resume exported.", "success");
     } catch { toast("Export failed. Please try again.", "error"); }
-  }, [documentId, exportsLeft, refreshUsage]);
+    finally { setExporting(false); }
+  }, [documentId, exportsLeft, exporting, refreshUsage]);
 
   const [exportingAnalysis, setExportingAnalysis] = useState(false);
   const onExportAnalysis = useCallback(async () => {
@@ -635,7 +639,7 @@ export default function Workspace() {
       )}
       <MenuBar
         docName={docName} onRename={setDocName} saveState={saveState}
-        exportsLeft={exportsLeft} onExport={onExport} canExport={!!documentId && saveState !== "error"}
+        exportsLeft={exportsLeft} onExport={onExport} canExport={!!documentId && saveState !== "error"} exporting={exporting}
         aiChangedLines={aiLines.size} onAcceptAi={acceptAi} onRejectAi={rejectAi}
         authModal={authModal} onAuthModalChange={setAuthModal}
       />

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Download, Ellipsis, Check, X, ExternalLink, UserPlus, LogIn, Mail, Lock, LogOut, ShieldAlert, Pencil, Gauge, Receipt, KeyRound } from "lucide-motion";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
+import WinBar from "../ui/WinBar";
 import PricingModal from "./PricingModal";
 import { toast } from "../ui/toast";
 import { planBadge } from "@/lib/utils";
@@ -16,13 +17,13 @@ function avatarUrl(seedRaw: string): string {
   return `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=e7ecff,e6f4ea,faf0e6,f1eafd,f3f3f0&radius=50&scale=110`;
 }
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.2.0";
 
-function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+function Modal({ onClose, title, children }: { onClose: () => void; title?: string; children: React.ReactNode }) {
   return (
     <div className="about-scrim" onClick={onClose}>
       <div className="about-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <button type="button" className="about-close" aria-label="Close" onClick={onClose}><X size={16} /></button>
+        <WinBar onClose={onClose} title={title} />
         {children}
       </div>
     </div>
@@ -31,7 +32,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 
 function VersionModal({ onClose }: { onClose: () => void }) {
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} title="About Aptora">
       <div className="about-badge"><img src="/aptora_sq.webp" alt="Aptora" /></div>
       <h2 className="about-title">Aptora</h2>
       <p className="about-tag">Make your experience count.</p>
@@ -46,12 +47,12 @@ function CalendlyModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="about-scrim" onClick={onClose}>
       <div className="cal-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Schedule a call">
+        <WinBar onClose={onClose} title="Schedule a call" light />
         <div className="cal-head">
           <div>
             <h3 className="cal-title">Schedule a free call</h3>
             <p className="cal-sub">30 min · No commitment · Let's talk about your resume or project.</p>
           </div>
-          <button type="button" className="about-close cal-close" aria-label="Close" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="cal-frame-wrap">
           <iframe
@@ -76,7 +77,7 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
     ["Export PDF", "File → Export PDF"],
   ];
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} title="Keyboard shortcuts">
       <h2 className="about-title" style={{ fontSize: 20 }}>Keyboard shortcuts</h2>
       <div className="sc-list">
         {rows.map(([k, v]) => (
@@ -90,7 +91,7 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
 
 function DeveloperModal({ onClose }: { onClose: () => void }) {
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} title="Developer">
       <img className="dev-avatar" src="https://enally.in/storage/avatars/6a360d67d16b2.png" alt="Prashant Kumar" />
       <h2 className="about-title">Prashant Kumar</h2>
       <p className="about-tag">Full-Stack Developer &amp; Product Engineer</p>
@@ -242,7 +243,7 @@ function AuthModal({ mode: initialMode, onClose, onAuthed }: { mode: "login" | "
     return (
       <div className="about-scrim" onClick={onClose}>
         <div className="auth-modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-          <button type="button" className="about-close" aria-label="Close" onClick={onClose}><X size={16} /></button>
+          <WinBar onClose={onClose} title="Verify email" />
           <div className="auth-head">
             <div className="auth-brand-badge"><img src="/aptora_rec.webp" alt="Aptora" className="auth-rec-logo" /></div>
             <h2 className="auth-title">Verify your email</h2>
@@ -289,9 +290,7 @@ function AuthModal({ mode: initialMode, onClose, onAuthed }: { mode: "login" | "
   return (
     <div className="about-scrim" onClick={onClose}>
       <div className="auth-modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <button type="button" className="about-close" aria-label="Close" onClick={onClose}>
-          <X size={16} />
-        </button>
+        <WinBar onClose={onClose} title={mode === "login" ? "Sign in" : "Create account"} />
         <div className="auth-head">
           <div className="auth-brand-badge">
             <img src="/aptora_rec.webp" alt="Aptora" className="auth-rec-logo" />
@@ -448,6 +447,7 @@ interface Props {
   exportsLeft?: number;
   onExport?: () => void;
   canExport?: boolean;
+  exporting?: boolean;
   aiChangedLines?: number;
   onAcceptAi?: () => void;
   onRejectAi?: () => void;
@@ -464,7 +464,7 @@ function statusText(s: SaveState, loggedIn: boolean): string {
   return s === "updating" ? "Saving…" : s === "saved" ? savedLabel : s === "error" ? "Couldn't update" : "";
 }
 
-export default function MenuBar({ variant = "editor", pageTitle, docName = "Untitled Resume", onRename, saveState = "idle", exportsLeft = 0, onExport, canExport, aiChangedLines = 0, onAcceptAi, onRejectAi, authModal: authModalProp, onAuthModalChange }: Props) {
+export default function MenuBar({ variant = "editor", pageTitle, docName = "Untitled Resume", onRename, saveState = "idle", exportsLeft = 0, onExport, canExport, exporting = false, aiChangedLines = 0, onAcceptAi, onRejectAi, authModal: authModalProp, onAuthModalChange }: Props) {
   const isDashboard = variant === "dashboard";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(docName);
@@ -547,7 +547,7 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
           <button type="button" className={`mb-menu${openMenu === "File" ? " open" : ""}`} onClick={() => setOpenMenu(openMenu === "File" ? null : "File")}>File</button>
           {openMenu === "File" && (
             <div className="mb-dropdown" role="menu">
-              <button role="menuitem" onClick={() => { onExport?.(); setOpenMenu(null); }} disabled={!canExport}>Export PDF</button>
+              <button role="menuitem" onClick={() => { onExport?.(); setOpenMenu(null); }} disabled={!canExport || exporting}>Export PDF</button>
               <a role="menuitem" href="/" onClick={() => setOpenMenu(null)}>New resume</a>
               <div className="mb-sep" />
               <button role="menuitem" disabled>Save <span className="mb-hint">auto</span></button>
@@ -584,7 +584,7 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
               <a role="menuitem" href="/terms" target="_blank" rel="noreferrer">Terms &amp; Conditions</a>
               <a role="menuitem" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>
               <div className="mb-sep" />
-              <button role="menuitem" onClick={() => { setModal("version"); setOpenMenu(null); }}>What's new <span className="mb-hint">v{APP_VERSION}</span></button>
+              <button role="menuitem" onClick={() => { setModal("version"); setOpenMenu(null); }}>Version <span className="mb-hint">v{APP_VERSION}</span></button>
               <button role="menuitem" onClick={() => { setModal("developer"); setOpenMenu(null); }}>Developer</button>
             </div>
           )}
@@ -629,9 +629,9 @@ export default function MenuBar({ variant = "editor", pageTitle, docName = "Unti
           </Button>
         )}
         {!isDashboard && (
-          <Button variant="primary" onClick={() => onExport?.()} disabled={exportsLeft <= 0 || !canExport}
+          <Button variant="primary" onClick={() => onExport?.()} disabled={exporting || exportsLeft <= 0 || !canExport}
             title={exportsLeft <= 0 ? "No exports left" : !canExport ? "Compile first" : undefined}>
-            <Download size={16} /> <span>Export</span>
+            <Download size={16} /> <span>{exporting ? "Exporting…" : "Export"}</span>
           </Button>
         )}
         <div className="mb-menu-wrap" ref={moreRef}>

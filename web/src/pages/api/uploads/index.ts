@@ -31,7 +31,17 @@ export const POST: APIRoute = async (ctx) => {
     if (!fileBase64) return json({ error: { code: "EMPTY", message: "file required" } }, 400);
     // Decode base64 -> bytes, host on tmpfiles (~60 min), store the temp URL.
     const bytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
-    if (bytes.length > 10 * 1024 * 1024) return json({ error: { code: "TOO_LARGE", message: "max 10 MB" } }, 400);
+    if (bytes.length > 5 * 1024 * 1024) return json({ error: { code: "TOO_LARGE", message: "max 5 MB" } }, 400);
+    // Magic-byte check: a real PDF begins with "%PDF" (0x25 0x50 0x44 0x46).
+    if (!(bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46)) {
+      return json({ error: { code: "NOT_A_PDF", message: "Only PDF files are accepted." } }, 400);
+    }
+    // Page count: scan the raw bytes (as Latin1) for /Type /Page objects. Treat 0 as 1.
+    let latin1 = "";
+    for (let i = 0; i < bytes.length; i++) latin1 += String.fromCharCode(bytes[i]);
+    const pageMatches = latin1.match(/\/Type\s*\/Page[^s]/g);
+    const pageCount = pageMatches && pageMatches.length > 0 ? pageMatches.length : 1;
+    if (pageCount > 3) return json({ error: { code: "TOO_MANY_PAGES", message: "PDF must be 3 pages or fewer." } }, 400);
     const url = await uploadTemp(bytes, name || "resume.pdf", 3600);
     const id = await createUpload(ownerId, { kind: "resume_pdf", name: name || "resume.pdf", temp_url: url ?? undefined });
     return json({ id, temp_url: url }, 201);
