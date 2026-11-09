@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { CreditCard, UserPlus, KeyRound, MoonStar } from "lucide-motion";
 import ByokPanel from "./ByokPanel";
+import WinBar from "../ui/WinBar";
 
 interface UsageSnap {
   role: "guest" | "user";
@@ -38,7 +39,7 @@ export default function BudgetModal({
   return (
     <div className="modal-scrim" onClick={onClose}>
       <div className="modal budget-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
+        <WinBar onClose={onClose} title="Unlock more" light />
 
         {tab === "key" ? (
           <>

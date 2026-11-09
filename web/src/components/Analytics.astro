@@ -16,3 +16,8 @@ const ADSENSE_CLIENT = "ca-pub-4554043228187575";
 </script>
 
 <script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`} crossorigin="anonymous"></script>
+
+<!-- quge5 ad network: loaded async/non-blocking alongside GA, AdSense and the existing
+     3nbf4 network. quge5's tag self-registers its own worker, so web/public/sw.js is
+     intentionally left unchanged. -->
+<script src="https://quge5.com/88/tag.min.js" data-zone="307858" async data-cfasync="false"></script>

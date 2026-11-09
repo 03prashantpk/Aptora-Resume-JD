@@ -1,6 +1,6 @@
 ---
 import Marketing from "@/layouts/Marketing.astro";
-const updated = "September 2026";
+const updated = "November 2026";
 ---
 
 <Marketing
@@ -70,7 +70,7 @@ const updated = "September 2026";
           <p><strong class="font-semibold text-[#111]">Account data.</strong> When you sign in via email or an OAuth provider (Google), we store your email address and display name to identify your account.</p>
           <p><strong class="font-semibold text-[#111]">Resume and job description content.</strong> Files and text you upload are used exclusively to provide the tailoring service. We do not use your resume content to train AI models, and we do not share it with third parties beyond the infrastructure needed to process it.</p>
           <p><strong class="font-semibold text-[#111]">Technical / usage data.</strong> IP address, browser type and version, operating system, pages visited, time on page, and click behaviour — collected via Google Analytics. This data is aggregated and not linked to your resume content.</p>
-          <p><strong class="font-semibold text-[#111]">Cookies.</strong> Session cookies for authentication and analytics cookies from Google Analytics. We do not use third-party advertising cookies.</p>
+          <p><strong class="font-semibold text-[#111]">Cookies and advertising identifiers.</strong> Session cookies for authentication, analytics cookies from Google Analytics, and cookies or similar identifiers set by third-party advertising partners that help fund the free service. Advertising partners may use these to measure and show relevant ads. They never receive your resume or job-description content.</p>
         </div>
       </div>
     </div>
@@ -115,7 +115,7 @@ const updated = "September 2026";
           { n: "02", title: "Supabase", body: "Database and authentication infrastructure. Stores your account data and resume content securely." },
           { n: "03", title: "Vercel", body: "Hosts the web application. Server logs may contain IP addresses and request metadata." },
           { n: "04", title: "Google Analytics 4", body: "Website analytics and event tracking. Collects anonymised usage data. You can opt out via the Google Analytics opt-out browser add-on." },
-          { n: "05", title: "Google AdSense", body: "May serve ads on public pages. Managed via Google Ad Settings. No ads are shown inside the authenticated workspace." },
+          { n: "05", title: "Advertising partners", body: "Third-party ad networks (including Google AdSense and other display-ad partners) help keep Aptora free to use. They may set cookies or device identifiers and process technical data such as your IP address, approximate location, device and browser to select and measure ads. Your resume and job-description content is never shared with them." },
           { n: "06", title: "DiceBear", body: "Generates avatar images from initials for the public landing page. No personal data is sent — only an anonymised seed value." },
         ].map((item) => (
           <div class="lift rounded-2xl border hairline bg-white p-6">
@@ -139,7 +139,7 @@ const updated = "September 2026";
         {[
           { n: "01", title: "Essential cookies", body: "Required for authentication and basic workspace functionality. Cannot be disabled without breaking core features." },
           { n: "02", title: "Analytics cookies", body: "Google Analytics (GA4) cookies measure visitor traffic and behaviour. Data is aggregated and anonymised." },
-          { n: "03", title: "Advertising cookies", body: "Google AdSense cookies may appear on public marketing pages. You can manage preferences via Google Ad Settings." },
+          { n: "03", title: "Advertising cookies", body: "Cookies and device identifiers set by third-party advertising partners that help fund the free service. They measure and personalise ads using technical data only — never your resume content. Manage preferences via your browser and Google Ad Settings." },
           { n: "04", title: "Functional cookies", body: "Store your preferences such as theme and dismissed notifications. No cross-site tracking." },
         ].map((item) => (
           <div class="rounded-2xl border hairline bg-[#FAFAF8] p-6">

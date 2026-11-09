@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentType } from "react";
-import { ListTree, FileUp, Settings, Files, ChartBar, SlidersHorizontal, Lock } from "lucide-motion";
+import { ListTree, FileUp, Settings, Files, ChartBar, SlidersHorizontal, Lock, ShieldCheck } from "lucide-motion";
 import { BrainIcon } from "../ui/brain";
 import { SquareActivityIcon } from "../ui/SquareActivityIcon";
 
@@ -20,9 +20,10 @@ interface Props {
 
 export default function LeftRail({ drawerOpen, activeTab, onToggle, view, onOpenAuth }: Props) {
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
     let alive = true;
-    fetch("/api/auth/me").then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d) setAuthed(!!d.authenticated); }).catch(() => undefined);
+    fetch("/api/auth/me").then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d) { setAuthed(!!d.authenticated); setIsAdmin(!!d.user?.isAdmin); } }).catch(() => undefined);
     return () => { alive = false; };
   }, []);
 
@@ -64,6 +65,11 @@ export default function LeftRail({ drawerOpen, activeTab, onToggle, view, onOpen
       </div>
 
       <div className="rail-foot">
+        {isAdmin && (
+          <a className="rail-item" href="/admin" aria-label="Admin" data-label="Admin">
+            <ShieldCheck size={19} />
+          </a>
+        )}
         <button type="button" className="rail-item" aria-label="Settings" data-label="Settings" disabled>
           <Settings size={19} />
         </button>

@@ -93,6 +93,36 @@
 .modal { background: #fff; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-card); padding: 28px; max-width: 380px; }
 .modal-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--muted); cursor: pointer; }
 
+/* ── macOS-style popup title bar (shared across all popups) ───────────────
+   A slim window chrome with the three traffic-light dots on the left and an
+   optional title centered. The red dot closes; amber/green are inert decor
+   (standard window affordance). Works on both the dark (.about-*) and light
+   (.modal) popup families. When present, the old absolute close button is
+   hidden so there is a single, consistent close affordance. */
+.winbar { position: relative; display: flex; align-items: center; gap: 8px; height: 38px; margin: -34px -28px 18px; padding: 0 14px; border-bottom: 1px solid rgba(255,255,255,0.08); border-radius: 18px 18px 0 0; -webkit-user-select: none; user-select: none; }
+.winbar-dots { display: inline-flex; align-items: center; gap: 8px; }
+.winbar-dot { width: 12px; height: 12px; border-radius: 50%; border: none; padding: 0; cursor: default; position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.winbar-dot.close { background: #ff5f57; cursor: pointer; }
+.winbar-dot.min { background: #febc2e; }
+.winbar-dot.max { background: #28c840; }
+.winbar-dot.close::before,
+.winbar-dot.close::after { content: ""; position: absolute; width: 6px; height: 1.4px; background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 120ms ease; border-radius: 1px; }
+.winbar-dot.close::before { transform: rotate(45deg); }
+.winbar-dot.close::after { transform: rotate(-45deg); }
+.winbar:hover .winbar-dot.close::before,
+.winbar:hover .winbar-dot.close::after { opacity: 1; }
+.winbar-dot.close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.winbar-title { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; color: #c9c9d2; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Light-popup variant (BudgetModal / PricingModal use the white .modal shell). */
+.winbar.light { margin: -28px -28px 16px; border-bottom: 1px solid var(--border); border-radius: 16px 16px 0 0; }
+.winbar.light .winbar-title { color: var(--secondary); }
+.modal .winbar.light { margin: -28px -28px 16px; padding: 0 14px; height: 40px; border-radius: 16px 16px 0 0; }
+.modal.pricing-modal .winbar.light { margin: -32px -36px 16px; }
+/* A popup carrying a .winbar hides the legacy corner close button. */
+.about-modal:has(.winbar) .about-close,
+.modal:has(.winbar) .modal-close { display: none; }
+@media (prefers-reduced-motion: reduce) { .winbar-dot.close::before, .winbar-dot.close::after { transition: none; } }
+
 /* Rail: copied verbatim from the editor so the chrome is pixel-identical. */
 .rail { width: 52px; flex-shrink: 0; border-right: 1px solid var(--border); background: #fbfbfa; display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 14px; }
 .rail-brand { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; background: #111; color: #fff; text-decoration: none; }
@@ -391,6 +421,68 @@
 .u3-foot { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
 .u3-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .u3-foot a:hover { text-decoration: underline; }
+
+/* ── Admin area (read-only) ───────────────────────────────────────────── */
+.adm-tabs { display: flex; gap: 4px; margin-bottom: 22px; border-bottom: 1px solid var(--border); }
+.adm-tab { display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; font: inherit; font-size: 13px; font-weight: 600; color: var(--secondary); background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; transition: color 150ms ease, border-color 150ms ease; }
+.adm-tab:hover { color: var(--text); }
+.adm-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.adm-tab svg { flex-shrink: 0; }
+.adm-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.adm-search { flex: 1; max-width: 340px; height: 38px; padding: 0 14px; font: inherit; font-size: 13.5px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.adm-search:focus { outline: none; border-color: var(--accent); }
+.adm-count { font-size: 12.5px; color: var(--muted); }
+.adm-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm-table th { text-align: left; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 12px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.adm-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--secondary); vertical-align: top; }
+.adm-table tr:last-child td { border-bottom: none; }
+.adm-table tbody tr:hover { background: #fafaf9; }
+.adm-email { color: var(--text); font-weight: 600; }
+.adm-num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+.adm-chip { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.adm-chip.yes { background: #eef4fe; color: var(--accent); }
+.adm-chip.no { background: var(--subtle); color: var(--muted); }
+.adm-chip.admin { background: #0f1117; color: #8db2ff; }
+.adm-cards { display: flex; flex-direction: column; gap: 10px; }
+.adm-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 16px 18px; }
+.adm-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.adm-card-who { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.adm-card-who span { font-weight: 500; color: var(--muted); margin-left: 8px; }
+.adm-card-time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.adm-card-body { margin: 0; font-size: 13px; color: var(--secondary); line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.adm-card-sub { margin: 0 0 6px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.adm-empty { text-align: center; padding: 56px 24px; color: var(--muted); border: 1px dashed var(--border); border-radius: 12px; background: var(--surface); }
+.adm-empty strong { display: block; font-size: 14px; color: var(--secondary); margin-bottom: 4px; }
+.adm-skel { height: 120px; border-radius: 12px; background: linear-gradient(90deg,#f0f0ee 25%,#f8f8f6 50%,#f0f0ee 75%); background-size: 200% 100%; animation: act-shimmer 1.2s infinite; }
+/* Contact/Tickets as tables with a View action + read-only detail popup. */
+.adm-preview { color: var(--muted); max-width: 420px; }
+.adm-actions-col { width: 1%; white-space: nowrap; text-align: right; }
+.adm-view-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: background 140ms ease, border-color 140ms ease; }
+.adm-view-btn:hover { background: var(--subtle); border-color: var(--muted); }
+.adm-detail-modal { width: 540px; max-width: 94vw; max-height: 86vh; overflow: hidden; display: flex; flex-direction: column; text-align: left; }
+.adm-detail-body { overflow-y: auto; padding-top: 2px; }
+.adm-detail-row { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.adm-detail-row:last-child { border-bottom: none; }
+.adm-detail-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; color: var(--muted); padding-top: 2px; }
+.adm-detail-value { font-size: 13.5px; color: var(--text); word-break: break-word; }
+.adm-detail-value.mono { font-family: var(--mono); font-size: 12.5px; color: var(--secondary); }
+.adm-detail-value a { color: var(--accent); }
+.adm-detail-long { white-space: pre-wrap; line-height: 1.6; color: var(--secondary); }
+/* Payments / Billing / Documents / BYOK / Status tabs. */
+.adm-chip.neutral { background: #fff6e6; color: #b45309; }
+.adm-mono { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.adm-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.adm-stat { flex: 1 1 140px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 12px 14px; }
+.adm-stat span { display: block; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.adm-stat strong { font-size: 19px; letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+.adm-health { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.adm-health-card { display: flex; align-items: center; gap: 9px; flex: 1 1 200px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 14px 16px; }
+.adm-health-card span { font-size: 13px; color: var(--secondary); }
+.adm-health-card strong { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--text); }
+.adm-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.adm-dot.ok { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.14); }
+.adm-dot.bad { background: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.14); }
 
 /* BillPond-style plan cards used by the pricing modal (opened from dashboard Upgrade). */
 .u2-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }

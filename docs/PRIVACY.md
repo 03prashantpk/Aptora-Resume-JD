@@ -7,6 +7,24 @@ Status: **PLANNED**. Resumes and JDs are sensitive career data — treat as priv
 - Originals, generated PDFs, and preview images are **private** assets (no public URLs).
 - The DB stores metadata + storage keys, not file contents.
 - AI providers receive **only** the data required for the requested operation.
+- **Advertising partners never receive resume/JD content, account data, or file bytes.**
+  They operate only on standard web technical signals (IP, user agent, approximate
+  location, device/browser) to select and measure ads.
+
+## Advertising
+
+The free tier is partly funded by third-party advertising. Disclosure rules:
+
+- The **public privacy policy** (`web/src/pages/privacy.astro`) must name advertising as a
+  data-processing category and explain, in plain language, **what** technical data ad
+  partners may process and that resume/JD content is **never** shared with them.
+- The policy states *what* is disclosed to users, **not** the integration internals. Do
+  **not** publish network names-to-endpoints mappings, zone/publisher IDs, service-worker
+  registration details, or script URLs in user-facing copy, logs, or error messages — these
+  are operational details that add no user value and only aid abuse.
+- Ad partners are loaded **async / non-blocking** and must never touch the compile, export,
+  preview, or AI paths, and never see authenticated document bytes.
+- `public/ads.txt` is the only public authorized-seller declaration and is intentionally public.
 
 ## Retention (configurable — not hardcoded in logic)
 

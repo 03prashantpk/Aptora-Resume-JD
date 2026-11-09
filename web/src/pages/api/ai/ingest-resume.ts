@@ -47,8 +47,9 @@ export const POST: APIRoute = async (ctx) => {
     ? (templateId as TemplateId) : "T02";
   const rlog = logRoute("ai/ingest-resume", { b64: `${fileBase64.length}c`, template: tpl });
 
-  // 1. Engine text extraction.
-  const ex = await extractText(fileBase64);
+  // 1. Engine text extraction. Resume-sized cap (18k chars) — no point pulling 60k of
+  // text from a PDF we're only going to clip before the parse anyway.
+  const ex = await extractText(fileBase64, 18_000);
   if (!ex.ok) {
     rlog.done(`extract failed: ${ex.code} (${ex.status})`);
     const message = ex.code === "NOT_A_PDF" || ex.code === "PDF_UNREADABLE"
@@ -110,7 +111,7 @@ function bad(message: string): Response {
   return json(400, { error: { code: "BAD_REQUEST", message } });
 }
 function tooLarge(): Response {
-  return json(413, { error: { code: "TOO_LARGE", message: "Resume PDF must be under 10 MB." } });
+  return json(413, { error: { code: "TOO_LARGE", message: "Resume PDF must be under 5 MB." } });
 }
 function json(status: number, data: unknown): Response {
   return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });

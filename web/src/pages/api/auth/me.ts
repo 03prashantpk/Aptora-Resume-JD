@@ -8,13 +8,13 @@ export const prerender = false;
 export const GET: APIRoute = async (ctx) => {
   const uid = currentUserId(ctx);
   if (!uid) return json({ authenticated: false });
-  const rows = await query<{ email: string; name: string | null }>(
-    "SELECT email, name FROM users WHERE id=$1",
+  const rows = await query<{ email: string; name: string | null; is_admin: boolean }>(
+    "SELECT email, name, is_admin FROM users WHERE id=$1",
     [uid],
   );
   const u = rows[0];
   if (!u) return json({ authenticated: false });
-  return json({ authenticated: true, user: { email: u.email, name: u.name } });
+  return json({ authenticated: true, user: { email: u.email, name: u.name, isAdmin: u.is_admin === true } });
 };
 
 function json(data: unknown): Response {

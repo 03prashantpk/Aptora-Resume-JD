@@ -230,6 +230,9 @@ export default function Drawer({
 
   const onFilePicked = async (file: File | null) => {
     if (!file) return;
+    // Client-side pre-checks: PDF-only + under 5 MB (the server re-validates authoritatively).
+    if (file.type !== "application/pdf") { toast("Only PDF files are accepted.", "error"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast("PDF must be under 5 MB.", "error"); return; }
     setUploadingPdf(true);
     setName(file.name); onUploadName(file.name);
     try {
@@ -237,13 +240,23 @@ export default function Drawer({
       let bin = ""; for (const b of buf) bin += String.fromCharCode(b);
       const fileBase64 = btoa(bin);
 
-      // 1. Store the upload row (also powers "Recent resumes").
+      // 1. Store the upload row (also powers "Recent resumes"). This is the primary
+      // validation gate (PDF magic bytes, size, page count) — if it rejects, abort the
+      // ingest and surface the reason WITHOUT replacing the loaded document.
       let uploadId: string | undefined;
-      try {
-        const up = await fetch("/api/uploads", { method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify({ kind: "resume_pdf", name: file.name, fileBase64 }) });
-        if (up.ok) { const d = (await up.json().catch(() => ({}))) as { id?: string }; uploadId = d.id; }
-      } catch { /* row is best-effort; ingestion still proceeds */ }
+      const up = await fetch("/api/uploads", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "resume_pdf", name: file.name, fileBase64 }) });
+      if (!up.ok) {
+        const err = (await up.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+        const code = err.error?.code;
+        if (code === "NOT_A_PDF" || code === "TOO_LARGE" || code === "TOO_MANY_PAGES") {
+          toast(err.error?.message ?? "That file was rejected. Try a different PDF.", "error");
+        } else {
+          toast(err.error?.message ?? "Couldn't upload that file. Try again.", "error");
+        }
+        return;
+      }
+      { const d = (await up.json().catch(() => ({}))) as { id?: string }; uploadId = d.id; }
 
       // 2. Parse + render the USER'S resume into the current template, then auto-fill.
       if (!onIngested) return;
@@ -251,7 +264,7 @@ export default function Drawer({
       const res = await fetch("/api/ai/ingest-resume", { method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ uploadId, fileBase64, name: file.name }) });
-      const data = (await res.json().catch(() => ({}))) as { latex?: string; uploadId?: string|null; error?: { message?: string } };
+      const data = (await res.json().catch(() => ({}))) as { latex?: string; uploadId?: string|null; error?: { code?: string; message?: string } };
       if (res.ok && data.latex) {
         onIngested({ latex: data.latex, uploadId: data.uploadId ?? uploadId });
         toast("Resume imported - your details replaced the starter document.", "success");
@@ -259,7 +272,7 @@ export default function Drawer({
       } else if (res.status === 402) {
         toast("Daily limit reached - add credits or connect your own API key to continue.", "error");
       } else {
-        // Keep the previously loaded doc; surface why.
+        // Keep the previously loaded doc; surface why (including server validation codes).
         toast(data.error?.message ?? "Couldn't parse that PDF. Fix the file and try again.", "error");
       }
     } catch { /* non-fatal */ }
@@ -373,7 +386,7 @@ export default function Drawer({
                   <FileUp size={20} className="dz-icon" />
                 )}
                 {name ? <span className="file-name">{name}</span> : <span>Upload PDF</span>}
-                <em>{uploadingPdf ? (ingesting ? "Parsing your resume…" : "Uploading…") : name ? "Uploaded & parsed" : "Click or drop file (Max 10 MB)"}</em>
+                <em>{uploadingPdf ? (ingesting ? "Parsing your resume…" : "Uploading…") : name ? "Uploaded & parsed" : "PDF · max 5 MB · max 3 pages"}</em>
               </button>
               <input ref={fileRef} type="file" accept="application/pdf" hidden
                 onChange={(e) => onFilePicked(e.target.files?.[0] ?? null)} />

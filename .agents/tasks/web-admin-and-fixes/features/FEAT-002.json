@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Admin data + auth foundation (prerequisite for FEAT-003): add an is_admin column to users with an idempotent ALTER and a bootstrap that marks exactly two emails admin, create a minimal tickets table, extend UserRow + auth helpers (isAdminEmail/isAdmin/requireAdmin) and enforce admin on those two emails at account-creation/verification time, and expose the admin flag to the client via /api/auth/me. This feature must be completed before FEAT-003.",
+  "status": "completed",
+  "steps": [
+    "SCHEMA: In web/src/lib/db/index.ts SCHEMA const, add `is_admin BOOLEAN NOT NULL DEFAULT false` to the `users` CREATE TABLE. Immediately after the users table, add an idempotent `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;`.",
+    "SCHEMA: Add a new table in SCHEMA: `CREATE TABLE IF NOT EXISTS tickets (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, email TEXT, subject TEXT, body TEXT, status TEXT NOT NULL DEFAULT 'open', created_at TIMESTAMPTZ NOT NULL DEFAULT now());` and `CREATE INDEX IF NOT EXISTS idx_tickets_created ON tickets(created_at);`.",
+    "SCHEMA: Append an idempotent bootstrap at the END of the SCHEMA string: `UPDATE users SET is_admin=true WHERE lower(email) IN ('prashantmanwan@gmail.com','sushantkumar4867@gmail.com');`. Because ensureSchema() runs the whole SCHEMA via one p.query(SCHEMA) call, this UPDATE runs on every process init and is idempotent.",
+    "AUTH: In web/src/lib/auth.ts extend `interface UserRow` with `is_admin: boolean`. Add `is_admin` to the SELECT column lists in findUserByEmail and requireUser (both select id, email, name, password_hash, verified today).",
+    "AUTH: Add `const ADMIN_EMAILS = ['prashantmanwan@gmail.com','sushantkumar4867@gmail.com'];` and `export function isAdminEmail(email: string): boolean { return ADMIN_EMAILS.includes(email.trim().toLowerCase()); }`.",
+    "AUTH: In createUser, set is_admin based on isAdminEmail(email): include an is_admin column in the INSERT (value `isAdminEmail(email)`) and in the ON CONFLICT DO UPDATE SET clause (set is_admin = EXCLUDED.is_admin OR users.is_admin so it can only turn on). In markVerified, after the verify UPDATE, if isAdminEmail(email) run `query(\"UPDATE users SET is_admin=true WHERE email=$1\",[email.trim().toLowerCase()])`.",
+    "AUTH: Add `export async function isAdmin(userId: string): Promise<boolean>` that queries `SELECT is_admin FROM users WHERE id=$1 AND verified=true` and returns the boolean (false when no row). Add `export async function requireAdmin(ctx: APIContext): Promise<UserRow | null>` that calls requireUser(ctx) and returns the user only when it is non-null AND user.is_admin === true, else null.",
+    "ME ENDPOINT: In web/src/pages/api/auth/me.ts add `is_admin` to its own `SELECT email, name FROM users WHERE id=$1` query (-> `SELECT email, name, is_admin ...`) and include `isAdmin: u.is_admin === true` in the authenticated `{ authenticated: true, user: {...} }` response body."
+  ],
+  "acceptance_criteria": [
+    "`npm run check` (cwd web/) passes with no new errors (UserRow type change compiles across all requireUser callers).",
+    "SCHEMA defines users.is_admin, an idempotent ALTER for existing DBs, a tickets table + index, and a bootstrap UPDATE scoping admin to exactly the two emails.",
+    "auth.ts exports isAdminEmail, isAdmin, requireAdmin; UserRow includes is_admin; createUser and markVerified make only the two allowlisted emails admin and never any other email.",
+    "GET /api/auth/me returns isAdmin:true only for the two bootstrapped admins and isAdmin:false/absent otherwise."
+  ],
+  "verification": [
+    "From d:\\Enally.in\\JD-Resume\\web run `npm run check` and confirm no new errors.",
+    "Reason through auth.ts: confirm no code path sets is_admin=true for an email not in ADMIN_EMAILS, and that requireAdmin returns null for a verified non-admin user and for a guest."
+  ],
+  "blocked_reason": null,
+  "findings": "Implemented all 8 steps. web/src/lib/db/index.ts SCHEMA: added `is_admin BOOLEAN NOT NULL DEFAULT false` to users CREATE TABLE + idempotent `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin ...`; added `tickets` table (id, owner_id, email, subject, body, status default 'open', created_at) + idx_tickets_created; appended idempotent bootstrap UPDATE at END of SCHEMA scoping admin to exactly prashantmanwan@gmail.com and sushantkumar4867@gmail.com (runs each process init via ensureSchema's single p.query(SCHEMA)). web/src/lib/auth.ts: UserRow extended with `is_admin: boolean`; is_admin added to SELECT lists in findUserByEmail and requireUser; added ADMIN_EMAILS const + isAdminEmail(); createUser INSERTs is_admin=isAdminEmail(email) and ON CONFLICT sets `is_admin = EXCLUDED.is_admin OR users.is_admin` (can only turn on, never off, never for a non-allowlisted email); markVerified runs a follow-up `UPDATE users SET is_admin=true` only when isAdminEmail(email); added `isAdmin(userId)` (SELECT is_admin WHERE id AND verified=true, false when no row) and `requireAdmin(ctx)` (returns user only when requireUser non-null AND user.is_admin===true, else null). web/src/pages/api/auth/me.ts: SELECT now includes is_admin and the authed response includes `isAdmin: u.is_admin === true`. Correctness note honored: tickets.owner_id documented as the prefixed owner ('user:'||users.id for accounts). No code path sets is_admin=true for any email outside ADMIN_EMAILS; requireAdmin returns null for guests and verified non-admins. Verification (npm run check) deferred to end of overall flow per instruction; FEAT-003 not implemented. Did not touch server/ or web/public/sw.js."
+}

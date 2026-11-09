@@ -1,7 +1,7 @@
 {
   "name": "jd-resume-web",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "JD-Resume application layer (Astro + React). Owns UI, sessions, AI, quotas, export auth, preview delivery. Talks to the Python rendering engine server-to-server.",
   "scripts": {
