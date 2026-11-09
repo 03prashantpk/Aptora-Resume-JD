@@ -15,16 +15,23 @@ interface Row {
   refund_amt: string | null;
   created_at: string;
   updated_at: string;
+  email: string | null; // account email (falls back to the purchase's own email below)
+  name: string | null;
 }
 
 export const GET: APIRoute = async (ctx) => {
   const admin = await requireAdmin(ctx);
   if (!admin) return json(403, { error: { code: "FORBIDDEN", message: "Admins only." } });
 
+  // Prefer the account's name/email (joined on the prefixed owner_id); fall back to the
+  // email captured on the purchase row itself (PayU callback) for anonymous buyers.
   const payments = await query<Row>(
-    `SELECT id, owner_id, plan_code, amount, status, refund_amt, created_at, updated_at
-       FROM purchases
-      ORDER BY created_at DESC
+    `SELECT p.id, p.owner_id, p.plan_code, p.amount, p.status, p.refund_amt,
+            p.created_at, p.updated_at,
+            COALESCE(u.email, p.email) AS email, u.name
+       FROM purchases p
+       LEFT JOIN users u ON 'user:'||u.id = p.owner_id
+      ORDER BY p.created_at DESC
       LIMIT 500`,
   );
   return json(200, { payments });
