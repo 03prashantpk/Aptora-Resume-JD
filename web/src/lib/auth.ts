@@ -47,11 +47,17 @@ export function hashCode(code: string): string {
 }
 
 // ---- Users ----
-export interface UserRow { id: string; email: string; name: string | null; password_hash: string; verified: boolean }
+export interface UserRow { id: string; email: string; name: string | null; password_hash: string; verified: boolean; is_admin: boolean }
+
+// Admin allowlist. Only these emails ever become admin; enforced server-side.
+const ADMIN_EMAILS = ["prashantmanwan@gmail.com", "sushantkumar4867@gmail.com"];
+export function isAdminEmail(email: string): boolean {
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
 
 export async function findUserByEmail(email: string): Promise<UserRow | null> {
   const rows = await query<UserRow>(
-    "SELECT id, email, name, password_hash, verified FROM users WHERE email=$1",
+    "SELECT id, email, name, password_hash, verified, is_admin FROM users WHERE email=$1",
     [email.trim().toLowerCase()],
   );
   return rows[0] ?? null;
@@ -60,9 +66,10 @@ export async function findUserByEmail(email: string): Promise<UserRow | null> {
 export async function createUser(email: string, name: string, passwordHash: string): Promise<string> {
   const id = randomUUID();
   await query(
-    `INSERT INTO users (id, email, name, password_hash, verified) VALUES ($1,$2,$3,$4,false)
-     ON CONFLICT (email) DO UPDATE SET name=EXCLUDED.name, password_hash=EXCLUDED.password_hash`,
-    [id, email.trim().toLowerCase(), name, passwordHash],
+    `INSERT INTO users (id, email, name, password_hash, verified, is_admin) VALUES ($1,$2,$3,$4,false,$5)
+     ON CONFLICT (email) DO UPDATE SET name=EXCLUDED.name, password_hash=EXCLUDED.password_hash,
+       is_admin = EXCLUDED.is_admin OR users.is_admin`,
+    [id, email.trim().toLowerCase(), name, passwordHash, isAdminEmail(email)],
   );
   const u = await findUserByEmail(email);
   return u?.id ?? id;
@@ -70,6 +77,9 @@ export async function createUser(email: string, name: string, passwordHash: stri
 
 export async function markVerified(email: string): Promise<void> {
   await query("UPDATE users SET verified=true WHERE email=$1", [email.trim().toLowerCase()]);
+  if (isAdminEmail(email)) {
+    await query("UPDATE users SET is_admin=true WHERE email=$1", [email.trim().toLowerCase()]);
+  }
 }
 
 // ---- OTP storage ----
@@ -125,10 +135,26 @@ export async function requireUser(ctx: APIContext): Promise<UserRow | null> {
   const uid = currentUserId(ctx);
   if (!uid) return null;
   const rows = await query<UserRow>(
-    "SELECT id, email, name, password_hash, verified FROM users WHERE id=$1 AND verified=true",
+    "SELECT id, email, name, password_hash, verified, is_admin FROM users WHERE id=$1 AND verified=true",
     [uid],
   );
   return rows[0] ?? null;
+}
+
+/** True when a verified user is an admin. Resolves false when no verified row exists. */
+export async function isAdmin(userId: string): Promise<boolean> {
+  const rows = await query<{ is_admin: boolean }>(
+    "SELECT is_admin FROM users WHERE id=$1 AND verified=true",
+    [userId],
+  );
+  return rows[0]?.is_admin === true;
+}
+
+/** Server-side guard for admin-only surfaces. Returns the user only when verified AND
+ *  is_admin; null for guests and verified non-admins. */
+export async function requireAdmin(ctx: APIContext): Promise<UserRow | null> {
+  const user = await requireUser(ctx);
+  return user && user.is_admin === true ? user : null;
 }
 
 /** Drop back to a fresh anonymous session on logout. */

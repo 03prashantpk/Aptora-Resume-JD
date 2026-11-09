@@ -161,15 +161,22 @@ export async function parseResumeText(
   text: string,
   signal?: AbortSignal,
 ): Promise<ResumeJSON> {
+  // A resume is small. Cap the text we feed the model so a PDF with a long tail (links
+  // dumps, references, boilerplate) can't bloat the prompt and slow the parse. 16k chars
+  // comfortably covers a 2-3 page resume; the rest is noise for parsing.
+  const clipped = text.length > 16_000 ? text.slice(0, 16_000) : text;
   const user = [
-    "<RESUME_TEXT>", text, "</RESUME_TEXT>", "",
+    "<RESUME_TEXT>", clipped, "</RESUME_TEXT>", "",
     "Parse this resume into the JSON shape now.",
   ].join("\n");
   const messages: ChatMessage[] = [
     { role: "system", content: INGEST_SYSTEM },
     { role: "user", content: user },
   ];
-  const out = await chatWithFallback(messages, { temperature: 0.1, max_tokens: 8192, signal });
+  // max_tokens is sized to a real resume JSON (~1.5-3k tokens), not 8k. A tighter cap
+  // lets the model stop sooner and the response return faster — the single biggest win
+  // for perceived parse speed, with no loss of fidelity for normal resumes.
+  const out = await chatWithFallback(messages, { temperature: 0.1, max_tokens: 4096, signal });
   const parsed = resumeFromParsed(parseLoose(out));
   if (parsed) return parsed;
 
@@ -179,7 +186,7 @@ export async function parseResumeText(
     { role: "user", content: user },
     { role: "user", content: "Return ONLY the minified JSON object now — no prose, no fences." },
   ];
-  const out2 = await chatWithFallback(retry, { temperature: 0.05, max_tokens: 8192, signal });
+  const out2 = await chatWithFallback(retry, { temperature: 0.05, max_tokens: 4096, signal });
   const parsed2 = resumeFromParsed(parseLoose(out2));
   if (parsed2) return parsed2;
   throw new Error("PARSE_FAILED");

@@ -100,8 +100,11 @@ CREATE TABLE IF NOT EXISTS users (
   name          TEXT,
   password_hash TEXT NOT NULL,
   verified      BOOLEAN NOT NULL DEFAULT false,
+  is_admin      BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Idempotent upgrade for databases created before the is_admin column existed.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
 
 -- Short-lived OTP codes for signup email verification (and future flows). Code is stored
 -- HASHED, never in plaintext. attempts caps brute force; expires_at bounds the window.
@@ -202,6 +205,23 @@ CREATE TABLE IF NOT EXISTS usage_totals (
   byok_ai_calls BIGINT NOT NULL DEFAULT 0,
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Support tickets surfaced in the admin area. owner_id is the prefixed owner
+-- ('user:'||id for accounts, 'anonymous:'||sid otherwise).
+CREATE TABLE IF NOT EXISTS tickets (
+  id          TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL,
+  email       TEXT,
+  subject     TEXT,
+  body        TEXT,
+  status      TEXT NOT NULL DEFAULT 'open',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tickets_created ON tickets(created_at);
+
+-- Admin bootstrap. Scopes admin to exactly the two allowlisted emails; runs on every
+-- process init via ensureSchema() and is idempotent.
+UPDATE users SET is_admin=true WHERE lower(email) IN ('prashantmanwan@gmail.com','sushantkumar4867@gmail.com');
 `;
 
 /** Ensure schema exists. Safe to call repeatedly; runs once. */
