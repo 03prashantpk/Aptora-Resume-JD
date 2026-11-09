@@ -35,10 +35,10 @@ interface UserRow {
 }
 interface ContactRow { id: string; name: string | null; email: string; message: string; created_at: string }
 interface TicketRow { id: string; owner_id: string; email: string | null; subject: string | null; body: string | null; status: string; created_at: string }
-interface PaymentRow { id: string; owner_id: string; plan_code: string; amount: string; status: string; refund_amt: string | null; created_at: string; updated_at: string }
-interface BillingRow { owner_id: string; credits: number; pro_until: string | null; isPro: boolean }
-interface DocRow { owner_id: string; docs: number; exports: number; last_at: string }
-interface ByokRow { owner_id: string; provider: string; created_at: string }
+interface PaymentRow { id: string; owner_id: string; plan_code: string; amount: string; status: string; refund_amt: string | null; created_at: string; updated_at: string; email: string | null; name: string | null }
+interface BillingRow { owner_id: string; credits: number; pro_until: string | null; isPro: boolean; email: string | null; name: string | null }
+interface DocRow { owner_id: string; docs: number; exports: number; last_at: string; email: string | null; name: string | null }
+interface ByokRow { owner_id: string; provider: string; created_at: string; email: string | null; name: string | null }
 interface StatusSnap {
   db: boolean;
   engine: { reachable: boolean };
@@ -65,6 +65,28 @@ function payTone(status: string): "yes" | "no" | "neutral" {
   if (s === "success") return "yes";
   if (s === "failed" || s === "failure" || s === "cancelled" || s === "canceled") return "no";
   return "neutral";
+}
+
+/** Human-friendly identity for an owner. Accounts show name + email; anonymous sessions
+ *  (no joined user row) show "Anonymous" with a short session hint. */
+function OwnerCell({ ownerId, email, name }: { ownerId: string; email: string | null; name: string | null }) {
+  const isUser = ownerId.startsWith("user:");
+  if (name || email) {
+    return (
+      <span className="adm-owner">
+        <strong>{name || email}</strong>
+        {name && email && <span>{email}</span>}
+      </span>
+    );
+  }
+  // No account behind this owner_id — anonymous session or a deleted account.
+  const hint = ownerId.includes(":") ? ownerId.split(":")[1].slice(0, 8) : ownerId.slice(0, 8);
+  return (
+    <span className="adm-owner">
+      <strong>{isUser ? "Deleted account" : "Anonymous"}</strong>
+      <span className="mono">{hint}…</span>
+    </span>
+  );
 }
 
 function truncate(s: string | null, n = 70): string {
@@ -323,11 +345,12 @@ function PaymentsTab() {
       <div className="adm-table-wrap">
         <table className="adm-table">
           <thead>
-            <tr><th>Txn ID</th><th>Plan</th><th className="adm-num">Amount</th><th>Status</th><th>Date</th><th className="adm-actions-col" /></tr>
+            <tr><th>Buyer</th><th>Txn ID</th><th>Plan</th><th className="adm-num">Amount</th><th>Status</th><th>Date</th><th className="adm-actions-col" /></tr>
           </thead>
           <tbody>
             {rows.map((p) => (
               <tr key={p.id}>
+                <td><OwnerCell ownerId={p.owner_id} email={p.email} name={p.name} /></td>
                 <td className="adm-mono">{truncate(p.id, 22)}</td>
                 <td>{p.plan_code}</td>
                 <td className="adm-num">{fmtInr(p.amount)}</td>
@@ -342,7 +365,8 @@ function PaymentsTab() {
       {open && (
         <DetailModal title="Transaction" onClose={() => setOpen(null)}>
           <DetailRow label="Txn ID" value={open.id} mono />
-          <DetailRow label="Owner" value={open.owner_id} mono />
+          <DetailRow label="Buyer" value={<OwnerCell ownerId={open.owner_id} email={open.email} name={open.name} />} />
+          <DetailRow label="Owner ID" value={open.owner_id} mono />
           <DetailRow label="Plan" value={open.plan_code} />
           <DetailRow label="Amount" value={fmtInr(open.amount)} />
           <DetailRow label="Status" value={<span className={`adm-chip ${payTone(open.status)}`}>{open.status}</span>} />
@@ -370,7 +394,7 @@ function BillingTab() {
           <tbody>
             {rows.map((b) => (
               <tr key={b.owner_id}>
-                <td className="adm-mono">{b.owner_id}</td>
+                <td><OwnerCell ownerId={b.owner_id} email={b.email} name={b.name} /></td>
                 <td className="adm-num">{b.credits}</td>
                 <td>{b.isPro ? <span className="adm-chip admin">Pro</span> : <span className="adm-chip no">—</span>}</td>
                 <td className="adm-card-time">{b.pro_until ? fmtDate(b.pro_until) : "—"}</td>
@@ -398,7 +422,7 @@ function DocumentsTab() {
           <tbody>
             {rows.map((d) => (
               <tr key={d.owner_id}>
-                <td className="adm-mono">{d.owner_id}</td>
+                <td><OwnerCell ownerId={d.owner_id} email={d.email} name={d.name} /></td>
                 <td className="adm-num">{d.docs}</td>
                 <td className="adm-num">{d.exports}</td>
                 <td className="adm-card-time">{fmtDate(d.last_at)}</td>
@@ -426,7 +450,7 @@ function ByokTab() {
           <tbody>
             {rows.map((k) => (
               <tr key={k.owner_id}>
-                <td className="adm-mono">{k.owner_id}</td>
+                <td><OwnerCell ownerId={k.owner_id} email={k.email} name={k.name} /></td>
                 <td><span className="adm-chip yes">{k.provider}</span></td>
                 <td className="adm-card-time">{fmtDate(k.created_at)}</td>
               </tr>

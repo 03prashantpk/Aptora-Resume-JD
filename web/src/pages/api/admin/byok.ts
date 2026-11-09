@@ -10,14 +10,21 @@ interface Row {
   owner_id: string;
   provider: string;
   created_at: string;
+  email: string | null;
+  name: string | null;
 }
 
 export const GET: APIRoute = async (ctx) => {
   const admin = await requireAdmin(ctx);
   if (!admin) return json(403, { error: { code: "FORBIDDEN", message: "Admins only." } });
 
+  // Resolve the account behind each prefixed owner_id ('user:'||id) so the admin UI can
+  // show a name/email instead of a raw UUID. Anonymous owners have no row -> null.
   const keys = await query<Row>(
-    `SELECT owner_id, provider, created_at FROM api_keys ORDER BY created_at DESC LIMIT 500`,
+    `SELECT k.owner_id, k.provider, k.created_at, u.email, u.name
+       FROM api_keys k
+       LEFT JOIN users u ON 'user:'||u.id = k.owner_id
+      ORDER BY k.created_at DESC LIMIT 500`,
   );
   return json(200, { keys });
 };

@@ -9,17 +9,21 @@ interface Row {
   owner_id: string;
   credits: number;
   pro_until: string | null;
+  email: string | null;
+  name: string | null;
 }
 
 export const GET: APIRoute = async (ctx) => {
   const admin = await requireAdmin(ctx);
   if (!admin) return json(403, { error: { code: "FORBIDDEN", message: "Admins only." } });
 
+  // Join to the account behind the prefixed owner_id so the UI shows name/email, not a UUID.
   const rows = await query<Row>(
-    `SELECT owner_id, credits, pro_until
-       FROM credit_balance
-      WHERE credits > 0 OR pro_until IS NOT NULL
-      ORDER BY pro_until DESC NULLS LAST, credits DESC
+    `SELECT c.owner_id, c.credits, c.pro_until, u.email, u.name
+       FROM credit_balance c
+       LEFT JOIN users u ON 'user:'||u.id = c.owner_id
+      WHERE c.credits > 0 OR c.pro_until IS NOT NULL
+      ORDER BY c.pro_until DESC NULLS LAST, c.credits DESC
       LIMIT 500`,
   );
   const now = Date.now();

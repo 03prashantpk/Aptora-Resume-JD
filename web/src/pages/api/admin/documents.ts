@@ -9,11 +9,15 @@ export const GET: APIRoute = async (ctx) => {
   const admin = await requireAdmin(ctx);
   if (!admin) return json(403, { error: { code: "FORBIDDEN", message: "Admins only." } });
 
-  // Two cheap aggregates, merged by owner_id in JS (avoids a FULL OUTER JOIN).
+  // Two cheap aggregates, merged by owner_id in JS (avoids a FULL OUTER JOIN). The docs
+  // aggregate is joined to users so the admin UI shows a name/email, not a raw UUID.
   const [docs, exports] = await Promise.all([
-    query<{ owner_id: string; docs: number; last_at: string }>(
-      `SELECT owner_id, COUNT(*)::int AS docs, MAX(created_at) AS last_at
-         FROM documents GROUP BY owner_id ORDER BY docs DESC LIMIT 500`,
+    query<{ owner_id: string; docs: number; last_at: string; email: string | null; name: string | null }>(
+      `SELECT d.owner_id, COUNT(*)::int AS docs, MAX(d.created_at) AS last_at, u.email, u.name
+         FROM documents d
+         LEFT JOIN users u ON 'user:'||u.id = d.owner_id
+        GROUP BY d.owner_id, u.email, u.name
+        ORDER BY docs DESC LIMIT 500`,
     ),
     query<{ owner_id: string; exports: number }>(
       `SELECT owner_id, COUNT(*)::int AS exports FROM exports GROUP BY owner_id`,
@@ -26,6 +30,8 @@ export const GET: APIRoute = async (ctx) => {
     docs: d.docs,
     exports: exportsByOwner.get(d.owner_id) ?? 0,
     last_at: d.last_at,
+    email: d.email,
+    name: d.name,
   }));
   return json(200, { rows });
 };
